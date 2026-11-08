@@ -9,6 +9,7 @@ traces are cached in the plugin data folder.
 
 from __future__ import annotations
 
+import base64
 import gzip
 import hashlib
 import json
@@ -428,10 +429,26 @@ def make_router(api: WebAPI):
     router = APIRouter()
 
     def guard(fn, *args):
+        """A missing resource is a 404; a request the bench refuses (bad move, invalid edit, blocked play)
+        is an answer: 200 with ``{"ok": false, "error", "problems"}``, so both UIs can show the problems."""
         try:
             return fn(*args)
         except ApiError as exc:
-            return JSONResponse(exc.payload(), status_code=exc.status)
+            return JSONResponse(exc.payload(), status_code=200 if exc.status == 400 else exc.status)
+
+    def data_url(path):
+        if path is None:
+            return JSONResponse({"ok": False, "error": "not found"}, status_code=404)
+        mime = PHOTO_TYPES.get(path.suffix.lower(), "image/png")
+        return {"ok": True, "data_url": f"data:{mime};base64," + base64.b64encode(path.read_bytes()).decode("ascii")}
+
+    @router.get("/robots/{name}/photo.json")
+    def photo_json(name: str):
+        return data_url(api.photo_path(name))
+
+    @router.get("/robots/{name}/thumb.json")
+    def thumb_json(name: str):
+        return data_url(api.thumb_path(name))
 
     @router.get("/robots")
     def robots():
@@ -504,7 +521,7 @@ def make_router(api: WebAPI):
         try:
             blob = api.trace(body)
         except ApiError as exc:
-            return JSONResponse(exc.payload(), status_code=exc.status)
+            return JSONResponse(exc.payload(), status_code=200 if exc.status == 400 else exc.status)
         return Response(content=blob, media_type="application/json",
                         headers={"Content-Encoding": "gzip", "Cache-Control": "no-store"})
 

@@ -84,6 +84,9 @@ def test_photo_is_served_safely(client):
     r = client.get(PREFIX + "/robots/caduceus/photo")
     assert r.status_code == 200 and r.headers["content-type"] == "image/jpeg" and len(r.content) > 1000
     assert client.get(PREFIX + "/robots/spider8/photo").status_code == 404
+    data = client.get(PREFIX + "/robots/caduceus/photo.json").json()
+    assert data["ok"] and data["data_url"].startswith("data:image/jpeg;base64,")
+    assert client.get(PREFIX + "/robots/spider8/photo.json").status_code == 404
     for bad in ("..%2F..%2Fetc%2Fpasswd", "..", "caduceus%2F..%2F..%2Fplugin.yaml"):
         assert client.get(PREFIX + f"/robots/{bad}/photo").status_code == 404
         assert client.get(PREFIX + f"/robots/{bad}/thumb").status_code == 404
@@ -125,7 +128,7 @@ def test_scene_traces_carry_terrain(client):
     slip = client.post(PREFIX + "/trace", json={"robot": "spider8", "scene": "slippery", "seed": 2}).json()
     assert slip["meta"]["floor"] == "slippery" and 0.05 < slip["meta"]["friction"] < 0.2
     na = client.post(PREFIX + "/trace", json={"robot": "arm6", "scene": "flat", "seed": 0})
-    assert na.status_code == 400
+    assert na.status_code == 200 and na.json()["ok"] is False and "does not apply" in na.json()["error"]
 
 
 def test_preflight_and_play_go_through_the_gate(client):
@@ -141,7 +144,7 @@ def test_preflight_and_play_go_through_the_gate(client):
     assert st["ok"] and st["simulated"]
     assert post(client, "/stop", {"robot": "caduceus"})[1]["stopped"]
     code, real = post(client, "/play", {"robot": "caduceus", "move": "arms_up_alternating", "target": "real"})
-    assert code == 400 and "robot_url" in real["error"]
+    assert code == 200 and real["ok"] is False and "robot_url" in real["error"]
 
 
 def test_edit_saves_a_user_copy(client):
@@ -152,11 +155,11 @@ def test_edit_saves_a_user_copy(client):
     assert detail["title"].endswith("(edited)") and not detail["has_photo"]
     assert next(p for p in detail["parts"] if p["name"] == "head")["mass"] == 220
     code, bad = post(client, "/robots/caduceus/edit", {"new_name": "x1", "parts": {"head": {"color": "red"}}})
-    assert code == 400 and bad["problems"]
+    assert code == 200 and not bad["ok"] and bad["problems"]
     code, bad = post(client, "/robots/caduceus/edit", {"new_name": "x2", "parts": {"left_arm": {"servo": "NOPE9"}}})
-    assert code == 400 and bad["problems"]
+    assert code == 200 and not bad["ok"] and bad["problems"]
     code, bad = post(client, "/robots/caduceus/edit", {"new_name": "caduceus"})
-    assert code == 400
+    assert code == 200 and not bad["ok"]
 
 
 def test_bench_job_and_compare_job(client):
