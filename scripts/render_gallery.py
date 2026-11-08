@@ -26,6 +26,7 @@ from talaria_bench.builder import _set_home, base_model  # noqa: E402
 from talaria_bench.spec import load_spec  # noqa: E402
 
 OUT = ROOT / "docs" / "img" / "gallery"
+THUMBS = OUT / "thumbs"
 W, H, SS = 800, 600, 2                        # output size, supersampling
 BG_TOP, BG_BOTTOM = (247, 248, 250), (226, 230, 236)
 FLOOR = (0.90, 0.91, 0.93, 1.0)
@@ -112,12 +113,16 @@ def label(img: Image.Image, title: str, sub: str) -> Image.Image:
 
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
+    THUMBS.mkdir(parents=True, exist_ok=True)
     tiles = []
     for path in sorted((ROOT / "examples" / "robots").glob("*.yaml")):
         if ".calibration" in path.name:
             continue
         spec = load_spec(path)
-        img = label(render(spec), spec.title or spec.name,
+        plain = render(spec)
+        # The UI's gallery cards print the name and the SIM tag themselves: unlabelled, smaller thumbnails.
+        plain.resize((W // 2, H // 2), Image.LANCZOS).save(THUMBS / f"{spec.name}.png", optimize=True)
+        img = label(plain.copy(), spec.title or spec.name,
                     f"{spec.name} · {len(spec.joint_parts)} servos · {round(spec.total_mass_g)} g")
         img.save(OUT / f"{spec.name}.png", optimize=True)
         tiles.append(img)

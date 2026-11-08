@@ -36,7 +36,7 @@ var STYLES = `
 .tb-header {
   position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
   padding: 14px 22px; border-bottom: 1px solid var(--tb-line);
-  background: color-mix(in srgb, var(--ui-bg-primary, var(--color-background, transparent)) 88%, transparent);
+  background: color-mix(in srgb, var(--background, var(--color-background, transparent)) 90%, transparent);
   backdrop-filter: blur(10px);
 }
 .tb-surface-dashboard .tb-header { position: static; background: transparent; padding: 4px 0 14px; }
@@ -111,7 +111,8 @@ var STYLES = `
 .tb-btn:hover:not(:disabled) { border-color: color-mix(in srgb, currentColor 30%, transparent); }
 .tb-btn:active:not(:disabled) { transform: translateY(1px); }
 .tb-btn:disabled { opacity: .55; cursor: default; }
-.tb-btn-primary { background: var(--tb-accent); border-color: transparent; color: var(--ui-text-on-accent, #fff); }
+.tb-btn-primary { background: var(--tb-accent); border-color: transparent;
+  color: var(--ui-accent-foreground, var(--color-primary-foreground, #fff)); }
 .tb-btn-primary:hover:not(:disabled) { filter: brightness(1.08); border-color: transparent; }
 .tb-icon-btn { all: unset; cursor: pointer; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: var(--tb-card-hi); font-size: 11px; }
 
@@ -18986,13 +18987,6 @@ var LineSegments = class extends Line {
     return this;
   }
 };
-var CanvasTexture = class extends Texture {
-  constructor(canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy) {
-    super(canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy);
-    this.isCanvasTexture = true;
-    this.needsUpdate = true;
-  }
-};
 var Curve = class {
   constructor() {
     this.type = "Curve";
@@ -20306,6 +20300,92 @@ var CylinderGeometry = class _CylinderGeometry extends BufferGeometry {
     return new _CylinderGeometry(data.radiusTop, data.radiusBottom, data.height, data.radialSegments, data.heightSegments, data.openEnded, data.thetaStart, data.thetaLength);
   }
 };
+var _v0 = /* @__PURE__ */ new Vector3();
+var _v1$1 = /* @__PURE__ */ new Vector3();
+var _normal = /* @__PURE__ */ new Vector3();
+var _triangle = /* @__PURE__ */ new Triangle();
+var EdgesGeometry = class extends BufferGeometry {
+  constructor(geometry = null, thresholdAngle = 1) {
+    super();
+    this.type = "EdgesGeometry";
+    this.parameters = {
+      geometry,
+      thresholdAngle
+    };
+    if (geometry !== null) {
+      const precisionPoints = 4;
+      const precision = Math.pow(10, precisionPoints);
+      const thresholdDot = Math.cos(DEG2RAD * thresholdAngle);
+      const indexAttr = geometry.getIndex();
+      const positionAttr = geometry.getAttribute("position");
+      const indexCount = indexAttr ? indexAttr.count : positionAttr.count;
+      const indexArr = [0, 0, 0];
+      const vertKeys = ["a", "b", "c"];
+      const hashes = new Array(3);
+      const edgeData = {};
+      const vertices = [];
+      for (let i = 0; i < indexCount; i += 3) {
+        if (indexAttr) {
+          indexArr[0] = indexAttr.getX(i);
+          indexArr[1] = indexAttr.getX(i + 1);
+          indexArr[2] = indexAttr.getX(i + 2);
+        } else {
+          indexArr[0] = i;
+          indexArr[1] = i + 1;
+          indexArr[2] = i + 2;
+        }
+        const { a, b, c } = _triangle;
+        a.fromBufferAttribute(positionAttr, indexArr[0]);
+        b.fromBufferAttribute(positionAttr, indexArr[1]);
+        c.fromBufferAttribute(positionAttr, indexArr[2]);
+        _triangle.getNormal(_normal);
+        hashes[0] = `${Math.round(a.x * precision)},${Math.round(a.y * precision)},${Math.round(a.z * precision)}`;
+        hashes[1] = `${Math.round(b.x * precision)},${Math.round(b.y * precision)},${Math.round(b.z * precision)}`;
+        hashes[2] = `${Math.round(c.x * precision)},${Math.round(c.y * precision)},${Math.round(c.z * precision)}`;
+        if (hashes[0] === hashes[1] || hashes[1] === hashes[2] || hashes[2] === hashes[0]) {
+          continue;
+        }
+        for (let j = 0; j < 3; j++) {
+          const jNext = (j + 1) % 3;
+          const vecHash0 = hashes[j];
+          const vecHash1 = hashes[jNext];
+          const v0 = _triangle[vertKeys[j]];
+          const v1 = _triangle[vertKeys[jNext]];
+          const hash = `${vecHash0}_${vecHash1}`;
+          const reverseHash = `${vecHash1}_${vecHash0}`;
+          if (reverseHash in edgeData && edgeData[reverseHash]) {
+            if (_normal.dot(edgeData[reverseHash].normal) <= thresholdDot) {
+              vertices.push(v0.x, v0.y, v0.z);
+              vertices.push(v1.x, v1.y, v1.z);
+            }
+            edgeData[reverseHash] = null;
+          } else if (!(hash in edgeData)) {
+            edgeData[hash] = {
+              index0: indexArr[j],
+              index1: indexArr[jNext],
+              normal: _normal.clone()
+            };
+          }
+        }
+      }
+      for (const key in edgeData) {
+        if (edgeData[key]) {
+          const { index0, index1 } = edgeData[key];
+          _v0.fromBufferAttribute(positionAttr, index0);
+          _v1$1.fromBufferAttribute(positionAttr, index1);
+          vertices.push(_v0.x, _v0.y, _v0.z);
+          vertices.push(_v1$1.x, _v1$1.y, _v1$1.z);
+        }
+      }
+      this.setAttribute("position", new Float32BufferAttribute(vertices, 3));
+    }
+  }
+  copy(source) {
+    super.copy(source);
+    this.parameters = Object.assign({}, source.parameters);
+    return this;
+  }
+};
 var SphereGeometry = class _SphereGeometry extends BufferGeometry {
   constructor(radius = 1, widthSegments = 32, heightSegments = 16, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI) {
     super();
@@ -20610,6 +20690,24 @@ var MeshPhysicalMaterial = class extends MeshStandardMaterial {
     this.specularIntensityMap = source.specularIntensityMap;
     this.specularColor.copy(source.specularColor);
     this.specularColorMap = source.specularColorMap;
+    return this;
+  }
+};
+var LineDashedMaterial = class extends LineBasicMaterial {
+  constructor(parameters) {
+    super();
+    this.isLineDashedMaterial = true;
+    this.type = "LineDashedMaterial";
+    this.scale = 1;
+    this.dashSize = 3;
+    this.gapSize = 1;
+    this.setValues(parameters);
+  }
+  copy(source) {
+    super.copy(source);
+    this.scale = source.scale;
+    this.dashSize = source.dashSize;
+    this.gapSize = source.gapSize;
     return this;
   }
 };
@@ -21789,39 +21887,6 @@ var Spherical = class {
     return new this.constructor().copy(this);
   }
 };
-var GridHelper = class extends LineSegments {
-  constructor(size = 10, divisions = 10, color1 = 4473924, color2 = 8947848) {
-    color1 = new Color(color1);
-    color2 = new Color(color2);
-    const center = divisions / 2;
-    const step = size / divisions;
-    const halfSize = size / 2;
-    const vertices = [], colors = [];
-    for (let i = 0, j = 0, k = -halfSize; i <= divisions; i++, k += step) {
-      vertices.push(-halfSize, 0, k, halfSize, 0, k);
-      vertices.push(k, 0, -halfSize, k, 0, halfSize);
-      const color = i === center ? color1 : color2;
-      color.toArray(colors, j);
-      j += 3;
-      color.toArray(colors, j);
-      j += 3;
-      color.toArray(colors, j);
-      j += 3;
-      color.toArray(colors, j);
-      j += 3;
-    }
-    const geometry = new BufferGeometry();
-    geometry.setAttribute("position", new Float32BufferAttribute(vertices, 3));
-    geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
-    const material = new LineBasicMaterial({ vertexColors: true, toneMapped: false });
-    super(geometry, material);
-    this.type = "GridHelper";
-  }
-  dispose() {
-    this.geometry.dispose();
-    this.material.dispose();
-  }
-};
 var _axis = /* @__PURE__ */ new Vector3();
 var _lineGeometry;
 var _coneGeometry;
@@ -22789,7 +22854,38 @@ var RoundedBoxGeometry = class extends BoxGeometry {
 };
 
 // src/stage.js
-var UP = new Vector3(0, 1, 0);
+var THREE = {
+  ACESFilmicToneMapping,
+  ArrowHelper,
+  Box3,
+  BufferGeometry,
+  CapsuleGeometry,
+  CircleGeometry,
+  Color,
+  CylinderGeometry,
+  DirectionalLight,
+  EdgesGeometry,
+  Group,
+  HemisphereLight,
+  Line,
+  LineBasicMaterial,
+  LineDashedMaterial,
+  LineSegments,
+  Mesh,
+  MeshPhysicalMaterial,
+  MeshStandardMaterial,
+  PCFSoftShadowMap,
+  PerspectiveCamera,
+  PlaneGeometry,
+  Scene,
+  ShaderMaterial,
+  ShadowMaterial,
+  SphereGeometry,
+  SRGBColorSpace,
+  Vector3,
+  WebGLRenderer
+};
+var UP = new THREE.Vector3(0, 1, 0);
 function luminance(css) {
   const m = /rgba?\(([^)]+)\)/.exec(css || "");
   if (!m) return 0.5;
@@ -22806,33 +22902,33 @@ function partGeometry(shape, size) {
     return new RoundedBoxGeometry(x, y, z, 4, r);
   }
   if (shape === "cylinder") {
-    const g = new CylinderGeometry(size[0], size[0], size[1], 40, 1);
+    const g = new THREE.CylinderGeometry(size[0], size[0], size[1], 40, 1);
     g.rotateX(Math.PI / 2);
     return g;
   }
   if (shape === "capsule") {
-    const g = new CapsuleGeometry(size[0], size[1] || size[0], 8, 24);
+    const g = new THREE.CapsuleGeometry(size[0], size[1] || size[0], 8, 24);
     g.rotateX(Math.PI / 2);
     return g;
   }
-  return new SphereGeometry(size[0], 32, 20);
+  return new THREE.SphereGeometry(size[0], 32, 20);
 }
 var Stage = class {
   constructor(container, { interactive = true } = {}) {
     this.container = container;
     this.dark = isDarkTheme(container);
-    this.renderer = new WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = PCFSoftShadowMap;
-    this.renderer.outputColorSpace = SRGBColorSpace;
-    this.renderer.toneMapping = ACESFilmicToneMapping;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.setClearColor(0, 0);
     this.renderer.domElement.className = "tb-canvas";
     container.appendChild(this.renderer.domElement);
-    this.scene = new Scene();
-    this.camera = new PerspectiveCamera(32, 1, 0.01, 50);
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(32, 1, 0.01, 50);
     this.camera.position.set(0.6, 0.35, 0.6);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
@@ -22845,23 +22941,23 @@ var Stage = class {
       this.userMoved = true;
     });
     this._lights();
-    this.world = new Group();
+    this.world = new THREE.Group();
     this.world.rotation.x = -Math.PI / 2;
     this.scene.add(this.world);
-    this.tilt = new Group();
+    this.tilt = new THREE.Group();
     this.world.add(this.tilt);
-    this.floor = new Group();
+    this.floor = new THREE.Group();
     this.tilt.add(this.floor);
-    this.terrain = new Group();
+    this.terrain = new THREE.Group();
     this.tilt.add(this.terrain);
-    this.robot = new Group();
+    this.robot = new THREE.Group();
     this.tilt.add(this.robot);
     this._floor();
     this.meshes = [];
     this.meta = {};
     this.follow = true;
     this.userMoved = false;
-    this.target = new Vector3();
+    this.target = new THREE.Vector3();
     this._resize = new ResizeObserver(() => this.resize());
     this._resize.observe(container);
     this.resize();
@@ -22877,9 +22973,9 @@ var Stage = class {
   _lights() {
     const sky = this.dark ? 12175103 : 16777215;
     const ground = this.dark ? 1711396 : 14275788;
-    this.hemi = new HemisphereLight(sky, ground, this.dark ? 1.1 : 1.35);
+    this.hemi = new THREE.HemisphereLight(sky, ground, this.dark ? 1.1 : 1.35);
     this.scene.add(this.hemi);
-    const key = new DirectionalLight(16777215, this.dark ? 2.2 : 2.6);
+    const key = new THREE.DirectionalLight(16777215, this.dark ? 2.2 : 2.6);
     key.position.set(1.2, 2.4, 1.6);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
@@ -22895,38 +22991,58 @@ var Stage = class {
     this.key = key;
     this.scene.add(key);
     this.scene.add(key.target);
-    const rim = new DirectionalLight(this.dark ? 9417983 : 16773596, this.dark ? 0.9 : 0.6);
+    const rim = new THREE.DirectionalLight(this.dark ? 9417983 : 16773596, this.dark ? 0.9 : 0.6);
     rim.position.set(-1.6, 1.1, -1.4);
     this.scene.add(rim);
   }
   _floor() {
-    const shadow = new Mesh(
-      new PlaneGeometry(8, 8),
-      new ShadowMaterial({ opacity: this.dark ? 0.45 : 0.22 })
+    const shadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(8, 8),
+      new THREE.ShadowMaterial({ opacity: this.dark ? 0.45 : 0.22 })
     );
     shadow.receiveShadow = true;
     this.floor.add(shadow);
-    const tex = document.createElement("canvas");
-    tex.width = tex.height = 256;
-    const g = tex.getContext("2d");
-    const grad = g.createRadialGradient(128, 128, 10, 128, 128, 128);
-    grad.addColorStop(0, "rgba(255,255,255,1)");
-    grad.addColorStop(1, "rgba(255,255,255,0)");
-    g.fillStyle = grad;
-    g.fillRect(0, 0, 256, 256);
-    const fade = new CanvasTexture(tex);
-    const grid = new GridHelper(2.4, 48, this.dark ? 7173776 : 9080729, this.dark ? 3817552 : 12896205);
-    grid.rotation.x = Math.PI / 2;
-    grid.position.z = 5e-4;
-    grid.material.transparent = true;
-    grid.material.opacity = this.dark ? 0.5 : 0.55;
-    grid.material.alphaMap = fade;
-    grid.material.depthWrite = false;
+    const SPAN = 1.6;
+    const grid = new THREE.Mesh(new THREE.PlaneGeometry(SPAN, SPAN), new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      uniforms: {
+        uColor: { value: new THREE.Color(this.dark ? 16777215 : 2502716) },
+        uDisc: { value: this.dark ? 0.06 : 0.07 },
+        uMinor: { value: this.dark ? 0.12 : 0.13 },
+        uMajor: { value: this.dark ? 0.26 : 0.26 },
+        uSpan: { value: SPAN }
+      },
+      vertexShader: `
+        varying vec2 vPos;
+        void main() {
+          vPos = position.xy;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        uniform vec3 uColor;
+        uniform float uDisc, uMinor, uMajor, uSpan;
+        varying vec2 vPos;
+        float lines(vec2 p, float cell) {
+          vec2 g = abs(fract(p / cell - 0.5) - 0.5) / fwidth(p / cell);
+          return 1.0 - min(min(g.x, g.y), 1.0);
+        }
+        void main() {
+          float r = length(vPos) / (uSpan * 0.5);
+          float fade = 1.0 - smoothstep(0.15, 1.0, r);
+          float a = uDisc * (1.0 - smoothstep(0.0, 0.75, r));
+          a += uMinor * lines(vPos, 0.05) * fade;
+          a = max(a, uMajor * lines(vPos, 0.2) * fade);
+          if (a < 0.002) discard;
+          gl_FragColor = vec4(uColor, a);
+        }`
+    }));
+    grid.position.z = 6e-4;
     this.grid = grid;
     this.floor.add(grid);
-    this.slick = new Mesh(
-      new CircleGeometry(1.1, 64),
-      new MeshPhysicalMaterial({
+    this.slick = new THREE.Mesh(
+      new THREE.CircleGeometry(1.1, 64),
+      new THREE.MeshPhysicalMaterial({
         color: 6273023,
         transparent: true,
         opacity: 0.16,
@@ -22948,8 +23064,8 @@ var Stage = class {
       m.material.dispose();
     }
     this.meshes = parts.map((p) => {
-      const color = new Color(p.color || "#9aa4b2");
-      const mat = new MeshPhysicalMaterial({
+      const color = new THREE.Color(p.color || "#9aa4b2");
+      const mat = new THREE.MeshPhysicalMaterial({
         color,
         roughness: 0.48,
         metalness: 0.04,
@@ -22957,7 +23073,7 @@ var Stage = class {
         clearcoatRoughness: 0.4,
         sheen: 0.2
       });
-      const mesh = new Mesh(partGeometry(p.shape, p.size_m), mat);
+      const mesh = new THREE.Mesh(partGeometry(p.shape, p.size_m), mat);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       mesh.name = p.name;
@@ -22988,11 +23104,59 @@ var Stage = class {
     const tilt = (meta.tilt_deg || 0) * Math.PI / 180;
     this.tilt.rotation.y = -tilt;
     this.slick.visible = meta.floor === "slippery";
+    if (this.levelLine) {
+      this.world.remove(this.levelLine);
+      this.levelLine.geometry.dispose();
+      this.levelLine.material.dispose();
+      this.levelLine = null;
+    }
+    if (tilt) {
+      const ramp = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.5), new THREE.MeshStandardMaterial({
+        color: 14263361,
+        transparent: true,
+        opacity: this.dark ? 0.16 : 0.2,
+        roughness: 0.9,
+        depthWrite: false
+      }));
+      ramp.position.set(0.3, 0, 4e-4);
+      this.terrain.add(ramp);
+      const edge = new THREE.LineSegments(
+        new THREE.EdgesGeometry(ramp.geometry),
+        new THREE.LineBasicMaterial({ color: 14263361, transparent: true, opacity: 0.7 })
+      );
+      edge.position.copy(ramp.position);
+      this.terrain.add(edge);
+      const up = new THREE.ArrowHelper(
+        new THREE.Vector3(1, 0, 0),
+        new THREE.Vector3(-0.05, -0.2, 2e-3),
+        0.4,
+        14263361,
+        0.05,
+        0.03
+      );
+      this.terrain.add(up);
+      const level = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(-0.3, -0.25, 0),
+          new THREE.Vector3(0.9, -0.25, 0)
+        ]),
+        new THREE.LineDashedMaterial({
+          color: this.dark ? 16777215 : 2502716,
+          dashSize: 0.02,
+          gapSize: 0.015,
+          transparent: true,
+          opacity: 0.45
+        })
+      );
+      level.computeLineDistances();
+      this.levelLine = level;
+      this.world.add(level);
+    }
     for (const b of meta.boxes || []) {
       const [hx, hy, hz] = b.half;
-      const bar = new Mesh(
+      const bar = new THREE.Mesh(
         new RoundedBoxGeometry(hx * 2, Math.min(hy, 0.18) * 2, hz * 2, 3, Math.min(hx, hz) * 0.3),
-        new MeshStandardMaterial({ color: this.dark ? 13214826 : 12094026, roughness: 0.7 })
+        new THREE.MeshStandardMaterial({ color: this.dark ? 13214826 : 12094026, roughness: 0.7 })
       );
       bar.position.set(...b.center);
       bar.castShadow = bar.receiveShadow = true;
@@ -23001,17 +23165,17 @@ var Stage = class {
     this.arrow = null;
     if (meta.push) {
       const v = meta.push.vector || [1, 0];
-      const dir = new Vector3(v[0], v[1], 0).normalize();
-      this.arrow = new ArrowHelper(dir, new Vector3(), 0.12, 16734799, 0.04, 0.025);
+      const dir = new THREE.Vector3(v[0], v[1], 0).normalize();
+      this.arrow = new THREE.ArrowHelper(dir, new THREE.Vector3(), 0.12, 16734799, 0.04, 0.025);
       this.arrow.visible = false;
       this.terrain.add(this.arrow);
     }
     this.payload = null;
     if (meta.payload && meta.payload.part) {
       const r = 8e-3 + Math.cbrt(Math.max(meta.payload.grams, 1)) * 22e-4;
-      this.payload = new Mesh(
-        new SphereGeometry(r, 24, 16),
-        new MeshStandardMaterial({ color: 8161174, roughness: 0.3, metalness: 0.6 })
+      this.payload = new THREE.Mesh(
+        new THREE.SphereGeometry(r, 24, 16),
+        new THREE.MeshStandardMaterial({ color: 8161174, roughness: 0.3, metalness: 0.6 })
       );
       this.payload.castShadow = true;
       this.payloadIndex = this.meshes.findIndex((m) => m.name === meta.payload.part);
@@ -23024,7 +23188,7 @@ var Stage = class {
     const on = t >= p.at_s - 0.05 && t <= p.at_s + Math.max(p.duration_s, 0.5);
     this.arrow.visible = on;
     if (on) {
-      const dir = new Vector3(p.vector[0], p.vector[1], 0).normalize();
+      const dir = new THREE.Vector3(p.vector[0], p.vector[1], 0).normalize();
       const at = this.root.position.clone().addScaledVector(dir, -0.16);
       this.arrow.position.copy(at);
     }
@@ -23035,7 +23199,7 @@ var Stage = class {
     this.payload.position.set(x, y, z - 0.025);
   }
   _robotBox() {
-    const box = new Box3();
+    const box = new THREE.Box3();
     for (const m of this.meshes) box.expandByObject(m);
     return box;
   }
@@ -23044,13 +23208,15 @@ var Stage = class {
     this.scene.updateMatrixWorld(true);
     const box = this._robotBox();
     if (box.isEmpty()) return;
-    const center = box.getCenter(new Vector3());
-    const size = box.getSize(new Vector3()).length();
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3()).length();
+    this._size = size;
+    center.y *= 0.85;
     this.target.copy(center);
     this.controls.target.copy(center);
     if (fit) {
-      const dist = Math.max(size * 1.9, 0.22);
-      const dir = new Vector3(0.78, 0.5, 0.72).normalize();
+      const dist = Math.max(size * 2.35, 0.3);
+      const dir = new THREE.Vector3(0.78, 0.5, 0.72).normalize();
       this.camera.position.copy(center).addScaledVector(dir, dist);
       this.userMoved = false;
     }
@@ -23059,18 +23225,22 @@ var Stage = class {
   }
   _track() {
     this.scene.updateMatrixWorld(true);
-    const p = new Vector3();
-    this.root.getWorldPosition(p);
+    const box = this._robotBox();
+    if (box.isEmpty()) return;
+    const p = box.getCenter(new THREE.Vector3());
+    p.y = this.controls.target.y + (p.y - this.controls.target.y) * 0.3;
     const delta = p.sub(this.controls.target);
     delta.y *= 0.3;
     const step = delta.multiplyScalar(0.12);
     this.controls.target.add(step);
     this.camera.position.add(step);
-    this._aimLight(this.controls.target, 0.4);
+    this.grid.position.x = Math.round(this.root.position.x / 0.2) * 0.2;
+    this.grid.position.y = Math.round(this.root.position.y / 0.2) * 0.2;
+    this._aimLight(this.controls.target, this._size || 0.4);
   }
   _aimLight(center, size) {
     this.key.target.position.copy(center);
-    this.key.position.copy(center).add(new Vector3(1.2, 2.4, 1.6).normalize().multiplyScalar(2.2));
+    this.key.position.copy(center).add(new THREE.Vector3(1.2, 2.4, 1.6).normalize().multiplyScalar(2.2));
     const s = Math.max(size, 0.3);
     const cam = this.key.shadow.camera;
     cam.left = cam.bottom = -s;

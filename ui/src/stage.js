@@ -2,10 +2,22 @@
 // and per-frame poses [x, y, z, qw, qx, qy, qz]; the stage turns that into soft, rounded parts on a
 // shadowed floor, draws the scene's terrain (ramp tilt, bars, slippery tint, push arrow, payload) and
 // keeps the camera on the robot. No app markup is touched; everything lives in the container it is given.
-import * as THREE from 'three'
+// Named imports (not `import * as THREE`) so the bundler can drop the parts of three.js the stage does not use.
+import {
+  ACESFilmicToneMapping, ArrowHelper, Box3, BufferGeometry, CapsuleGeometry, CircleGeometry, Color, CylinderGeometry,
+  DirectionalLight, EdgesGeometry, Group, HemisphereLight, Line, LineBasicMaterial, LineDashedMaterial, LineSegments,
+  Mesh, MeshPhysicalMaterial, MeshStandardMaterial, PCFSoftShadowMap, PerspectiveCamera, PlaneGeometry, Scene,
+  ShaderMaterial, ShadowMaterial, SphereGeometry, SRGBColorSpace, Vector3, WebGLRenderer,
+} from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 
+const THREE = {
+  ACESFilmicToneMapping, ArrowHelper, Box3, BufferGeometry, CapsuleGeometry, CircleGeometry, Color, CylinderGeometry,
+  DirectionalLight, EdgesGeometry, Group, HemisphereLight, Line, LineBasicMaterial, LineDashedMaterial, LineSegments,
+  Mesh, MeshPhysicalMaterial, MeshStandardMaterial, PCFSoftShadowMap, PerspectiveCamera, PlaneGeometry, Scene,
+  ShaderMaterial, ShadowMaterial, SphereGeometry, SRGBColorSpace, Vector3, WebGLRenderer,
+}
 const UP = new THREE.Vector3(0, 1, 0)
 
 function luminance(css) {
@@ -130,23 +142,43 @@ export class Stage {
       new THREE.ShadowMaterial({ opacity: this.dark ? 0.45 : 0.22 }))
     shadow.receiveShadow = true
     this.floor.add(shadow)
-    // A grid that fades with distance from the robot.
-    const tex = document.createElement('canvas')
-    tex.width = tex.height = 256
-    const g = tex.getContext('2d')
-    const grad = g.createRadialGradient(128, 128, 10, 128, 128, 128)
-    grad.addColorStop(0, 'rgba(255,255,255,1)')
-    grad.addColorStop(1, 'rgba(255,255,255,0)')
-    g.fillStyle = grad
-    g.fillRect(0, 0, 256, 256)
-    const fade = new THREE.CanvasTexture(tex)
-    const grid = new THREE.GridHelper(2.4, 48, this.dark ? 0x6d7690 : 0x8a8f99, this.dark ? 0x3a4050 : 0xc4c7cd)
-    grid.rotation.x = Math.PI / 2
-    grid.position.z = 0.0005
-    grid.material.transparent = true
-    grid.material.opacity = this.dark ? 0.5 : 0.55
-    grid.material.alphaMap = fade
-    grid.material.depthWrite = false
+    // A procedural floor: a soft disc plus 5 cm / 20 cm grid lines, all fading out radially.
+    const SPAN = 1.6 // metres
+    const grid = new THREE.Mesh(new THREE.PlaneGeometry(SPAN, SPAN), new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      uniforms: {
+        uColor: { value: new THREE.Color(this.dark ? 0xffffff : 0x26303c) },
+        uDisc: { value: this.dark ? 0.06 : 0.07 },
+        uMinor: { value: this.dark ? 0.12 : 0.13 },
+        uMajor: { value: this.dark ? 0.26 : 0.26 },
+        uSpan: { value: SPAN },
+      },
+      vertexShader: `
+        varying vec2 vPos;
+        void main() {
+          vPos = position.xy;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        uniform vec3 uColor;
+        uniform float uDisc, uMinor, uMajor, uSpan;
+        varying vec2 vPos;
+        float lines(vec2 p, float cell) {
+          vec2 g = abs(fract(p / cell - 0.5) - 0.5) / fwidth(p / cell);
+          return 1.0 - min(min(g.x, g.y), 1.0);
+        }
+        void main() {
+          float r = length(vPos) / (uSpan * 0.5);
+          float fade = 1.0 - smoothstep(0.15, 1.0, r);
+          float a = uDisc * (1.0 - smoothstep(0.0, 0.75, r));
+          a += uMinor * lines(vPos, 0.05) * fade;
+          a = max(a, uMajor * lines(vPos, 0.2) * fade);
+          if (a < 0.002) discard;
+          gl_FragColor = vec4(uColor, a);
+        }`,
+    }))
+    grid.position.z = 0.0006
     this.grid = grid
     this.floor.add(grid)
     this.slick = new THREE.Mesh(new THREE.CircleGeometry(1.1, 64),
@@ -197,6 +229,34 @@ export class Stage {
     const tilt = (meta.tilt_deg || 0) * Math.PI / 180
     this.tilt.rotation.y = -tilt // the floor rises toward +x (the robot faces uphill)
     this.slick.visible = meta.floor === 'slippery'
+    if (this.levelLine) {
+      this.world.remove(this.levelLine)
+      this.levelLine.geometry.dispose()
+      this.levelLine.material.dispose()
+      this.levelLine = null
+    }
+    if (tilt) {
+      // Make the slope legible: a tinted ramp surface, its level reference, and an uphill arrow.
+      const ramp = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.5), new THREE.MeshStandardMaterial({
+        color: 0xd9a441, transparent: true, opacity: this.dark ? 0.16 : 0.2, roughness: 0.9, depthWrite: false }))
+      ramp.position.set(0.3, 0, 0.0004)
+      this.terrain.add(ramp)
+      const edge = new THREE.LineSegments(new THREE.EdgesGeometry(ramp.geometry),
+        new THREE.LineBasicMaterial({ color: 0xd9a441, transparent: true, opacity: 0.7 }))
+      edge.position.copy(ramp.position)
+      this.terrain.add(edge)
+      const up = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(-0.05, -0.2, 0.002), 0.4,
+        0xd9a441, 0.05, 0.03)
+      this.terrain.add(up)
+      // A level line from the ramp's low end, outside the tilted group, shows the angle against horizontal.
+      const level = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-0.3, -0.25, 0), new THREE.Vector3(0.9, -0.25, 0)]),
+      new THREE.LineDashedMaterial({ color: this.dark ? 0xffffff : 0x26303c, dashSize: 0.02, gapSize: 0.015,
+        transparent: true, opacity: 0.45 }))
+      level.computeLineDistances()
+      this.levelLine = level
+      this.world.add(level)
+    }
     for (const b of meta.boxes || []) {
       const [hx, hy, hz] = b.half
       const bar = new THREE.Mesh(new RoundedBoxGeometry(hx * 2, Math.min(hy, 0.18) * 2, hz * 2, 3, Math.min(hx, hz) * 0.3),
@@ -255,10 +315,12 @@ export class Stage {
     if (box.isEmpty()) return
     const center = box.getCenter(new THREE.Vector3())
     const size = box.getSize(new THREE.Vector3()).length()
+    this._size = size
+    center.y *= 0.85 // aim a little low so the floor and the shadow are in frame
     this.target.copy(center)
     this.controls.target.copy(center)
     if (fit) {
-      const dist = Math.max(size * 1.9, 0.22)
+      const dist = Math.max(size * 2.35, 0.3)
       // 3/4 view from the front right, slightly above (robot faces MuJoCo +x = three +x).
       const dir = new THREE.Vector3(0.78, 0.5, 0.72).normalize()
       this.camera.position.copy(center).addScaledVector(dir, dist)
@@ -269,15 +331,21 @@ export class Stage {
   }
 
   _track() {
+    // Follow the whole robot (its bounding-box centre), not one part, so nothing leaves the frame.
     this.scene.updateMatrixWorld(true)
-    const p = new THREE.Vector3()
-    this.root.getWorldPosition(p)
+    const box = this._robotBox()
+    if (box.isEmpty()) return
+    const p = box.getCenter(new THREE.Vector3())
+    p.y = this.controls.target.y + (p.y - this.controls.target.y) * 0.3
     const delta = p.sub(this.controls.target)
     delta.y *= 0.3
     const step = delta.multiplyScalar(0.12)
     this.controls.target.add(step)
     this.camera.position.add(step)
-    this._aimLight(this.controls.target, 0.4)
+    // Keep the faded grid under a walking robot, snapped to whole 20 cm cells so it never slides.
+    this.grid.position.x = Math.round(this.root.position.x / 0.2) * 0.2
+    this.grid.position.y = Math.round(this.root.position.y / 0.2) * 0.2
+    this._aimLight(this.controls.target, this._size || 0.4)
   }
 
   _aimLight(center, size) {

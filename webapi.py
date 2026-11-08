@@ -173,8 +173,10 @@ class WebAPI:
         paths = self.rt.robot_paths()
         if name not in paths or paths[name][1] != "bundled":
             return None
-        path = GALLERY_IMG / f"{name}.png"
-        return path if path.is_file() else None
+        for path in (GALLERY_IMG / "thumbs" / f"{name}.png", GALLERY_IMG / f"{name}.png"):
+            if path.is_file():
+                return path
+        return None
 
     def edit(self, name: str, body: dict[str, Any]) -> dict[str, Any]:
         """Save an edited copy (sizes, masses, servos) as a user robot through robot_define."""

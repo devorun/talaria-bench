@@ -29,7 +29,7 @@ export const STYLES = `
 .tb-header {
   position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
   padding: 14px 22px; border-bottom: 1px solid var(--tb-line);
-  background: color-mix(in srgb, var(--ui-bg-primary, var(--color-background, transparent)) 88%, transparent);
+  background: color-mix(in srgb, var(--background, var(--color-background, transparent)) 90%, transparent);
   backdrop-filter: blur(10px);
 }
 .tb-surface-dashboard .tb-header { position: static; background: transparent; padding: 4px 0 14px; }
@@ -104,7 +104,8 @@ export const STYLES = `
 .tb-btn:hover:not(:disabled) { border-color: color-mix(in srgb, currentColor 30%, transparent); }
 .tb-btn:active:not(:disabled) { transform: translateY(1px); }
 .tb-btn:disabled { opacity: .55; cursor: default; }
-.tb-btn-primary { background: var(--tb-accent); border-color: transparent; color: var(--ui-text-on-accent, #fff); }
+.tb-btn-primary { background: var(--tb-accent); border-color: transparent;
+  color: var(--ui-accent-foreground, var(--color-primary-foreground, #fff)); }
 .tb-btn-primary:hover:not(:disabled) { filter: brightness(1.08); border-color: transparent; }
 .tb-icon-btn { all: unset; cursor: pointer; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: var(--tb-card-hi); font-size: 11px; }
 
