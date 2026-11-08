@@ -133,8 +133,24 @@ def test_caduceus_v2_is_the_fixed_design(caduceus):
     assert v2.name == "caduceus_v2" and v2.photo is None
     assert v2.part("head").com == (0.0, 0.0, -2.0)
     assert {p.joint.servo.backlash_deg for p in v2.joint_parts} == {1.5}
-    assert v2.part("left_leg").joint.anchor[2] == pytest.approx(caduceus.part("left_leg").joint.anchor[2] - 0.2)
+    assert v2.part("left_leg").joint.anchor == caduceus.part("left_leg").joint.anchor
     assert v2.total_mass_g == caduceus.total_mass_g and set(v2.moves) == set(caduceus.moves)
+    assert caduceus.part("head").com == (0.0, 0.0, 3.0)
+    assert caduceus.part("left_leg").joint.servo.backlash_deg == 6.5
+
+
+def test_limitations_validate(mini_data):
+    mini_data["limitations"] = [{"scope": "walking", "note": "x"}, {"scope": "all", "note": ""}, "oops"]
+    with pytest.raises(SpecError) as info:
+        parse_spec(mini_data)
+    text = str(info.value)
+    assert "scope must be one of" in text and "note must be" in text and "must be {scope, note}" in text
+    mini_data["limitations"] = [{"scope": "all", "note": "rough   model"}]
+    spec = parse_spec(mini_data)
+    assert spec.limitations_for("locomotion") == ["rough model"]
+    base = dict(mini_data)
+    base.pop("limitations")
+    assert parse_spec(base).hash() == spec.hash()      # a limitation is not physics
 
 
 def test_linear_easing_moves_at_one_constant_speed():

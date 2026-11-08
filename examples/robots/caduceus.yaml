@@ -2,29 +2,35 @@
 # Real robot: https://github.com/devorun/caduceus-robot
 #
 # Body parts are 5 mm foam board boxes covered with aluminium tape. Measured: head width 16.5 cm,
-# arms 23.5 x 5.5 cm, legs 16 x 6 cm. Values marked "calibrated" were set against videos on
-# 8 Nov 2026 (calibration 3a: caduceus.calibration-3a*.yaml, docs/calibration-caduceus.md): the median of the parameter
-# sets that reproduced both the wave and the walk. They are a plausible fit, not measurements.
-#
-# KNOWN CONFLICT (calibration 3b, same day): Devran measured that all four feet touch the floor
-# (leg gap 0 to -2 mm, not +2 mm), the leg joints have a deliberate 3-10 deg free play, the
-# electronics sit on top of the head, and the firmware walk moves ~6 cm in 2 cycles. With those
-# facts no parameter set reproduced the walk (it always tips backwards), so the 3b targets were not
-# met and these 3a values were kept on purpose. See docs/calibration-caduceus.md, section 3b.
+# arms 23.5 x 5.5 cm, legs 16 x 6 cm; all four feet touch the floor at rest (Devran, 8 Nov 2026).
+# Model basis (decided 8 Nov 2026, docs/calibration-caduceus.md): the "legs carry weight" geometry
+# of calibration 3a (legs 2 mm longer than the arms, foam crushes), which reproduces the wave on
+# video in ~100% of worlds, plus the measured facts of 3b that keep the wave intact: electronics on
+# top of the head (centre of mass +3 cm) and a deliberate free play in the leg joints (6.5 deg).
+# Other values: medians of the 3a calibration. A plausible fit, not a measurement of every number.
+# Walking is a known limitation of this rigid model (see `limitations` below).
 talaria: 1
 name: caduceus
 title: Caduceus
 description: >-
-  Foam-board biped that stands on two long outer arms, with two short legs in the middle that just
-  clear the floor. Powered through a 2-3 m wall cable.
+  Foam-board biped: two long outer arms and two short legs in the middle, all four feet on the
+  floor. Powered through a 2-3 m wall cable. Arm gestures are modelled well; walking is not.
 photo: caduceus_front.jpg
 voltage: 5.0                       # 5 V supply through the cable (the cable sag is in torque_scale below)
+
+limitations:
+  - scope: locomotion
+    note: >-
+      Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking
+      results are not reliable (the model tips backwards on the firmware walk, the real robot moves
+      ~6 cm forward in 2 cycles).
 
 parts:
   - name: head
     shape: box
     size: [6, 16.5, 9]             # width 16.5 measured; depth 6 and height 9 still to measure
-    mass: 325                      # calibrated (accepted 257-379 g); electronics + 4 servos
+    mass: 325                      # calibrated 3a (accepted 257-379 g); electronics + 4 servos
+    com: [0, 0, 3]                 # measured fact 3b: electronics on top, centre of mass 2-4 cm up
     material: foam
     color: "#c9ced6"
 
@@ -52,10 +58,10 @@ parts:
     ground_contact: true
     joint:
       axis: pitch
-      anchor: [0, 3.75, -3.55]     # calibrated: leg bottoms 2.0 mm above the arm bottoms (1.1-2.7 mm)
+      anchor: [0, 3.75, -3.95]     # legs carry weight: leg bottoms 2 mm below the arm bottoms (foam crushes)
       offset: [0, 0, -8]
       range: [-45, 45]             # still a guess
-      servo: {model: MG90S, backlash_deg: 2.0}
+      servo: {model: MG90S, backlash_deg: 6.5}   # measured 3b: deliberate free play 3-10 deg, ends at the head
       hardware: {channel: 1, center_us: 1700, us_per_deg: 11.1, direction: -1}
 
   - name: right_leg
@@ -67,10 +73,10 @@ parts:
     ground_contact: true
     joint:
       axis: pitch
-      anchor: [0, -3.75, -3.55]
+      anchor: [0, -3.75, -3.95]
       offset: [0, 0, -8]
       range: [-45, 45]
-      servo: {model: MG90S, backlash_deg: 2.0}
+      servo: {model: MG90S, backlash_deg: 6.5}
       hardware: {channel: 2, center_us: 1700, us_per_deg: 11.1, direction: 1}
 
   - name: right_arm
@@ -96,7 +102,7 @@ materials:
 # The wall cable plugs into the back/top of the head. Calibrated pull: small (accepted sets 0-0.09 N).
 tether: {part: head, max_force_n: 0.09, at: [-1.4, 0, 2.9]}
 
-# Per-world randomization: the accepted region of the calibration (p10-p90 of accepted sets), not wider.
+# Per-world randomization: the accepted region of calibration 3a (p10-p90 of accepted sets).
 worlds:
   friction: [0.33, 0.63]
   mass_scale: [0.85, 1.15]
@@ -109,10 +115,10 @@ worlds:
   tether_dir_deg: [113, 255]
 
 moves:
-  # Original firmware handleWave: right arm to CENTER+800 us (~72 deg) with smoothMove(wait 1 ms,
-  # step 2 us), delay(3000), back with smoothMove(wait 25 ms, step 8 us). Each smoothMove step also
-  # writes 4 PCA9685 channels over 100 kHz I2C (~1 ms per channel with the Adafruit library), so the
-  # real step time is wait + ~3.95 ms (calibrated 3.6-4.5): up ~2.0 s, down ~2.9 s, constant speed.
+  # Original firmware handleWave (/salla): right arm to CENTER+800 us (~72 deg) with smoothMove(wait
+  # 1 ms, step 2 us), delay(3000), back with smoothMove(wait 25 ms, step 8 us). Each smoothMove step
+  # also writes 4 PCA9685 channels over 100 kHz I2C (~1 ms per channel with the Adafruit library),
+  # so the real step time is wait + ~3.95 ms: up ~2.0 s, down ~2.9 s, constant speed.
   wave:
     description: Raise the right arm forward, hold it, lower it slowly (original firmware wave).
     easing: linear
@@ -121,12 +127,33 @@ moves:
       - {ms: 1980, hold: 3000, joints: {right_arm: 72}}
       - {ms: 2895, joints: {right_arm: 0}}
 
-  # Original firmware handleWalk with n = 2 (the "come here" video): smoothMove(wait 3 ms, step 2 us)
+  # Both arms up together, fast (a cheer, 288 deg/s): the robot stands on its two in-line legs alone
+  # and the arms' swing throws it. A preflight showcase: it looks harmless and tips the robot in a
+  # large share of worlds. The same move at 600 ms per swing tips it in only ~4% (see the doc).
+  arms_up_both:
+    description: Throw both arms up together, hold, drop them (risky - the robot stands on its legs only).
+    easing: linear
+    loops: 1
+    frames:
+      - {ms: 250, hold: 500, joints: {left_arm: 72, right_arm: 72}}
+      - {ms: 250, joints: {left_arm: 0, right_arm: 0}}
+
+  # One arm at a time, at the same speed: the other arm stays on the floor as a third support.
+  arms_up_alternating:
+    description: Raise the right arm and lower it, then the left arm (the other arm always supports).
+    easing: linear
+    loops: 1
+    frames:
+      - {ms: 250, hold: 500, joints: {right_arm: 72}}
+      - {ms: 250, hold: 200, joints: {right_arm: 0}}
+      - {ms: 250, hold: 500, joints: {left_arm: 72}}
+      - {ms: 250, joints: {left_arm: 0}}
+
+  # Original firmware handleWalk (/ileri, n = 2; the "come" command): smoothMove(wait 3 ms, step 2 us)
   # = 3 + 3.95 ms per 2 us (~26 deg/s), STEP_SIZE 150 us (~13.5 deg), delay(200) after each phase,
-  # then back to center. Positive angles swing a limb forward on both sides (the firmware mirrors the
-  # left channels). Every joint moves at the same constant speed, so a smaller move ends early.
+  # then back to center. NOT RELIABLE in this model (see limitations).
   walk:
-    description: Two steps forward with the original firmware gait.
+    description: Two steps forward with the original firmware gait (simulation not reliable for walking).
     easing: linear
     loops: 1
     frames:

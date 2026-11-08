@@ -78,10 +78,19 @@ def test_calibrated_caduceus_waves_level_in_the_nominal_world(caduceus):
     assert 0.2 < r.joints["right_arm"].peak_ratio <= 1.0
 
 
-def test_calibrated_caduceus_walk_barely_moves(caduceus):
-    r = run_move(caduceus, "walk", World.nominal())
-    assert not r.fell and abs(r.forward_m) < 0.03
-    assert min(r.ground["left_leg"].lift_cm, r.ground["right_leg"].lift_cm) > 0.5
+def test_caduceus_walking_is_a_declared_limitation(caduceus):
+    """The rigid model cannot walk Caduceus (it tips backwards); the spec says so."""
+    notes = caduceus.limitations_for("locomotion")
+    assert notes and "not reliable" in notes[0]
+    assert caduceus.limitations_for("standing") == []
+
+
+def test_caduceus_arm_moves_safe_vs_risky(caduceus):
+    """Preflight showcase: both arms thrown up together tips the robot in many worlds, one at a time does not."""
+    seeds = list(range(1000, 1020))
+    both = sum(r.fell for r in run_worlds(caduceus, "arms_up_both", None, seeds))
+    alternating = sum(r.fell for r in run_worlds(caduceus, "arms_up_alternating", None, seeds))
+    assert both >= 3 and alternating == 0
 
 
 def test_roll_and_pitch_are_split(spider):

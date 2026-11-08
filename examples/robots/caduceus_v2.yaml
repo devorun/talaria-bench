@@ -1,23 +1,29 @@
 # Caduceus v2: a DESIGN VARIANT for comparison, not a real robot and not a model of one.
-# It answers "what would the fixed design do?" next to caduceus.yaml (the real robot, fitted to video).
+# It answers "what would the fixed design do?" next to caduceus.yaml (the real robot's model).
 # Changes from caduceus.yaml, nothing else:
-#   * legs exactly level with the arms (gap 0 instead of +2 mm);
-#   * small joint play on all four servos (1.5 deg; the real legs have a deliberate 3-10 deg play);
+#   * small joint play on all four servos (1.5 deg; the real legs have a deliberate ~6.5 deg play);
 #   * electronics inside the head and low: head centre of mass 2 cm below its box centre
-#     (the real robot carries them on top).
+#     (the real robot carries them on top, +3 cm).
 talaria: 1
 name: caduceus_v2
 title: Caduceus v2 (design variant)
 description: >-
-  Design variant of Caduceus for comparison: legs level with the arms, tight joints, electronics low
-  inside the head. Same size, masses, servos, moves and cable as caduceus.yaml.
+  Design variant of Caduceus for comparison: tight joints and the electronics low inside the head.
+  Same size, masses, servos, moves and cable as caduceus.yaml.
 voltage: 5.0                       # 5 V supply through the cable (the cable sag is in torque_scale below)
+
+limitations:
+  - scope: locomotion
+    note: >-
+      Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking
+      results are not reliable (the model tips backwards on the firmware walk, the real robot moves
+      ~6 cm forward in 2 cycles).
 
 parts:
   - name: head
     shape: box
     size: [6, 16.5, 9]             # width 16.5 measured; depth 6 and height 9 still to measure
-    mass: 325                      # same as caduceus.yaml
+    mass: 325                      # calibrated 3a (accepted 257-379 g); electronics + 4 servos
     com: [0, 0, -2]                # v2: electronics inside the head, low
     material: foam
     color: "#c9ced6"
@@ -46,10 +52,10 @@ parts:
     ground_contact: true
     joint:
       axis: pitch
-      anchor: [0, 3.75, -3.75]     # v2: leg bottoms exactly level with the arm bottoms
+      anchor: [0, 3.75, -3.95]     # legs carry weight: leg bottoms 2 mm below the arm bottoms (foam crushes)
       offset: [0, 0, -8]
       range: [-45, 45]             # still a guess
-      servo: {model: MG90S, backlash_deg: 1.5}
+      servo: {model: MG90S, backlash_deg: 1.5}   # v2: tight joints
       hardware: {channel: 1, center_us: 1700, us_per_deg: 11.1, direction: -1}
 
   - name: right_leg
@@ -61,7 +67,7 @@ parts:
     ground_contact: true
     joint:
       axis: pitch
-      anchor: [0, -3.75, -3.75]
+      anchor: [0, -3.75, -3.95]
       offset: [0, 0, -8]
       range: [-45, 45]
       servo: {model: MG90S, backlash_deg: 1.5}
@@ -90,7 +96,7 @@ materials:
 # The wall cable plugs into the back/top of the head. Calibrated pull: small (accepted sets 0-0.09 N).
 tether: {part: head, max_force_n: 0.09, at: [-1.4, 0, 2.9]}
 
-# Per-world randomization: the accepted region of the calibration (p10-p90 of accepted sets), not wider.
+# Per-world randomization: the accepted region of calibration 3a (p10-p90 of accepted sets).
 worlds:
   friction: [0.33, 0.63]
   mass_scale: [0.85, 1.15]
@@ -103,10 +109,10 @@ worlds:
   tether_dir_deg: [113, 255]
 
 moves:
-  # Original firmware handleWave: right arm to CENTER+800 us (~72 deg) with smoothMove(wait 1 ms,
-  # step 2 us), delay(3000), back with smoothMove(wait 25 ms, step 8 us). Each smoothMove step also
-  # writes 4 PCA9685 channels over 100 kHz I2C (~1 ms per channel with the Adafruit library), so the
-  # real step time is wait + ~3.95 ms (calibrated 3.6-4.5): up ~2.0 s, down ~2.9 s, constant speed.
+  # Original firmware handleWave (/salla): right arm to CENTER+800 us (~72 deg) with smoothMove(wait
+  # 1 ms, step 2 us), delay(3000), back with smoothMove(wait 25 ms, step 8 us). Each smoothMove step
+  # also writes 4 PCA9685 channels over 100 kHz I2C (~1 ms per channel with the Adafruit library),
+  # so the real step time is wait + ~3.95 ms: up ~2.0 s, down ~2.9 s, constant speed.
   wave:
     description: Raise the right arm forward, hold it, lower it slowly (original firmware wave).
     easing: linear
@@ -115,12 +121,33 @@ moves:
       - {ms: 1980, hold: 3000, joints: {right_arm: 72}}
       - {ms: 2895, joints: {right_arm: 0}}
 
-  # Original firmware handleWalk with n = 2 (the "come here" video): smoothMove(wait 3 ms, step 2 us)
+  # Both arms up together, fast (a cheer, 288 deg/s): the robot stands on its two in-line legs alone
+  # and the arms' swing throws it. A preflight showcase: it looks harmless and tips the robot in a
+  # large share of worlds. The same move at 600 ms per swing tips it in only ~4% (see the doc).
+  arms_up_both:
+    description: Throw both arms up together, hold, drop them (risky - the robot stands on its legs only).
+    easing: linear
+    loops: 1
+    frames:
+      - {ms: 250, hold: 500, joints: {left_arm: 72, right_arm: 72}}
+      - {ms: 250, joints: {left_arm: 0, right_arm: 0}}
+
+  # One arm at a time, at the same speed: the other arm stays on the floor as a third support.
+  arms_up_alternating:
+    description: Raise the right arm and lower it, then the left arm (the other arm always supports).
+    easing: linear
+    loops: 1
+    frames:
+      - {ms: 250, hold: 500, joints: {right_arm: 72}}
+      - {ms: 250, hold: 200, joints: {right_arm: 0}}
+      - {ms: 250, hold: 500, joints: {left_arm: 72}}
+      - {ms: 250, joints: {left_arm: 0}}
+
+  # Original firmware handleWalk (/ileri, n = 2; the "come" command): smoothMove(wait 3 ms, step 2 us)
   # = 3 + 3.95 ms per 2 us (~26 deg/s), STEP_SIZE 150 us (~13.5 deg), delay(200) after each phase,
-  # then back to center. Positive angles swing a limb forward on both sides (the firmware mirrors the
-  # left channels). Every joint moves at the same constant speed, so a smaller move ends early.
+  # then back to center. NOT RELIABLE in this model (see limitations).
   walk:
-    description: Two steps forward with the original firmware gait.
+    description: Two steps forward with the original firmware gait (simulation not reliable for walking).
     easing: linear
     loops: 1
     frames:

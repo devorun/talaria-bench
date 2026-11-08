@@ -1,7 +1,42 @@
 # Calibrating Caduceus against video (8 Nov 2026)
 
 Every number on this page comes from simulation. The real robot was only observed on video and
-measured by hand. Calibration 3b (with real measurements) is first; 3a (video only) follows.
+measured by hand. The final decision comes first, then calibration 3b (with real measurements),
+then 3a (video only).
+
+## Decision (8 Nov 2026): what `caduceus.yaml` is now
+
+* **Basis: the "legs carry weight" geometry from 3a.** The legs are 2 mm longer than the arms and
+  the foam crushes, so all four feet touch, as measured. This is the geometry that reproduced the
+  wave on video in 100% of worlds.
+* **Added from 3b, because they keep the wave intact:**
+  * head centre of mass +3 cm (electronics on top; measured range 2-4);
+  * leg joint free play 6.5 deg (measured range 3-10; the play hinge's limit is the stop at the head).
+* **Wave check in 100 fresh worlds** (seeds 1000-1099): 99% pass all wave targets, with 0 falls,
+  roll p90 0.2 deg and pitch p90 8.8 deg. Target was >= 95% no-tip with the body level: **met.**
+* **Sensitivity:** the wave holds at the low and middle measured values (com 2-3 cm, play 3-6.5 deg:
+  99-100%). It breaks at the top of both ranges (com +4 cm and play 10 deg: 34% pass, 10 falls).
+* **Walking is a declared limitation:** `limitations: [{scope: locomotion, note: ...}]`. The note
+  says that foam feet crushing and rolling at their edges are not in this rigid model, so
+  Caduceus's walking results are not reliable. On the firmware walk the model tips backwards in
+  100% of worlds, while the real robot moves ~6 cm forward. The report card marks every scene that
+  needs walking as "not reliable" and shows the note.
+* **Demo moves** (arm gestures; 100 worlds, Caduceus's own world ranges):
+
+| move | what it does | falls / 100 |
+|---|---|---|
+| `wave` (original firmware) | right arm up to 72 deg in ~2 s, hold 3 s, down | 0 |
+| `arms_up_alternating` | one arm up and down, then the other (250 ms per swing) | 0 |
+| `arms_up_both` | both arms thrown up together (250 ms per swing, 288 deg/s), hold, down | **41** |
+
+  `arms_up_both` is risky because of its speed. With the robot on its two in-line legs, the swing
+  of both arms throws it. The same move at 600 ms per swing tips it in 4/100 worlds, at 300 ms in
+  11/100, at 250 ms in 41/100. So "slow it down" or "one arm at a time" are honest fixes for
+  preflight to suggest.
+* **`caduceus_v2`** (design variant, not a robot): tight joints (1.5 deg everywhere) and the
+  electronics low inside the head (centre of mass -2 cm); everything else is the same. Wave 100%
+  pass; `arms_up_both` 0/100 falls (vs 41/100 for the real design). The walk is still unreliable
+  (same foam feet).
 
 ## 3b: with real measurements (result: targets NOT met, caduceus.yaml values kept from 3a)
 

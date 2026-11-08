@@ -25,7 +25,9 @@ SHAPES = {"box": 3, "cylinder": 2, "sphere": 1}
 SHAPE_HELP = {"box": "[x depth, y width, z height]", "cylinder": "[radius, length]", "sphere": "[radius]"}
 NAMED_AXES = {"pitch": (0.0, -1.0, 0.0), "roll": (1.0, 0.0, 0.0), "yaw": (0.0, 0.0, 1.0)}
 TOP_KEYS = {"talaria", "name", "title", "description", "photo", "voltage", "parts", "moves", "tether", "worlds",
-            "materials"}
+            "materials", "limitations"}
+#: what a limitation can cover: scenes that need walking, standing/arm-gesture moves, payload/arm work, or everything
+LIMITATION_SCOPES = ("locomotion", "standing", "manipulation", "all")
 MATERIAL_KEYS = {"friction", "solref", "solimp"}
 PART_KEYS = {"name", "parent", "shape", "size", "mass", "material", "color", "ground_contact", "joint", "pos",
              "friction", "com"}
@@ -93,6 +95,12 @@ class Spec:
     source: Optional[Path] = None
     warnings: list[str] = field(default_factory=list)
     materials: dict[str, materials.Material] = field(default_factory=lambda: dict(materials.MATERIALS))
+    #: known model limitations, ``[{"scope": ..., "note": ...}]``; results in that scope are "not reliable"
+    limitations: list[dict[str, str]] = field(default_factory=list)
+
+    def limitations_for(self, scope: str) -> list[str]:
+        """Notes of the limitations that cover ``scope`` (including ``all``)."""
+        return [lim["note"] for lim in self.limitations if lim["scope"] in (scope, "all")]
 
     @property
     def root(self) -> Part:
@@ -321,11 +329,38 @@ def parse_spec(data: Any, base_dir: Optional[Path] = None) -> Spec:
         world_ranges[str(key)] = (pair[0], pair[1])
 
     table = _parse_materials(data.get("materials"), problems)
+    limitations = _parse_limitations(data.get("limitations"), problems)
 
     if problems:
         raise SpecError(problems)
     return Spec(name=name, title=title, description=description, voltage=voltage, parts=ordered, moves=moves,
-                tether=tether, world_ranges=world_ranges, photo=photo, warnings=warnings, materials=table)
+                tether=tether, world_ranges=world_ranges, photo=photo, warnings=warnings, materials=table,
+                limitations=limitations)
+
+
+def _parse_limitations(raw: Any, problems: list[str]) -> list[dict[str, str]]:
+    """Honest notes about what the model cannot do, e.g. walking on crushable foam feet."""
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        problems.append("limitations: must be a list of {scope, note}")
+        return []
+    out = []
+    for i, item in enumerate(raw, start=1):
+        where = f"limitations #{i}"
+        if not isinstance(item, Mapping):
+            problems.append(f"{where}: must be {{scope, note}}")
+            continue
+        _unknown(where, item, {"scope", "note"}, problems)
+        scope, note = item.get("scope"), item.get("note")
+        if scope not in LIMITATION_SCOPES:
+            problems.append(f"{where}: scope must be one of {', '.join(LIMITATION_SCOPES)} (got {scope!r})")
+            continue
+        if not isinstance(note, str) or not note.strip():
+            problems.append(f"{where}: note must be a short text")
+            continue
+        out.append({"scope": scope, "note": " ".join(note.split())})
+    return out
 
 
 def _parse_materials(raw: Any, problems: list[str]) -> dict[str, materials.Material]:
