@@ -24,7 +24,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-from .materials import MATERIALS
+
 from .spec import Part, Spec
 from .worlds import World
 
@@ -88,7 +88,7 @@ def _servo_gains(part: Part, voltage: float) -> tuple[float, float, float]:
 
 
 def _body_xml(spec: Spec, part: Part, indent: str, root_z: float) -> str:
-    mat = MATERIALS[part.material]
+    mat = spec.materials[part.material]
     lines = []
     if part.parent is None:
         lines.append(f'{indent}<body name="{part.name}" pos="0 0 {_f(root_z)}">')
@@ -146,7 +146,7 @@ def _mjcf(spec: Spec, root_z: float, excluded: list[tuple[str, str]]) -> str:
 """
 
 
-def _lowest_z(model, data, geom_id: int) -> float:
+def lowest_z(model, data, geom_id: int) -> float:
     import numpy as np
 
     c = data.geom_xpos[geom_id]
@@ -184,7 +184,7 @@ def build_mjcf(spec: Spec) -> tuple[str, BuildInfo]:
     feet = [p.name for p in spec.parts if p.ground_contact] or [p.name for p in spec.parts]
     if not any(p.ground_contact for p in spec.parts):
         warnings.append("no part has ground_contact: true, so any floor contact counts as a fall")
-    lowest = min(_lowest_z(probe, data, probe.geom(n).id) for n in feet)
+    lowest = min(lowest_z(probe, data, probe.geom(n).id) for n in feet)
     root_z = -lowest + DROP_CLEARANCE
 
     floor = probe.geom("floor").id
@@ -203,16 +203,22 @@ def build_mjcf(spec: Spec) -> tuple[str, BuildInfo]:
 
 
 _CACHE: dict[str, tuple[Any, BuildInfo, str]] = {}
+CACHE_SIZE = 32
 
 
 def base_model(spec: Spec):
-    """Compiled model at nominal physics (cached per spec hash). Returns ``(model, info, xml)``."""
+    """Compiled model at nominal physics (cached per spec hash, last ``CACHE_SIZE`` specs).
+    Returns ``(model, info, xml)``."""
     import mujoco
 
     key = spec.hash()
-    if key not in _CACHE:
+    if key in _CACHE:
+        _CACHE[key] = _CACHE.pop(key)   # most recently used last
+    else:
         xml, info = build_mjcf(spec)
         _CACHE[key] = (mujoco.MjModel.from_xml_string(xml), info, xml)
+        while len(_CACHE) > CACHE_SIZE:
+            _CACHE.pop(next(iter(_CACHE)))
     return _CACHE[key]
 
 
@@ -223,7 +229,8 @@ def make_model(spec: Spec, world: Optional[World] = None):
     m = copy.copy(base)
     for part in spec.parts:
         gid = m.geom(part.name).id
-        m.geom_friction[gid, 0] = world.friction * MATERIALS[part.material].friction
+        factor = part.friction if part.friction is not None else spec.materials[part.material].friction
+        m.geom_friction[gid, 0] = world.friction * factor
     m.body_mass[1:] *= world.mass_scale
     m.body_inertia[1:] *= world.mass_scale
     m.actuator_gainprm[:, 0] *= world.kp_scale

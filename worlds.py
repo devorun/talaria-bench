@@ -24,6 +24,7 @@ DEFAULT_RANGES: dict[str, tuple[float, float]] = {
     "offset_deg": (-3.0, 3.0),       # per-servo calibration error, present from boot
     "floor_tilt_deg": (0.0, 1.5),    # floor tilt magnitude; direction is uniform
     "tether_scale": (0.0, 1.0),      # fraction of the spec's tether max_force_n
+    "tether_dir_deg": (120.0, 240.0),  # horizontal pull direction, 180 = straight back (-x)
 }
 
 
@@ -80,7 +81,7 @@ class World:
             floor_tilt_deg=u("floor_tilt_deg"),
             floor_tilt_dir_deg=float(rng.uniform(-180.0, 180.0)),
             tether_scale=u("tether_scale"),
-            tether_dir_deg=float(180.0 + rng.uniform(-60.0, 60.0)),
+            tether_dir_deg=u("tether_dir_deg"),
             seed=seed,
         )
         world.offsets_deg = {name: u("offset_deg") for name in joints}

@@ -9,6 +9,13 @@ with a screen). A transition eases in and out (smoothstep) from wherever the joi
 least as long as the slowest joint's speed limit needs. Joints a frame does not name keep their angle.
 ``repeat: true`` marks a gait: the simulator plays it over and over until the run time ends.
 
+``easing`` (move level) picks how a transition moves:
+
+* ``smoothstep`` (default): every joint eases in and out and all joints arrive together.
+* ``linear``: constant speed, like the original Caduceus firmware's ``smoothMove``: every moving joint
+  turns at the same speed (largest change / frame time) and stops when it reaches its target, so a
+  joint with a smaller change arrives early.
+
 ``joints`` everywhere below is ``{name: {"min", "max", "home", "max_speed"}}`` (degrees, deg/s), built
 from the robot spec (range from the spec, speed from the servo catalog).
 """
@@ -27,9 +34,10 @@ MAX_HOLD_MS = 10_000
 MAX_LOOPS = 10
 MAX_TOTAL_MS = 120_000
 DEFAULT_FRAME_MS = 400
-MIN_SPEED_FACTOR = 0.25
-MAX_SPEED_FACTOR = 2.0
-MOVE_KEYS = {"frames", "loops", "repeat", "description"}
+MIN_SPEED_FACTOR = 0.1
+MAX_SPEED_FACTOR = 4.0
+MOVE_KEYS = {"frames", "loops", "repeat", "description", "easing"}
+EASINGS = ("smoothstep", "linear")
 
 
 class MoveError(ValueError):
@@ -176,7 +184,7 @@ def plan_move(frames: Any, joints: dict[str, dict[str, Any]], *, start_pose: Opt
             "warnings": warnings}
 
 
-def check_move(move: Any, joints: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def check_move(move: Any, joints: dict[str, dict[str, Any]], speed: float = 1.0) -> dict[str, Any]:
     """Validate a whole move object (frames + loops + repeat + description) and plan it."""
     if not isinstance(move, dict):
         raise MoveError(["a move must be an object with frames (and optional loops, repeat, description)"])
@@ -188,13 +196,16 @@ def check_move(move: Any, joints: dict[str, dict[str, Any]]) -> dict[str, Any]:
         problems.append("repeat must be true or false")
     if "description" in move and not isinstance(move["description"], str):
         problems.append("description must be text")
+    if move.get("easing", "smoothstep") not in EASINGS:
+        problems.append(f"easing must be one of {', '.join(EASINGS)}")
     try:
-        plan = plan_move(move.get("frames"), joints, loops=move.get("loops", 1))
+        plan = plan_move(move.get("frames"), joints, loops=move.get("loops", 1), speed=speed)
     except MoveError as exc:
         raise MoveError(problems + exc.problems) from None
     if problems:
         raise MoveError(problems)
     plan["repeat"] = bool(move.get("repeat", False))
+    plan["easing"] = move.get("easing", "smoothstep")
     return plan
 
 
@@ -220,6 +231,8 @@ class MotionEngine:
         self._start: dict[str, float] = {}
         self._target: dict[str, float] = {}
         self._duration = 0.0
+        self._speed = 0.0
+        self._easing = "smoothstep"
 
     @property
     def busy(self) -> bool:
@@ -229,7 +242,9 @@ class MotionEngine:
         joint = self.joints[name]
         return min(max(angle, joint["min"]), joint["max"])
 
-    def load(self, frames: list[dict[str, Any]], *, loops: int = 1, now: float = 0.0) -> None:
+    def load(self, frames: list[dict[str, Any]], *, loops: int = 1, now: float = 0.0,
+             easing: str = "smoothstep") -> None:
+        self._easing = easing
         self._program = [
             {"ms": max(int(f.get("ms", DEFAULT_FRAME_MS)), MIN_FRAME_MS), "hold": max(int(f.get("hold", 0)), 0),
              "joints": {n: self.clamp(n, float(a)) for n, a in (f.get("joints") or {}).items() if n in self.joints}}
@@ -248,6 +263,8 @@ class MotionEngine:
         self._start = dict(self.pose)
         self._target = {**self.pose, **frame["joints"]}
         self._duration = frame_duration_ms(self._start, frame["joints"], self.joints, frame["ms"]) / 1000.0
+        biggest = max((abs(self._target[n] - self._start[n]) for n in self._target), default=0.0)
+        self._speed = biggest / self._duration if self._duration > 0 else float("inf")
         self._phase = "move"
         self._phase_start = now
 
@@ -260,8 +277,14 @@ class MotionEngine:
             elapsed = now - self._phase_start
             if self._phase == "move":
                 t = 1.0 if self._duration <= 0 else elapsed / self._duration
-                eased = smoothstep(t)
-                self.pose = {n: self._start[n] + (self._target[n] - self._start[n]) * eased for n in self.pose}
+                if self._easing == "linear":
+                    step = self._speed * max(min(elapsed, self._duration), 0.0)
+                    self.pose = {n: self._start[n] + math.copysign(min(abs(self._target[n] - self._start[n]), step),
+                                                                   self._target[n] - self._start[n])
+                                 for n in self.pose}
+                else:
+                    eased = smoothstep(t)
+                    self.pose = {n: self._start[n] + (self._target[n] - self._start[n]) * eased for n in self.pose}
                 if t < 1.0:
                     return
                 self.pose = dict(self._target)
@@ -281,23 +304,23 @@ class MotionEngine:
 
 
 def trajectory(move: dict[str, Any], joints: dict[str, dict[str, Any]], seconds: float, dt: float,
-               repeat: Optional[bool] = None) -> tuple[list[str], list[list[float]]]:
+               repeat: Optional[bool] = None, speed: float = 1.0) -> tuple[list[str], list[list[float]]]:
     """Commanded joint angles (degrees) every ``dt`` seconds for ``seconds``. The move plays once (with
     its loops) and then holds its end pose, or, for ``repeat`` moves, starts over until time runs out.
     Returns ``(joint names, rows)``."""
-    plan = check_move(move, joints)
+    plan = check_move(move, joints, speed=speed)
     if repeat is None:
         repeat = plan["repeat"]
     names = list(joints)
     engine = MotionEngine(joints)
-    engine.load(plan["frames"], loops=plan["loops"], now=0.0)
+    engine.load(plan["frames"], loops=plan["loops"], now=0.0, easing=plan["easing"])
     steps = int(round(seconds / dt))
     rows: list[list[float]] = []
     t = 0.0
     for _ in range(steps):
         engine.tick(t)
         if repeat and not engine.busy:
-            engine.load(plan["frames"], loops=plan["loops"], now=t)
+            engine.load(plan["frames"], loops=plan["loops"], now=t, easing=plan["easing"])
             engine.tick(t)
         rows.append([engine.pose[n] for n in names])
         t += dt

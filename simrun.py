@@ -20,7 +20,7 @@ from typing import Any, Optional
 
 import numpy as np
 
-from .builder import TIMESTEP, make_model
+from .builder import TIMESTEP, lowest_z, make_model
 from .motion import trajectory
 from .spec import Spec
 from .worlds import World
@@ -42,6 +42,13 @@ class JointLoad:
 
 
 @dataclass
+class GroundPart:
+    start_cm: float             # gap between the part's lowest point and the floor after settling
+    lift_cm: float              # highest that gap got during the move
+    contact_frac: float         # fraction of control steps the part touched the floor
+
+
+@dataclass
 class Result:
     move: str
     seconds: float
@@ -49,7 +56,10 @@ class Result:
     lateral_m: float            # + = to the robot's left
     yaw_deg: float              # + = turned left (continuous, can exceed 180)
     steady_m: float             # steady forward progress (0 when the robot fell)
-    max_tilt_deg: float
+    max_tilt_deg: float         # root tilt from upright (gravity), worst moment
+    max_tilt_change_deg: float  # root tilt relative to its settled pose, worst moment
+    max_roll_change_deg: float  # side-to-side part of that (about the robot's own x axis)
+    max_pitch_change_deg: float  # front-back part (about the robot's own y axis)
     fell: bool
     fell_at_s: Optional[float]
     fall_reason: Optional[str]
@@ -57,6 +67,7 @@ class Result:
     self_collisions: int        # contact onsets between two parts
     self_collision_pairs: list[list[str]]
     world: dict[str, Any]
+    ground: dict[str, GroundPart] = field(default_factory=dict)   # parts with ground_contact: true
     warnings: list[str] = field(default_factory=list)
     trace: Optional[dict[str, Any]] = None
 
@@ -100,8 +111,9 @@ def resolve_move(spec: Spec, move: Any) -> tuple[str, dict[str, Any]]:
 
 
 def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, seconds: Optional[float] = None,
-             record: bool = False, repeat: Optional[bool] = None) -> Result:
-    """Simulate ``move`` (a spec move name, a move dict, or None to hold the home pose)."""
+             record: bool = False, repeat: Optional[bool] = None, speed: float = 1.0) -> Result:
+    """Simulate ``move`` (a spec move name, a move dict, or None to hold the home pose). ``speed``
+    scales frame times like ``plan_move`` (0.5 = everything takes twice as long; holds unchanged)."""
     import mujoco
 
     world = world or World.nominal()
@@ -110,10 +122,10 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
     if seconds is None:
         from .motion import check_move
 
-        plan = check_move(move_dict, limits)
+        plan = check_move(move_dict, limits, speed=speed)
         rep = plan["repeat"] if repeat is None else repeat
         seconds = 8.0 if rep else plan["duration_ms"] / 1000.0 + 1.0
-    names, rows = trajectory(move_dict, limits, seconds, CTRL_DT, repeat=repeat)
+    names, rows = trajectory(move_dict, limits, seconds, CTRL_DT, repeat=repeat, speed=speed)
     traj = np.asarray(rows, dtype=float).reshape(len(rows), len(names))
 
     m, info = make_model(spec, world)
@@ -126,7 +138,7 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
     lo = np.array([limits[n]["min"] for n in names])
     hi = np.array([limits[n]["max"] for n in names])
     offsets = np.array([world.offsets_deg.get(n, 0.0) for n in names])
-    speed = np.array([spec.part(n).joint.servo.speed_dps(spec.voltage) for n in names])
+    servo_dps = np.array([spec.part(n).joint.servo.speed_dps(spec.voltage) for n in names])
     act = np.array([m.actuator(n).id for n in names], dtype=int)
     limit_nm = np.abs(m.actuator_forcerange[act, 1])
     vadr = np.array([m.jnt_dofadr[m.joint(n).id] for n in names], dtype=int)
@@ -135,11 +147,27 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
     sent = np.clip(home + offsets, lo, hi)
     d.qpos[qadr] = np.radians(sent)
     d.ctrl[act] = np.radians(sent)
+    tether_force = None
     if spec.tether and world.tether_scale > 0:
         f = world.tether_scale * spec.tether["max_force_n"]
         a = math.radians(world.tether_dir_deg)
-        d.xfrc_applied[m.body(spec.tether["part"]).id, :3] = (f * math.cos(a), f * math.sin(a), 0.0)
+        tether_force = np.array([f * math.cos(a), f * math.sin(a), 0.0])
+        tether_body = m.body(spec.tether["part"]).id
+        # where the cable plugs in, relative to the body frame (the part center for root/fixed parts)
+        center = np.zeros(3) if spec.part(spec.tether["part"]).joint is None else \
+            np.array(spec.part(spec.tether["part"]).joint.offset) * 0.01
+        tether_at = center + np.array(spec.tether["at"]) * 0.01
+
+    def apply_tether() -> None:
+        """A constant horizontal pull at the plug point: force plus the torque it makes about the COM."""
+        if tether_force is None:
+            return
+        point = d.xpos[tether_body] + d.xmat[tether_body].reshape(3, 3) @ tether_at
+        d.xfrc_applied[tether_body, :3] = tether_force
+        d.xfrc_applied[tether_body, 3:] = np.cross(point - d.xipos[tether_body], tether_force)
+
     mujoco.mj_forward(m, d)
+    apply_tether()
 
     g = np.array(world.gravity())
     up = -g / np.linalg.norm(g)
@@ -147,15 +175,20 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
     fell, fell_at, reason = False, None, None
     max_tilt = 0.0
 
+    floor_parts: set[str] = set()
+
     def check(now: Optional[float]) -> tuple[Optional[str], set]:
         touching: set[tuple[str, str]] = set()
+        floor_parts.clear()
         why = None
         for i in range(d.ncon):
             g1, g2 = int(d.contact.geom[i, 0]), int(d.contact.geom[i, 1])
             if g1 == floor or g2 == floor:
                 part = geom_part.get(g2 if g1 == floor else g1)
-                if part is not None and not part.ground_contact and why is None:
-                    why = f"part '{part.name}' touched the floor"
+                if part is not None:
+                    floor_parts.add(part.name)
+                    if not part.ground_contact and why is None:
+                        why = f"part '{part.name}' touched the floor"
             elif g1 in geom_part and g2 in geom_part:
                 touching.add(tuple(sorted((geom_part[g1].name, geom_part[g2].name))))
         return why, touching
@@ -165,6 +198,7 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
         return math.degrees(math.acos(max(-1.0, min(1.0, float(np.dot(z_axis, up))))))
 
     for _ in range(int(round(SETTLE_S / CTRL_DT))):
+        apply_tether()
         mujoco.mj_step(m, d, nstep=sub)
         why, _ = check(None)
         tilt = tilt_deg()
@@ -183,10 +217,17 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
     saturated = np.zeros(len(names))
     steps_done = 0
     lat_steps = int(round(world.latency_s / CTRL_DT))
-    max_step = speed * CTRL_DT
+    max_step = servo_dps * CTRL_DT
     touching_prev: set = set()
     collisions = 0
     pairs: set = set()
+    r_settled = d.xmat[root_id].reshape(3, 3).copy()
+    z_settled = r_settled[:, 2].copy()
+    max_tilt_change = max_roll = max_pitch = 0.0
+    ground_parts = [(p.name, m.geom(p.name).id) for p in parts if p.ground_contact]
+    ground_start = {name: lowest_z(m, d, gid) for name, gid in ground_parts}
+    ground_max = dict(ground_start)
+    ground_touch = {name: 0 for name, _ in ground_parts}
 
     trace = None
     if record:
@@ -213,6 +254,7 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
             cmd = np.clip(traj[max(0, i - lat_steps)] + offsets, lo, hi)
             sent = sent + np.clip(cmd - sent, -max_step, max_step)
             d.ctrl[act] = np.radians(sent)
+            apply_tether()
             mujoco.mj_step(m, d, nstep=sub)
             steps_done += 1
 
@@ -231,8 +273,17 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
             collisions += len(new)
             pairs |= touching
             touching_prev = touching
+            for name, gid in ground_parts:
+                ground_max[name] = max(ground_max[name], lowest_z(m, d, gid))
+                ground_touch[name] += name in floor_parts
             tilt = tilt_deg()
             max_tilt = max(max_tilt, tilt)
+            r_now = d.xmat[root_id].reshape(3, 3)
+            max_tilt_change = max(max_tilt_change,
+                                  math.degrees(math.acos(max(-1.0, min(1.0, float(np.dot(r_now[:, 2], z_settled)))))))
+            rel = r_settled.T @ r_now          # rotation since settling, in the robot's settled frame
+            max_roll = max(max_roll, abs(math.degrees(math.atan2(rel[2, 1], rel[2, 2]))))
+            max_pitch = max(max_pitch, abs(math.degrees(math.asin(max(-1.0, min(1.0, -rel[2, 0]))))))
             if not fell and (why or tilt > FALL_TILT_DEG):
                 fell, fell_at = True, round(now + CTRL_DT, 3)
                 reason = why or f"root tilted more than {FALL_TILT_DEG:.0f} deg"
@@ -252,9 +303,14 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
                              peak_speed_dps=round(math.degrees(float(peak_speed[k])), 2)) for k, name in enumerate(names)}
     return Result(move=move_name, seconds=float(seconds), forward_m=round(float(forward), 5),
                   lateral_m=round(float(lateral), 5), yaw_deg=round(math.degrees(yaw_acc), 3),
-                  steady_m=round(float(steady), 5), max_tilt_deg=round(max_tilt, 3), fell=fell, fell_at_s=fell_at,
+                  steady_m=round(float(steady), 5), max_tilt_deg=round(max_tilt, 3),
+                  max_tilt_change_deg=round(max_tilt_change, 3), max_roll_change_deg=round(max_roll, 3),
+                  max_pitch_change_deg=round(max_pitch, 3), fell=fell, fell_at_s=fell_at,
                   fall_reason=reason, joints=loads, self_collisions=collisions,
                   self_collision_pairs=[list(pr) for pr in sorted(pairs)], world=world.to_dict(),
+                  ground={name: GroundPart(start_cm=round(ground_start[name] * 100, 3),
+                                           lift_cm=round(ground_max[name] * 100, 3),
+                                           contact_frac=round(ground_touch[name] / n, 4)) for name, _ in ground_parts},
                   warnings=list(info.warnings), trace=trace)
 
 

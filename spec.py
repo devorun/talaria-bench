@@ -24,11 +24,14 @@ SPEC_VERSION = 1
 SHAPES = {"box": 3, "cylinder": 2, "sphere": 1}
 SHAPE_HELP = {"box": "[x depth, y width, z height]", "cylinder": "[radius, length]", "sphere": "[radius]"}
 NAMED_AXES = {"pitch": (0.0, -1.0, 0.0), "roll": (1.0, 0.0, 0.0), "yaw": (0.0, 0.0, 1.0)}
-TOP_KEYS = {"talaria", "name", "title", "description", "photo", "voltage", "parts", "moves", "tether", "worlds"}
-PART_KEYS = {"name", "parent", "shape", "size", "mass", "material", "color", "ground_contact", "joint", "pos"}
+TOP_KEYS = {"talaria", "name", "title", "description", "photo", "voltage", "parts", "moves", "tether", "worlds",
+            "materials"}
+MATERIAL_KEYS = {"friction", "solref", "solimp"}
+PART_KEYS = {"name", "parent", "shape", "size", "mass", "material", "color", "ground_contact", "joint", "pos",
+             "friction"}
 JOINT_KEYS = {"axis", "anchor", "offset", "range", "home", "servo", "max_speed", "hardware"}
 HARDWARE_KEYS = {"channel", "center_us", "us_per_deg", "direction"}
-TETHER_KEYS = {"part", "max_force_n"}
+TETHER_KEYS = {"part", "max_force_n", "at"}
 MAX_SIZE_CM = 300.0
 MAX_MASS_G = 50_000.0
 _NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
@@ -68,6 +71,7 @@ class Part:
     ground_contact: bool
     joint: Optional[Joint] = None
     pos: Optional[tuple[float, float, float]] = None   # cm, fixed parts only
+    friction: Optional[float] = None        # this part's friction factor, replacing the material's
 
     @property
     def is_root(self) -> bool:
@@ -87,6 +91,7 @@ class Spec:
     photo: Optional[Path] = None
     source: Optional[Path] = None
     warnings: list[str] = field(default_factory=list)
+    materials: dict[str, materials.Material] = field(default_factory=lambda: dict(materials.MATERIALS))
 
     @property
     def root(self) -> Part:
@@ -135,6 +140,8 @@ class Spec:
                                      "mass": r(p.mass), "material": p.material, "ground_contact": p.ground_contact}
             if p.pos is not None:
                 entry["pos"] = vec(p.pos)
+            if p.friction is not None:
+                entry["friction"] = r(p.friction)
             if p.joint is not None:
                 j = p.joint
                 entry["joint"] = {
@@ -145,8 +152,12 @@ class Spec:
                               "backlash_deg": r(j.servo.backlash_deg)},
                 }
             parts.append(entry)
-        return {"talaria": SPEC_VERSION, "voltage": r(self.voltage), "parts": parts,
-                "tether": {k: (r(v) if isinstance(v, float) else v) for k, v in self.tether.items()} if self.tether else None,
+        used = sorted({p.material for p in self.parts})
+        mats = {name: {"friction": r(self.materials[name].friction), "solref": vec(self.materials[name].solref),
+                       "solimp": vec(self.materials[name].solimp)} for name in used}
+        return {"talaria": SPEC_VERSION, "voltage": r(self.voltage), "parts": parts, "materials": mats,
+                "tether": {"part": self.tether["part"], "max_force_n": r(self.tether["max_force_n"]),
+                           "at": vec(self.tether["at"])} if self.tether else None,
                 "worlds": {k: vec(v) for k, v in sorted(self.world_ranges.items())}}
 
     def hash(self) -> str:
@@ -281,12 +292,15 @@ def parse_spec(data: Any, base_dir: Optional[Path] = None) -> Spec:
         else:
             _unknown("tether", raw_tether, TETHER_KEYS, problems)
             force = _num(raw_tether.get("max_force_n"))
+            at = _vec(raw_tether.get("at", [0, 0, 0]), 3)
             if raw_tether.get("part") not in seen:
                 problems.append(f"tether: part {raw_tether.get('part')!r} does not exist")
             elif force is None or not 0 <= force <= 50:
                 problems.append("tether: max_force_n must be a number from 0 to 50 (newtons)")
+            elif at is None:
+                problems.append("tether: at must be [x, y, z] in cm (where the cable plugs in, part frame)")
             else:
-                tether = {"part": raw_tether["part"], "max_force_n": force}
+                tether = {"part": raw_tether["part"], "max_force_n": force, "at": list(at)}
 
     world_ranges: dict[str, tuple[float, float]] = {}
     raw_worlds = data.get("worlds") or {}
@@ -303,10 +317,55 @@ def parse_spec(data: Any, base_dir: Optional[Path] = None) -> Spec:
             continue
         world_ranges[str(key)] = (pair[0], pair[1])
 
+    table = _parse_materials(data.get("materials"), problems)
+
     if problems:
         raise SpecError(problems)
     return Spec(name=name, title=title, description=description, voltage=voltage, parts=ordered, moves=moves,
-                tether=tether, world_ranges=world_ranges, photo=photo, warnings=warnings)
+                tether=tether, world_ranges=world_ranges, photo=photo, warnings=warnings, materials=table)
+
+
+def _parse_materials(raw: Any, problems: list[str]) -> dict[str, materials.Material]:
+    """Per-robot overrides of the material table, e.g. a softer foam found by calibration."""
+    from dataclasses import replace
+
+    table = dict(materials.MATERIALS)
+    if raw is None:
+        return table
+    if not isinstance(raw, Mapping):
+        problems.append("materials: must be a mapping of material -> {friction, solref, solimp}")
+        return table
+    for name, fields in raw.items():
+        where = f"materials {name!r}"
+        if name not in table:
+            problems.append(f"{where}: unknown material (known: {', '.join(materials.names())})")
+            continue
+        if not isinstance(fields, Mapping):
+            problems.append(f"{where}: must be a mapping with friction, solref and/or solimp")
+            continue
+        _unknown(where, fields, MATERIAL_KEYS, problems)
+        changes: dict[str, Any] = {}
+        if "friction" in fields:
+            f = _num(fields["friction"])
+            if f is None or not 0.05 <= f <= 3.0:
+                problems.append(f"{where}: friction factor must be 0.05..3")
+            else:
+                changes["friction"] = f
+        if "solref" in fields:
+            v = _vec(fields["solref"], 2)
+            if v is None or not 0.004 <= v[0] <= 0.2 or not 0.1 <= v[1] <= 5:
+                problems.append(f"{where}: solref must be [time constant 0.004..0.2 s, damping ratio 0.1..5]")
+            else:
+                changes["solref"] = v
+        if "solimp" in fields:
+            v = _vec(fields["solimp"], 3)
+            if v is None or not 0 < v[0] <= v[1] < 1 or not 0 < v[2] <= 0.05:
+                problems.append(f"{where}: solimp must be [dmin, dmax, width m] with 0 < dmin <= dmax < 1, "
+                                "0 < width <= 0.05")
+            else:
+                changes["solimp"] = v
+        table[name] = replace(table[name], **changes)
+    return table
 
 
 def _parse_part(raw: Any, index: int, voltage: float, problems: list[str]) -> Optional[Part]:
@@ -357,6 +416,12 @@ def _parse_part(raw: Any, index: int, voltage: float, problems: list[str]) -> Op
     if not isinstance(ground_contact, bool):
         problems.append(f"{where}: ground_contact must be true or false")
         ground_contact = False
+    friction = None
+    if raw.get("friction") is not None:
+        friction = _num(raw["friction"])
+        if friction is None or not 0.05 <= friction <= 3.0:
+            problems.append(f"{where}: friction factor must be 0.05..3 (replaces the material's factor)")
+            friction = None
 
     joint = None
     pos = None
@@ -379,7 +444,7 @@ def _parse_part(raw: Any, index: int, voltage: float, problems: list[str]) -> Op
     if len(problems) > before:
         return None
     return Part(name=name, parent=parent, shape=shape, size=size, mass=mass, material=material, color=color,
-                ground_contact=ground_contact, joint=joint, pos=pos)
+                ground_contact=ground_contact, joint=joint, pos=pos, friction=friction)
 
 
 def _parse_joint(raw: Any, where: str, voltage: float, problems: list[str]) -> Optional[Joint]:

@@ -110,6 +110,66 @@ def cmd_run(args) -> int:
     return 0
 
 
+def cmd_calibrate(args) -> int:
+    load_package()
+    from talaria_bench.calibration import calibrate, default_workers, load_config
+
+    config = load_config(find_spec_file(args.config))
+    workers = args.workers or default_workers()
+    n = args.samples or config.samples
+    print(f"[simulation] calibrating {config.spec_path.name}: {n} parameter sets x {len(config.targets)} targets, "
+          f"{workers} workers")
+    t0 = time.perf_counter()
+    report = calibrate(config, samples=n, workers=workers, seed=args.seed,
+                       progress=lambda i, k: print(f"  {i}/{k} ({time.perf_counter() - t0:.0f} s)", flush=True))
+    print(f"accepted {report['accepted']}/{report['samples']} ({report['acceptance_rate'] * 100:.1f}%); "
+          f"per target: " + ", ".join(f"{t} {v * 100:.0f}%" for t, v in report["per_target_pass"].items()))
+    targets = list(config.targets)
+    print("\nparameters by how much they decide acceptance (accept rate per quarter of the range):")
+    for name in report["deciding_parameters"]:
+        tab = report["parameter_tables"][name]
+        cells = " | ".join(
+            f"{b['range'][0]:g}..{b['range'][1]:g}: {'-' if b['accept'] is None else f'{b['accept'] * 100:.0f}%'}"
+            f" ({'/'.join('-' if b[t] is None else f'{b[t] * 100:.0f}' for t in targets)})" for b in tab["bins"])
+        print(f"  {name:20s} spread {tab['spread'] * 100:4.0f}%  {cells}")
+    print(f"  (in brackets: pass % of {' / '.join(targets)})")
+    if report["accepted_stats"]:
+        print("\naccepted sets: median [p10, p90]")
+        for name, s in report["accepted_stats"].items():
+            print(f"  {name:20s} {s['median']:9.4g} [{s['p10']:.4g}, {s['p90']:.4g}]")
+        c = report["central_accepted"]
+        print("\nmost central accepted set:", json.dumps(c["values"]))
+        for t, res in c["targets"].items():
+            print(f"  {t}: " + json.dumps(res["metrics"]))
+    print("\nclosest sets:")
+    for row in report["closest"][:3]:
+        print(f"  miss {row['miss']:.3f}: " + "; ".join(f"{t}: " + (", ".join(
+            f"{v['metric']}={v['value']}" for v in res["violations"]) or "ok") for t, res in row["targets"].items()))
+    if args.out:
+        Path(args.out).write_text(json.dumps(report, indent=1), encoding="utf-8")
+        print(f"\nfull report -> {args.out}")
+    print(f"({time.perf_counter() - t0:.0f} s wall)")
+    return 0
+
+
+def cmd_validate(args) -> int:
+    load_package()
+    from talaria_bench.calibration import load_config, validate
+    from talaria_bench.spec import load_spec
+
+    config = load_config(find_spec_file(args.config))
+    spec = load_spec(find_spec_file(args.spec) if args.spec else config.spec_path)
+    values = {k: (lo + hi) / 2 for k, (lo, hi) in config.params.items()}
+    for item in args.param or []:
+        key, _, val = item.partition("=")
+        values[key] = float(val)
+    print(f"[simulation] validating {spec.name} (spec {spec.hash()[:12]}) in {args.worlds} fresh worlds "
+          f"(seeds {args.seed}..{args.seed + args.worlds - 1}) from its own world ranges")
+    out = validate(config, spec, worlds=args.worlds, seed=args.seed, speed_values=values)
+    print(json.dumps(out, indent=1))
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="devcli.py", description="Talaria Bench developer CLI (simulation only)")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -130,6 +190,20 @@ def main(argv=None) -> int:
     p.add_argument("--json", action="store_true", help="print the full result as JSON (single run only)")
     p.add_argument("-v", "--verbose", action="store_true", help="print every world")
     p.set_defaults(fn=cmd_run)
+    p = sub.add_parser("calibrate", help="sample model parameters against behaviour targets")
+    p.add_argument("config", help="calibration YAML, e.g. examples/robots/caduceus.calibration.yaml")
+    p.add_argument("--samples", type=int, default=None)
+    p.add_argument("--workers", type=int, default=0)
+    p.add_argument("--seed", type=int, default=None)
+    p.add_argument("--out", default=None, help="write the full JSON report here")
+    p.set_defaults(fn=cmd_calibrate)
+    p = sub.add_parser("validate", help="check the targets in fresh random worlds from the spec's ranges")
+    p.add_argument("config")
+    p.add_argument("--spec", default=None, help="spec to check (default: the one in the calibration file)")
+    p.add_argument("--worlds", type=int, default=100)
+    p.add_argument("--seed", type=int, default=1000)
+    p.add_argument("--param", action="append", help="name=value for parameters used in target speeds")
+    p.set_defaults(fn=cmd_validate)
     args = ap.parse_args(argv)
     try:
         return args.fn(args)

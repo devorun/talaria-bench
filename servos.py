@@ -14,7 +14,7 @@ Values between catalog voltages are linearly interpolated; outside the range the
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Mapping
 
 KGCM_TO_NM = 0.0980665  # 1 kg*cm = 0.0980665 N*m
@@ -78,6 +78,7 @@ CATALOG: dict[str, ServoModel] = {
 }
 
 _INLINE_KEYS = {"torque_kgcm", "speed_s_per_60", "backlash_deg", "mass_g"}
+_OVERRIDE_KEYS = {"model", "backlash_deg", "mass_g"}
 
 
 def names() -> list[str]:
@@ -100,6 +101,24 @@ def resolve(value: Any, where: str = "servo") -> ServoModel:
             return lookup(value)
         except ServoError as exc:
             raise ServoError(f"{where}: {exc}") from None
+    if isinstance(value, Mapping) and "model" in value:
+        # A catalog servo with its measured backlash or mass: {model: MG90S, backlash_deg: 2}
+        unknown = set(value) - _OVERRIDE_KEYS
+        if unknown:
+            raise ServoError(f"{where}: with model, only {', '.join(sorted(_OVERRIDE_KEYS - {'model'}))} can be "
+                             f"changed (got {', '.join(sorted(map(str, unknown)))})")
+        try:
+            base = lookup(value["model"])
+        except ServoError as exc:
+            raise ServoError(f"{where}: {exc}") from None
+        try:
+            backlash = float(value.get("backlash_deg", base.backlash_deg))
+            mass = float(value.get("mass_g", base.mass_g))
+        except (TypeError, ValueError):
+            raise ServoError(f"{where}: backlash_deg and mass_g must be numbers") from None
+        if not 0 <= backlash <= 20 or mass < 0:
+            raise ServoError(f"{where}: backlash_deg must be 0..20 and mass_g >= 0")
+        return replace(base, backlash_deg=backlash, mass_g=mass)
     if isinstance(value, Mapping):
         unknown = set(value) - _INLINE_KEYS
         if unknown:

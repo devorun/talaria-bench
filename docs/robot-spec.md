@@ -18,8 +18,9 @@ Talaria Bench turns it into a MuJoCo model and runs moves on it. Examples:
 | `voltage` | no | servo supply voltage, default `5.0` (servo torque and speed are interpolated) |
 | `parts` | yes | list of parts (below) |
 | `moves` | no | named keyframe moves (below) |
-| `tether` | no | `{part, max_force_n}`: a power cable pulling on a part (horizontal, mostly backwards) |
+| `tether` | no | `{part, max_force_n, at}`: a power cable pulling horizontally on a part; `at` is the plug point in the part's frame (cm, default its center). An off-center plug also turns the robot |
 | `worlds` | no | override randomization ranges, e.g. `friction: [0.4, 0.6]` (see `worlds.py`) |
+| `materials` | no | per-robot material overrides, e.g. `foam: {solref: [0.023, 1.0], solimp: [0.7, 0.95, 0.0038], friction: 1.0}` (solimp width in metres) |
 
 Unknown keys are errors (typos are caught, not ignored).
 
@@ -34,6 +35,7 @@ Unknown keys are errors (typos are caught, not ignored).
   material: foam               # foam | pla | wood | metal | rubber (contact softness + friction)
   color: "#c9ced6"             # optional, display only
   ground_contact: true         # may touch the floor (feet). Default false: touching the floor = fall
+  friction: 1.2                # optional: this part's friction factor, replacing the material's (a rubber pad)
   joint: {...}                 # a moving part (servo), or:
   pos: [0, 0, -3.5]            # a part fixed to its parent: its center in the parent's frame (cm)
 ```
@@ -50,7 +52,8 @@ joint:
   offset: [0, 0, -9.25]        # this part's center relative to the joint at angle 0 (cm)
   range: [-72, 72]             # degrees, -180..180
   home: 0                      # optional rest angle, default 0
-  servo: MG90S                 # SG90 | MG90S | MG996R | DS3218, or {torque_kgcm, speed_s_per_60, backlash_deg[, mass_g]}
+  servo: MG90S                 # SG90 | MG90S | MG996R | DS3218, {model: MG90S, backlash_deg: 2} (measured play),
+                               # or inline {torque_kgcm, speed_s_per_60, backlash_deg[, mass_g]}
   max_speed: 240               # optional planning speed limit (deg/s), default: the servo's no-load speed
   hardware: {channel: 0, center_us: 1700, us_per_deg: 11.1, direction: -1}   # optional, for the real robot
 ```
@@ -73,13 +76,24 @@ moves:
     description: Raise the right arm.
     loops: 1                   # play the frames this many times (1..10)
     repeat: false              # true = a gait: the simulator repeats it until the run time ends
+    easing: linear             # smoothstep (default) | linear
     frames:
-      - {ms: 400, hold: 3000, joints: {right_arm: 72}}
-      - {ms: 2500, joints: {right_arm: 0}}
+      - {ms: 1980, hold: 3000, joints: {right_arm: 72}}
+      - {ms: 2895, joints: {right_arm: 0}}
 ```
 
-Each transition eases in and out from the current pose. A frame that would turn a joint faster than
-its `max_speed` is slowed down (with a warning). Angles outside a joint's range are errors.
+With `smoothstep` each transition eases in and out from the current pose, and all joints arrive
+together. With `linear` every moving joint turns at one constant speed (the largest change divided
+by the frame time) and stops when it arrives. That is how a firmware loop that steps every servo by
+the same amount behaves, for example Caduceus's `smoothMove`. A frame that would turn a joint
+faster than its `max_speed` is slowed down (with a warning). Angles outside a joint's range are
+errors.
+
+## Calibration
+
+`calibration.py` fits a spec to behaviour seen on video: it samples unknown parameters within
+plausible ranges, runs moves, and keeps the sets that meet behaviour targets. See
+`examples/robots/caduceus.calibration.yaml` and `docs/calibration-caduceus.md`.
 
 ## What the simulation adds (not in the spec)
 

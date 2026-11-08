@@ -24,8 +24,12 @@ def test_mini_spec_parses(mini_data):
 def test_examples_load(caduceus, spider):
     assert caduceus.joint_names == ["left_arm", "left_leg", "right_leg", "right_arm"]
     assert caduceus.photo is not None and caduceus.photo.is_file()
-    assert caduceus.tether == {"part": "head", "max_force_n": 0.2}
+    assert caduceus.tether == {"part": "head", "max_force_n": 0.09, "at": [-1.4, 0.0, 2.9]}
     assert {"wave", "walk"} <= set(caduceus.moves)
+    assert caduceus.moves["wave"]["easing"] == "linear"
+    assert caduceus.part("left_arm").joint.servo.backlash_deg == 2.0
+    assert caduceus.materials["foam"].solref == (0.023, 1.0)
+    assert caduceus.world_ranges["friction"] == (0.33, 0.63)
     assert len(spider.joint_names) == 8
     assert spider.total_mass_g == pytest.approx(250)
     assert spider.moves["walk"]["repeat"] is True

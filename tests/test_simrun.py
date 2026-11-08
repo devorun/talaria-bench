@@ -68,11 +68,45 @@ def test_loads_and_speeds_are_reported(spider):
         assert 100 < load.peak_speed_dps <= servo_speed * 1.05   # the servo never turns faster than it can
 
 
-def test_caduceus_wave_pins_the_arm_load(caduceus):
+def test_calibrated_caduceus_waves_level_in_the_nominal_world(caduceus):
+    """Calibrated against video (docs/calibration-caduceus.md): the arm lifts, the body stays level."""
     r = run_move(caduceus, "wave", World.nominal())
-    assert r.seconds == pytest.approx(6.9)
-    assert r.joints["right_arm"].peak_ratio > 0.5
-    assert r.self_collisions >= 0
+    assert r.seconds == pytest.approx((1980 + 3000 + 2895) / 1000 + 1.0)
+    assert not r.fell
+    assert r.ground["right_arm"].lift_cm - r.ground["right_arm"].start_cm > 2.0
+    assert r.max_roll_change_deg < 5 and r.max_pitch_change_deg < 10 and abs(r.yaw_deg) < 5
+    assert 0.2 < r.joints["right_arm"].peak_ratio <= 1.0
+
+
+def test_calibrated_caduceus_walk_barely_moves(caduceus):
+    r = run_move(caduceus, "walk", World.nominal())
+    assert not r.fell and abs(r.forward_m) < 0.03
+    assert min(r.ground["left_leg"].lift_cm, r.ground["right_leg"].lift_cm) > 0.5
+
+
+def test_roll_and_pitch_are_split(spider):
+    r = run_move(spider, None, World(floor_tilt_deg=0), 1.0)
+    assert r.max_roll_change_deg < 1 and r.max_pitch_change_deg < 1
+    assert r.max_tilt_change_deg >= max(r.max_roll_change_deg, r.max_pitch_change_deg) - 1e-6
+
+
+def test_tether_plug_point_makes_a_turning_moment(mini_data):
+    mini_data["parts"][1]["joint"]["anchor"] = [3, 0, -2]
+    mini_data["parts"].append({"name": "leg2", "parent": "body", "shape": "box", "size": [2, 2, 8], "mass": 20,
+                               "ground_contact": True, "joint": {"axis": "pitch", "anchor": [-3, 0, -2],
+                                                                 "offset": [0, 0, -4], "range": [-60, 60],
+                                                                 "servo": "SG90"}})
+    mini_data["parts"].append({"name": "leg3", "parent": "body", "shape": "box", "size": [2, 2, 8], "mass": 20,
+                               "ground_contact": True, "pos": [0, 4, -6]})
+    mini_data["parts"].append({"name": "leg4", "parent": "body", "shape": "box", "size": [2, 2, 8], "mass": 20,
+                               "ground_contact": True, "pos": [0, -4, -6]})
+    centered = dict(mini_data, tether={"part": "body", "max_force_n": 3.0})
+    off_axis = dict(mini_data, tether={"part": "body", "max_force_n": 3.0, "at": [-5, 5, 0]})
+    world = World(friction=0.05, tether_scale=1.0, tether_dir_deg=-90)
+    a = run_move(parse_spec(centered), None, world, 1.0)
+    b = run_move(parse_spec(off_axis), None, world, 1.0)
+    assert abs(a.yaw_deg) < 1.0
+    assert abs(b.yaw_deg) > 3 * max(abs(a.yaw_deg), 1.0)
 
 
 @pytest.mark.slow
