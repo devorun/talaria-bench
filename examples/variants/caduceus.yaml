@@ -1,0 +1,17 @@
+# Design variants of Caduceus for `devcli.py compare` (simulation). Legs grow downward: the top stays
+# at the pivot, so a longer leg lifts the arms off the floor.
+variants:
+  - name: legs +1.5 cm
+    set:
+      parts.left_leg.size.2: "+1.5"
+      parts.right_leg.size.2: "+1.5"
+      parts.left_leg.joint.offset.2: "-0.75"
+      parts.right_leg.joint.offset.2: "-0.75"
+  - name: legs +3 cm
+    set:
+      parts.left_leg.size.2: "+3"
+      parts.right_leg.size.2: "+3"
+      parts.left_leg.joint.offset.2: "-1.5"
+      parts.right_leg.joint.offset.2: "-1.5"
+  - name: v2 (tight joints, electronics low)
+    spec: ../robots/caduceus_v2.yaml

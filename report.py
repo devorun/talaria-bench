@@ -1,0 +1,277 @@
+"""Report card: benchmark results -> JSON (dashboard) and Markdown (chat, README).
+
+Always labelled simulation. Status per scene: green >= 80% pass, amber 40-80%, red < 40%, "n/a" when the
+scene does not apply, and "not reliable" when the robot spec declares a limitation for that kind of
+scene (the numbers are kept, but must not be trusted). Servo loads are estimates against datasheet
+stall torque, which is not a safe continuous torque. The summary paragraph is generated from the
+numbers (no language model). Schema: docs/report-format.md.
+"""
+
+from __future__ import annotations
+
+from collections import Counter
+from typing import Any, Optional
+
+import numpy as np
+
+from .scenes import NUDGE, PUSH_DIRECTIONS, PUSH_DURATION, PUSH_LEVELS, SLIPPERY_FRICTION, get_scene
+
+REPORT_FORMAT = "talaria-bench/report"
+REPORT_VERSION = 1
+GREEN, AMBER = 0.8, 0.4
+LABEL = "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee."
+SERVO_NOTE = ("Servo load is an estimate: peak torque as a share of the datasheet stall torque. Stall torque is "
+              "not a safe continuous torque; a servo held near it overheats.")
+NEAR_LIMIT = 0.9
+ABOVE_MAX = PUSH_LEVELS[-1] * 1.25          # stands for "did not tip at the largest push"
+
+
+def status_for(pass_rate: Optional[float]) -> str:
+    if pass_rate is None:
+        return "n/a"
+    return "green" if pass_rate >= GREEN else "amber" if pass_rate >= AMBER else "red"
+
+
+def _conditions(sid: str, results: dict) -> str:
+    scene = get_scene(sid)
+    if scene.family == "moves":
+        return f"plays '{scene.params['move']}' standing; pass: no fall"
+    walk = results["settings"].get("walk_move")
+    if scene.family == "flat":
+        need = results["settings"].get("bench", {}).get("flat_min_cm", 5.0)
+        return f"move '{walk}', pass: >= {need:g} cm steady progress, no fall"
+    if scene.family == "ramp":
+        return f"slope {scene.params['angle']:g} deg uphill, pass: climbs >= 5 cm, no fall or slide back"
+    if scene.family == "obstacle":
+        return f"bar {scene.params['height'] * 100:g} cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it"
+    if scene.family == "push":
+        return (f"pushes of {', '.join(f'{p:g}' for p in PUSH_LEVELS)} x body weight for {PUSH_DURATION:g} s "
+                f"from 4 sides while standing; pass: survives the nudge ({NUDGE:g} x weight) from every side")
+    return (f"floor friction {SLIPPERY_FRICTION[0]:g}-{SLIPPERY_FRICTION[1]:g}; pass: >= 50% of the flat "
+            "median, no fall")
+
+
+def _fmt(v: Optional[float], unit: str = "") -> str:
+    if v is None:
+        return "-"
+    if unit == "x weight" and v >= ABOVE_MAX - 1e-9:
+        return f">{PUSH_LEVELS[-1]:g}"
+    return f"{v:.2f}".rstrip("0").rstrip(".") if abs(v) < 100 else f"{v:.0f}"
+
+
+def _scene_card(sid: str, jobs: list[dict], results: dict) -> dict[str, Any]:
+    scene = get_scene(sid)
+    limits = [lim["note"] for lim in results["robot"].get("limitations", [])
+              if lim["scope"] in ("all", "locomotion" if scene.locomotion else "standing")]
+    passed = [j for j in jobs if j.get("passed")]
+    pass_rate = len(passed) / len(jobs) if jobs else None
+    vals = [ABOVE_MAX if (sid == "push" and j.get("metric") is None) else float(j.get("metric") or 0.0)
+            for j in jobs]
+    worst_job = min(jobs, key=lambda j: (ABOVE_MAX if sid == "push" and j.get("metric") is None
+                                         else float(j.get("metric") or 0.0)))
+    reasons = Counter(j["reason"] for j in jobs if not j.get("passed") and j.get("reason"))
+    loads: dict[str, dict[str, float]] = {}
+    joints = sorted({n for j in jobs for n in j.get("loads", {})})
+    for n in joints:
+        peaks = [j["loads"][n]["peak_ratio"] for j in jobs if n in j.get("loads", {})]
+        sats = [j["loads"][n]["saturated_frac"] for j in jobs if n in j.get("loads", {})]
+        loads[n] = {"peak_pct_median": round(float(np.median(peaks)) * 100, 1),
+                    "peak_pct_max": round(float(np.max(peaks)) * 100, 1),
+                    "near_limit_time_pct_median": round(float(np.median(sats)) * 100, 1)}
+    computed = status_for(pass_rate)
+    card: dict[str, Any] = {
+        "id": sid, "title": scene.title, "family": scene.family, "applicable": True,
+        "status": "unreliable" if limits else computed, "computed_status": computed, "reliable": not limits,
+        "note": " ".join(limits) if limits else None, "conditions": _conditions(sid, results),
+        "runs": len(jobs), "passed": len(passed), "pass_rate": None if pass_rate is None else round(pass_rate, 3),
+        "metric": {"name": scene.metric, "unit": scene.unit,
+                   "median": round(float(np.median(vals)), 3), "p10": round(float(np.percentile(vals, 10)), 3),
+                   "worst": {"value": None if (sid == "push" and worst_job.get("metric") is None)
+                             else worst_job.get("metric"),
+                             "seed": worst_job["seed"], "reason": worst_job.get("reason")}},
+        "failure_reasons": dict(reasons.most_common()),
+        "falls": sum(bool(j.get("fell")) for j in jobs),
+        "loads": loads,
+    }
+    if sid == "push":
+        per_dir = {}
+        for d in PUSH_DIRECTIONS:
+            th = [j["metrics"]["thresholds"][d] for j in jobs]
+            nums = [ABOVE_MAX if t is None else t for t in th]
+            per_dir[d] = {"median": round(float(np.median(nums)), 3),
+                          "p10": round(float(np.percentile(nums, 10)), 3),
+                          "survives_nudge_pct": round(100 * sum(t is None or t > NUDGE for t in th) / len(th), 1)}
+        card["push"] = {"levels": list(PUSH_LEVELS), "nudge": NUDGE, "duration_s": PUSH_DURATION,
+                        "thresholds": per_dir}
+        walks = [j["metrics"].get("walk_nudge_survived") for j in jobs if j["metrics"].get("walk_nudge_survived")]
+        if walks:
+            walk_limits = [lim["note"] for lim in results["robot"].get("limitations", [])
+                           if lim["scope"] in ("all", "locomotion")]
+            card["push"]["mid_walk"] = {
+                "survives_nudge_pct": {d: round(100 * sum(w[d] for w in walks) / len(walks), 1)
+                                       for d in PUSH_DIRECTIONS},
+                "reliable": not walk_limits, "note": " ".join(walk_limits) if walk_limits else None}
+    if sid == "slippery":
+        card["needed_cm"] = (jobs[0]["metrics"].get("needed_cm") if jobs else None)
+    return card
+
+
+def build_report(results: dict) -> dict[str, Any]:
+    cards = []
+    for sid in results["settings"]["scenes"]:
+        if sid in results.get("not_applicable", {}):
+            scene = get_scene(sid)
+            cards.append({"id": sid, "title": scene.title, "family": scene.family, "applicable": False,
+                          "status": "n/a", "reliable": True, "note": results["not_applicable"][sid],
+                          "conditions": _conditions(sid, results), "runs": 0, "pass_rate": None})
+        else:
+            cards.append(_scene_card(sid, results["scenes"][sid], results))
+    report = {
+        "format": REPORT_FORMAT, "version": REPORT_VERSION, "simulation": True, "label": LABEL,
+        "created": results.get("created"), "robot": results["robot"], "settings": results["settings"],
+        "world_ranges": results["robot"].get("world_ranges", {}), "scenes": cards,
+        "servo_note": SERVO_NOTE, "limitations": results["robot"].get("limitations", []),
+        "timing": results.get("timing", {}),
+    }
+    report["summary"] = summary(report)
+    return report
+
+
+def _pct(x: Optional[float]) -> str:
+    return "-" if x is None else f"{x * 100:.0f}%"
+
+
+def summary(report: dict) -> str:
+    """One plain-English paragraph built from the numbers."""
+    cards = {c["id"]: c for c in report["scenes"]}
+    out: list[str] = []
+    unreliable = [c for c in cards.values() if c.get("applicable") and not c.get("reliable", True)]
+    walk_cards = [c for c in cards.values() if get_scene(c["id"]).locomotion]
+    if walk_cards and all(not c.get("applicable") for c in walk_cards):
+        out.append("Walking scenes do not apply (the robot has no walk move).")
+    flat = cards.get("flat")
+    if flat and flat.get("applicable") and flat.get("reliable", True):
+        m = flat["metric"]
+        if flat["status"] == "green":
+            out.append(f"Walks well on flat ground ({_pct(flat['pass_rate'])} of worlds, median {_fmt(m['median'])} cm).")
+        elif flat["status"] == "amber":
+            out.append(f"Walks on flat ground in {_pct(flat['pass_rate'])} of worlds (median {_fmt(m['median'])} cm).")
+        else:
+            top = next(iter(flat["failure_reasons"]), "no progress")
+            out.append(f"Struggles on flat ground: passes in {_pct(flat['pass_rate'])} of worlds (mostly {top}).")
+    ramps = [cards[s] for s in ("ramp_5", "ramp_10", "ramp_15") if s in cards and cards[s].get("applicable")
+             and cards[s].get("reliable", True)]
+    if ramps:
+        ok = [c for c in ramps if c["status"] != "red"]
+        bad = [c for c in ramps if c["status"] == "red"]
+        parts = []
+        if ok:
+            parts.append(f"climbs the {ok[-1]['title'].lower().replace('ramp ', '')} ramp in {_pct(ok[-1]['pass_rate'])} of worlds")
+        if bad:
+            c = bad[0]
+            top, n = next(iter(c["failure_reasons"].items()), ("fails", c["runs"]))
+            parts.append(f"{top} on the {c['title'].lower().replace('ramp ', '')} ramp in "
+                         f"{100 * n / max(c['runs'], 1):.0f}% of worlds")
+        out.append(("It " + " but ".join(parts) + ".").replace("It climbs", "Climbs"))
+    for sid in ("obstacle_1cm", "obstacle_2cm"):
+        c = cards.get(sid)
+        if c and c.get("applicable") and c.get("reliable", True):
+            if c["status"] == "red":
+                top = next(iter(c["failure_reasons"]), "fails")
+                out.append(f"The {c['title'].lower()}: {top} in most worlds (passes {_pct(c['pass_rate'])}).")
+            else:
+                out.append(f"Clears the {c['title'].lower()} in {_pct(c['pass_rate'])} of worlds.")
+    push = cards.get("push")
+    if push and push.get("applicable"):
+        th = push["push"]["thresholds"]
+        weakest = min(th, key=lambda d: th[d]["median"])
+        w = th[weakest]["median"]
+        tips = "does not tip even at the largest push" if w >= ABOVE_MAX - 1e-9 else \
+            f"a push of {_fmt(w)} x body weight from the {weakest} tips it (median)"
+        out.append(f"Survives a nudge from every side in {_pct(push['pass_rate'])} of worlds; {tips}.")
+    moves = [c for c in cards.values() if c["family"] == "moves" and c.get("applicable") and c.get("reliable", True)]
+    if moves:
+        safe = [c["id"][5:] for c in moves if c["pass_rate"] >= 0.95]
+        risky = [c for c in moves if c["pass_rate"] < 0.95]
+        if safe:
+            out.append("Standing moves that never or almost never tip it: " + ", ".join(safe) + ".")
+        for c in sorted(risky, key=lambda c: c["pass_rate"]):
+            out.append(f"Move '{c['id'][5:]}' tips the robot in {100 - c['pass_rate'] * 100:.0f}% of worlds.")
+    slip = cards.get("slippery")
+    if slip and slip.get("applicable") and slip.get("reliable", True):
+        if slip["status"] == "red":
+            top = next(iter(slip["failure_reasons"]), "slides")
+            out.append(f"On a slippery floor it mostly fails ({top}).")
+        else:
+            out.append(f"Keeps at least half its flat speed on a slippery floor in {_pct(slip['pass_rate'])} of worlds.")
+    hot = []
+    for c in cards.values():
+        for joint, load in (c.get("loads") or {}).items():
+            if c.get("reliable", True) and load["peak_pct_max"] >= NEAR_LIMIT * 100:
+                hot.append((load["peak_pct_max"], joint, c["title"].lower()))
+    if hot:
+        p, joint, where = max(hot)
+        out.append(f"The {joint.replace('_', ' ')} servo is near its limit (peak {p:.0f}% of stall, estimate) "
+                   f"during the {where} test.")
+    if unreliable:
+        out.append(f"{len(unreliable)} walking scene(s) are marked not reliable for this robot: "
+                   f"{unreliable[0]['note']}")
+    return " ".join(out) or "No scenes were run."
+
+
+def to_markdown(report: dict) -> str:
+    r = report["robot"]
+    s = report["settings"]
+    t = report.get("timing", {})
+    lines = [f"# Report card: {r.get('title') or r['name']} (simulation)", "",
+             f"*{report['label']}*", "",
+             f"Robot `{r['name']}` ({r.get('total_mass_g', 0):.0f} g, {len(r.get('joints', []))} servos, spec "
+             f"`{r['hash'][:12]}`), {s['worlds']} worlds per scene (seeds {s['seed']}..{s['seed'] + s['worlds'] - 1})"
+             + (f", {t.get('seconds_total', 0):.0f} s" if t else "") + ".", "",
+             "| Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |",
+             "|---|---|---|---|---|---|"]
+    names = {"green": "GREEN", "amber": "AMBER", "red": "RED", "n/a": "n/a", "unreliable": "NOT RELIABLE"}
+    for c in report["scenes"]:
+        if not c.get("applicable"):
+            lines.append(f"| {c['title']} | n/a | - | - | - | {c.get('note') or ''} |")
+            continue
+        m = c["metric"]
+        unit = m["unit"]
+        worst = m["worst"]
+        reasons = ", ".join(f"{k} ({v})" for k, v in list(c["failure_reasons"].items())[:3]) or "-"
+        status = names[c["status"]] + (f" (would be {c['computed_status']})" if c["status"] == "unreliable" else "")
+        lines.append(f"| {c['title']} | {status} | {_pct(c['pass_rate'])} | {m['name']}: {_fmt(m['median'], unit)} "
+                     f"({_fmt(m['p10'], unit)}) {unit} | {_fmt(worst['value'], unit)} (world {worst['seed']}) | {reasons} |")
+    lines += ["", "**Summary.** " + report["summary"], ""]
+    push = next((c for c in report["scenes"] if c["id"] == "push" and c.get("applicable")), None)
+    if push:
+        lines += ["**Push test** (tipping push in x body weight, median / p10; survives the nudge):", "",
+                  "| From | Tipping push | Survives nudge |", "|---|---|---|"]
+        for d, v in push["push"]["thresholds"].items():
+            lines.append(f"| {d} | {_fmt(v['median'], 'x weight')} / {_fmt(v['p10'], 'x weight')} | "
+                         f"{v['survives_nudge_pct']:.0f}% |")
+        mw = push["push"].get("mid_walk")
+        if mw:
+            note = "" if mw["reliable"] else " (NOT RELIABLE for this robot)"
+            lines += ["", f"Mid-walk nudge survived{note}: " +
+                      ", ".join(f"{d} {v:.0f}%" for d, v in mw["survives_nudge_pct"].items())]
+        lines.append("")
+    joints: dict[str, tuple[float, float, str]] = {}
+    for c in report["scenes"]:
+        if not c.get("reliable", True):
+            continue                     # loads from scenes the model cannot be trusted in
+        for j, load in (c.get("loads") or {}).items():
+            if j not in joints or load["peak_pct_max"] > joints[j][0]:
+                joints[j] = (load["peak_pct_max"], load["near_limit_time_pct_median"], c["title"])
+    if joints:
+        lines += ["**Servo load (estimate)**: highest peak per joint across scenes.", "",
+                  "| Joint | Peak (% of stall) | Time near limit (median %) | In scene |", "|---|---|---|---|"]
+        for j, (p, sat, where) in sorted(joints.items()):
+            lines.append(f"| {j} | {p:.0f}% | {sat:.0f}% | {where} |")
+        lines += ["", f"_{report['servo_note']}_", ""]
+    if report.get("limitations"):
+        lines += ["**Known model limitations** (results in these scenes are marked NOT RELIABLE):", ""]
+        lines += [f"- {lim['scope']}: {lim['note']}" for lim in report["limitations"]] + [""]
+    lines += ["**Conditions**", ""] + [f"- {c['title']}: {c['conditions']}" for c in report["scenes"]]
+    lines += ["", "World ranges: " + ", ".join(f"{k} {v[0]:g}..{v[1]:g}" for k, v in report["world_ranges"].items())]
+    return "\n".join(lines) + "\n"

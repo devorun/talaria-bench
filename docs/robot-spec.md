@@ -21,6 +21,7 @@ Talaria Bench turns it into a MuJoCo model and runs moves on it. Examples:
 | `tether` | no | `{part, max_force_n, at}`: a power cable pulling horizontally on a part; `at` is the plug point in the part's frame (cm, default its center). An off-center plug also turns the robot |
 | `worlds` | no | override randomization ranges, e.g. `friction: [0.4, 0.6]` (see `worlds.py`) |
 | `limitations` | no | known model limits, `[{scope: locomotion, note: "..."}]`; scope `locomotion` (scenes that need walking), `standing`, `manipulation` or `all`. The report card marks results in that scope as "not reliable" and shows the note. Not part of the spec hash |
+| `bench` | no | benchmark settings: `walk_move` (default `walk`), `flat_min_cm` (flat pass threshold, default 5), `seconds` (run time; default 8 s for repeating gaits, else the move's length + 1 s) |
 | `materials` | no | per-robot material overrides, e.g. `foam: {solref: [0.023, 1.0], solimp: [0.7, 0.95, 0.0038], friction: 1.0}` (solimp width in metres) |
 
 Unknown keys are errors (typos are caught, not ignored).

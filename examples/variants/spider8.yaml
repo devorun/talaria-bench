@@ -1,0 +1,8 @@
+# Design variants of spider8 for `devcli.py compare` (simulation).
+variants:
+  - name: MG90S instead of SG90
+    set:
+      parts.*.joint.servo: MG90S
+  - name: body +100 g
+    set:
+      parts.body.mass: "+100"

@@ -170,6 +170,82 @@ def cmd_validate(args) -> int:
     return 0
 
 
+def _bench_progress(prefix: str = ""):
+    state = {"last": -1}
+
+    def cb(done: int, total: int, scene: str) -> None:
+        step = max(1, total // 10)
+        if done == total or done // step != state["last"]:
+            state["last"] = done // step
+            print(f"  {prefix}{done}/{total} ({scene})", file=sys.stderr, flush=True)
+    return cb
+
+
+def cmd_bench(args) -> int:
+    load_package()
+    from talaria_bench.bench import run_benchmark, save_results
+    from talaria_bench.report import build_report, to_markdown
+    from talaria_bench.spec import load_spec
+
+    spec = load_spec(find_spec_file(args.spec))
+    results = run_benchmark(spec, scenes=args.scenes, worlds=args.worlds, seed=args.seed, quick=args.quick,
+                            workers=args.workers or None, cache_dir=None if args.no_cache else "default",
+                            progress=_bench_progress(), progress_file=args.progress_file)
+    report = build_report(results)
+    out = Path(args.out) if args.out else Path(f"{spec.name}-bench.json")
+    save_results(results, out)
+    out.with_suffix(".report.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
+    md = to_markdown(report)
+    out.with_suffix(".report.md").write_text(md, encoding="utf-8")
+    print(md)
+    t = results["timing"]
+    print(f"results -> {out} (+ .report.json, .report.md); {t['jobs']} jobs, {t['computed']} computed, "
+          f"{t['cached']} cached, {t['workers']} workers, {t['seconds_total']:.1f} s")
+    return 0
+
+
+def cmd_report(args) -> int:
+    load_package()
+    from talaria_bench.bench import load_results
+    from talaria_bench.report import build_report, to_markdown
+
+    report = build_report(load_results(args.results))
+    if args.json:
+        print(json.dumps(report, indent=1))
+    else:
+        print(to_markdown(report))
+    return 0
+
+
+def cmd_compare(args) -> int:
+    load_package()
+    from talaria_bench.compare import compare, load_variants_file, parse_variant_arg, to_markdown
+    from talaria_bench.spec import load_spec
+
+    spec_path = find_spec_file(args.spec)
+    spec = load_spec(spec_path)
+    variants = []
+    base_dir = None
+    if args.variants:
+        vfile = find_spec_file(args.variants)
+        variants += load_variants_file(vfile)
+        base_dir = vfile.parent
+    variants += [parse_variant_arg(v) for v in args.variant or []]
+    if not variants:
+        raise SystemExit("give --variant name:path=value,... or --variants file.yaml")
+    t0 = time.perf_counter()
+    result = compare(spec, variants, scenes=args.scenes, worlds=args.worlds, seed=args.seed, quick=args.quick,
+                     workers=args.workers or None, cache_dir=None if args.no_cache else "default", base_dir=base_dir,
+                     progress=lambda name, d, t, sc: _bench_progress(f"{name}: ")(d, t, sc))
+    md = to_markdown(result)
+    if args.out:
+        Path(args.out).write_text(json.dumps(result, indent=1), encoding="utf-8")
+        Path(args.out).with_suffix(".md").write_text(md, encoding="utf-8")
+    print(md)
+    print(f"({time.perf_counter() - t0:.1f} s wall)")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="devcli.py", description="Talaria Bench developer CLI (simulation only)")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -204,6 +280,32 @@ def main(argv=None) -> int:
     p.add_argument("--seed", type=int, default=1000)
     p.add_argument("--param", action="append", help="name=value for parameters used in target speeds")
     p.set_defaults(fn=cmd_validate)
+
+    def bench_args(p):
+        p.add_argument("--scenes", nargs="*", default=None, help="scene ids or families (default: all)")
+        p.add_argument("--worlds", type=int, default=30)
+        p.add_argument("--seed", type=int, default=0)
+        p.add_argument("--quick", action="store_true", help="10 worlds")
+        p.add_argument("--workers", type=int, default=0)
+        p.add_argument("--no-cache", action="store_true")
+
+    p = sub.add_parser("bench", help="run the test arena and print the report card")
+    p.add_argument("spec")
+    bench_args(p)
+    p.add_argument("--out", default=None, help="results JSON (default <robot>-bench.json)")
+    p.add_argument("--progress-file", default=None)
+    p.set_defaults(fn=cmd_bench)
+    p = sub.add_parser("report", help="print the report card of a results JSON")
+    p.add_argument("results")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(fn=cmd_report)
+    p = sub.add_parser("compare", help="benchmark design variants side by side")
+    p.add_argument("spec")
+    p.add_argument("--variant", action="append", help="name:path=value,... (relative +x -x *x) or name:spec.yaml")
+    p.add_argument("--variants", default=None, help="YAML file with a list of variants")
+    p.add_argument("--out", default=None)
+    bench_args(p)
+    p.set_defaults(fn=cmd_compare)
     args = ap.parse_args(argv)
     try:
         return args.fn(args)

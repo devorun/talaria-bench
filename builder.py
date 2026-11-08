@@ -47,6 +47,8 @@ class BuildInfo:
     joint_names: list[str]
     excluded_pairs: list[tuple[str, str]] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    front_x: float = 0.0        # m, front-most point of the robot in the home pose (root at x = 0)
+    back_x: float = 0.0
 
 
 def _rgba(color: str) -> str:
@@ -142,7 +144,20 @@ def _body_xml(spec: Spec, part: Part, indent: str, root_z: float) -> str:
     return "\n".join(lines)
 
 
-def _mjcf(spec: Spec, root_z: float, excluded: list[tuple[str, str]]) -> str:
+def terrain_xml(terrain: tuple = ()) -> str:
+    """Extra static geometry for scenes: ``("box", name, x, y, z, half_x, half_y, half_z)`` in metres.
+    Like the floor, terrain contributes no friction of its own (the part's material decides)."""
+    out = []
+    for item in terrain:
+        kind, name, x, y, z, hx, hy, hz = item
+        if kind != "box":
+            raise ValueError(f"unknown terrain kind {kind!r}")
+        out.append(f'    <geom name="{name}" type="box" pos="{_v((x, y, z))}" size="{_v((hx, hy, hz))}" '
+                   f'rgba="0.55 0.42 0.28 1" friction="0 0 0" solmix="0" contype="1" conaffinity="2"/>')
+    return "\n".join(out)
+
+
+def _mjcf(spec: Spec, root_z: float, excluded: list[tuple[str, str]], terrain: tuple = ()) -> str:
     actuators = []
     for part in spec.joint_parts:
         kp, kv, torque = _servo_gains(part, spec.voltage)
@@ -157,6 +172,7 @@ def _mjcf(spec: Spec, root_z: float, excluded: list[tuple[str, str]]) -> str:
     <light pos="0.5 -0.8 1.5" dir="-0.3 0.5 -1"/>
     <geom name="floor" type="plane" size="{FLOOR_SIZE} {FLOOR_SIZE} 0.05" rgba="0.18 0.24 0.33 1"
           friction="0 0 0" solmix="0" contype="1" conaffinity="2"/>
+{terrain_xml(terrain)}
 {_body_xml(spec, spec.root, "    ", root_z)}
   </worldbody>
   <contact>{excludes}
@@ -193,8 +209,29 @@ def _set_home(model, data, spec: Spec, offsets: Optional[dict[str, float]] = Non
         data.qpos[model.jnt_qposadr[model.joint(part.name).id]] = math.radians(angle)
 
 
-def build_mjcf(spec: Spec) -> tuple[str, BuildInfo]:
-    """MJCF text for the spec with the root dropped onto the floor, and what the builder decided."""
+def extent_x(model, data, geom_id: int) -> tuple[float, float]:
+    """Smallest and largest world x of a geom (box, cylinder or sphere)."""
+    import numpy as np
+
+    import mujoco
+
+    c = data.geom_xpos[geom_id]
+    r = data.geom_xmat[geom_id].reshape(3, 3)
+    size = model.geom_size[geom_id]
+    gtype = int(model.geom_type[geom_id])
+    if gtype == mujoco.mjtGeom.mjGEOM_BOX:
+        half = float(np.sum(np.abs(r[0, :]) * size[:3]))
+    elif gtype == mujoco.mjtGeom.mjGEOM_CYLINDER:
+        cx = abs(r[0, 2])
+        half = cx * size[1] + size[0] * math.sqrt(max(0.0, 1.0 - cx * cx))
+    else:
+        half = float(size[0])
+    return float(c[0] - half), float(c[0] + half)
+
+
+def build_mjcf(spec: Spec, terrain: tuple = ()) -> tuple[str, BuildInfo]:
+    """MJCF text for the spec with the root dropped onto the floor, and what the builder decided.
+    ``terrain`` adds scene geometry (see :func:`terrain_xml`); it does not change the robot's placement."""
     import mujoco
 
     warnings: list[str] = []
@@ -220,34 +257,36 @@ def build_mjcf(spec: Spec) -> tuple[str, BuildInfo]:
         if pair not in excluded:
             excluded.append(pair)  # type: ignore[arg-type]
             warnings.append(f"parts {pair[0]} and {pair[1]} overlap in the home pose; their collisions are ignored")
-    return _mjcf(spec, root_z, excluded), BuildInfo(root_z=root_z, joint_names=spec.joint_names,
-                                                     excluded_pairs=excluded, warnings=warnings)
+    xs = [extent_x(probe, data, probe.geom(p.name).id) for p in spec.parts]
+    return _mjcf(spec, root_z, excluded, terrain), BuildInfo(
+        root_z=root_z, joint_names=spec.joint_names, excluded_pairs=excluded, warnings=warnings,
+        front_x=max(x[1] for x in xs), back_x=min(x[0] for x in xs))
 
 
-_CACHE: dict[str, tuple[Any, BuildInfo, str]] = {}
+_CACHE: dict[tuple, tuple[Any, BuildInfo, str]] = {}
 CACHE_SIZE = 32
 
 
-def base_model(spec: Spec):
-    """Compiled model at nominal physics (cached per spec hash, last ``CACHE_SIZE`` specs).
+def base_model(spec: Spec, terrain: tuple = ()):
+    """Compiled model at nominal physics (cached per spec hash and terrain, last ``CACHE_SIZE``).
     Returns ``(model, info, xml)``."""
     import mujoco
 
-    key = spec.hash()
+    key = (spec.hash(), tuple(terrain))
     if key in _CACHE:
         _CACHE[key] = _CACHE.pop(key)   # most recently used last
     else:
-        xml, info = build_mjcf(spec)
+        xml, info = build_mjcf(spec, terrain)
         _CACHE[key] = (mujoco.MjModel.from_xml_string(xml), info, xml)
         while len(_CACHE) > CACHE_SIZE:
             _CACHE.pop(next(iter(_CACHE)))
     return _CACHE[key]
 
 
-def make_model(spec: Spec, world: Optional[World] = None):
+def make_model(spec: Spec, world: Optional[World] = None, terrain: tuple = ()):
     """A fresh compiled model with ``world`` applied. Returns ``(model, info)``."""
     world = world or World.nominal()
-    base, info, _ = base_model(spec)
+    base, info, _ = base_model(spec, terrain)
     m = copy.copy(base)
     for part in spec.parts:
         gid = m.geom(part.name).id

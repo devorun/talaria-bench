@@ -25,7 +25,8 @@ SHAPES = {"box": 3, "cylinder": 2, "sphere": 1}
 SHAPE_HELP = {"box": "[x depth, y width, z height]", "cylinder": "[radius, length]", "sphere": "[radius]"}
 NAMED_AXES = {"pitch": (0.0, -1.0, 0.0), "roll": (1.0, 0.0, 0.0), "yaw": (0.0, 0.0, 1.0)}
 TOP_KEYS = {"talaria", "name", "title", "description", "photo", "voltage", "parts", "moves", "tether", "worlds",
-            "materials", "limitations"}
+            "materials", "limitations", "bench"}
+BENCH_KEYS = {"walk_move", "flat_min_cm", "seconds"}
 #: what a limitation can cover: scenes that need walking, standing/arm-gesture moves, payload/arm work, or everything
 LIMITATION_SCOPES = ("locomotion", "standing", "manipulation", "all")
 MATERIAL_KEYS = {"friction", "solref", "solimp"}
@@ -97,6 +98,8 @@ class Spec:
     materials: dict[str, materials.Material] = field(default_factory=lambda: dict(materials.MATERIALS))
     #: known model limitations, ``[{"scope": ..., "note": ...}]``; results in that scope are "not reliable"
     limitations: list[dict[str, str]] = field(default_factory=list)
+    #: benchmark settings: which move is the walk, the flat-floor pass threshold, run time
+    bench: dict[str, Any] = field(default_factory=dict)
 
     def limitations_for(self, scope: str) -> list[str]:
         """Notes of the limitations that cover ``scope`` (including ``all``)."""
@@ -330,12 +333,38 @@ def parse_spec(data: Any, base_dir: Optional[Path] = None) -> Spec:
 
     table = _parse_materials(data.get("materials"), problems)
     limitations = _parse_limitations(data.get("limitations"), problems)
+    bench = _parse_bench(data.get("bench"), moves, problems)
 
     if problems:
         raise SpecError(problems)
     return Spec(name=name, title=title, description=description, voltage=voltage, parts=ordered, moves=moves,
                 tether=tether, world_ranges=world_ranges, photo=photo, warnings=warnings, materials=table,
-                limitations=limitations)
+                limitations=limitations, bench=bench)
+
+
+def _parse_bench(raw: Any, moves: Mapping[str, Any], problems: list[str]) -> dict[str, Any]:
+    """Benchmark settings. Defaults: the walk is the move named ``walk``, flat floor passes at 5 cm of
+    steady progress, gaits (repeat moves) run 8 s and other moves run their own length + 1 s."""
+    out: dict[str, Any] = {"walk_move": "walk", "flat_min_cm": 5.0, "seconds": None}
+    if raw is None:
+        return out
+    if not isinstance(raw, Mapping):
+        problems.append("bench: must be a mapping (walk_move, flat_min_cm, seconds)")
+        return out
+    _unknown("bench", raw, BENCH_KEYS, problems)
+    if "walk_move" in raw:
+        if raw["walk_move"] is not None and raw["walk_move"] not in moves:
+            problems.append(f"bench: walk_move {raw['walk_move']!r} is not one of the moves")
+        else:
+            out["walk_move"] = raw["walk_move"]
+    for key, lo, hi in (("flat_min_cm", 0.0, 500.0), ("seconds", 1.0, 120.0)):
+        if raw.get(key) is not None:
+            v = _num(raw[key])
+            if v is None or not lo <= v <= hi:
+                problems.append(f"bench: {key} must be a number from {lo:g} to {hi:g}")
+            else:
+                out[key] = v
+    return out
 
 
 def _parse_limitations(raw: Any, problems: list[str]) -> list[dict[str, str]]:

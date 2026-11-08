@@ -68,6 +68,8 @@ class Result:
     self_collision_pairs: list[list[str]]
     world: dict[str, Any]
     ground: dict[str, GroundPart] = field(default_factory=dict)   # parts with ground_contact: true
+    start_xy_m: list[float] = field(default_factory=list)        # root position after settling
+    end_xy_m: list[float] = field(default_factory=list)          # root position at the end
     warnings: list[str] = field(default_factory=list)
     trace: Optional[dict[str, Any]] = None
 
@@ -111,9 +113,13 @@ def resolve_move(spec: Spec, move: Any) -> tuple[str, dict[str, Any]]:
 
 
 def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, seconds: Optional[float] = None,
-             record: bool = False, repeat: Optional[bool] = None, speed: float = 1.0) -> Result:
+             record: bool = False, repeat: Optional[bool] = None, speed: float = 1.0,
+             terrain: tuple = (), pushes: Optional[list[tuple[float, float, float, float, float]]] = None,
+             stop_on_fall: bool = True) -> Result:
     """Simulate ``move`` (a spec move name, a move dict, or None to hold the home pose). ``speed``
-    scales frame times like ``plan_move`` (0.5 = everything takes twice as long; holds unchanged)."""
+    scales frame times like ``plan_move`` (0.5 = everything takes twice as long; holds unchanged).
+    ``terrain`` adds scene geometry (builder.terrain_xml). ``pushes`` are ``(t_start, duration, fx, fy,
+    fz)`` force pulses in newtons on the root's centre of mass, timed from the start of the move."""
     import mujoco
 
     world = world or World.nominal()
@@ -128,7 +134,7 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
     names, rows = trajectory(move_dict, limits, seconds, CTRL_DT, repeat=repeat, speed=speed)
     traj = np.asarray(rows, dtype=float).reshape(len(rows), len(names))
 
-    m, info = make_model(spec, world)
+    m, info = make_model(spec, world, terrain)
     d = mujoco.MjData(m)
     parts = spec.parts
     floor = m.geom("floor").id
@@ -158,13 +164,18 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
             np.array(spec.part(spec.tether["part"]).joint.offset) * 0.01
         tether_at = center + np.array(spec.tether["at"]) * 0.01
 
-    def apply_tether() -> None:
-        """A constant horizontal pull at the plug point: force plus the torque it makes about the COM."""
-        if tether_force is None:
-            return
-        point = d.xpos[tether_body] + d.xmat[tether_body].reshape(3, 3) @ tether_at
-        d.xfrc_applied[tether_body, :3] = tether_force
-        d.xfrc_applied[tether_body, 3:] = np.cross(point - d.xipos[tether_body], tether_force)
+    def apply_tether(now: Optional[float] = None) -> None:
+        """External forces: the cable (a constant horizontal pull at the plug point, plus the torque it
+        makes about the COM) and any push pulse active at move time ``now``."""
+        d.xfrc_applied[:] = 0.0
+        if tether_force is not None:
+            point = d.xpos[tether_body] + d.xmat[tether_body].reshape(3, 3) @ tether_at
+            d.xfrc_applied[tether_body, :3] = tether_force
+            d.xfrc_applied[tether_body, 3:] = np.cross(point - d.xipos[tether_body], tether_force)
+        if pushes and now is not None:
+            for t0, dur, fx, fy, fz in pushes:
+                if t0 - 1e-9 <= now < t0 + dur - 1e-9:
+                    d.xfrc_applied[root_id, :3] += (fx, fy, fz)
 
     mujoco.mj_forward(m, d)
     apply_tether()
@@ -254,7 +265,7 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
             cmd = np.clip(traj[max(0, i - lat_steps)] + offsets, lo, hi)
             sent = sent + np.clip(cmd - sent, -max_step, max_step)
             d.ctrl[act] = np.radians(sent)
-            apply_tether()
+            apply_tether(now)
             mujoco.mj_step(m, d, nstep=sub)
             steps_done += 1
 
@@ -287,7 +298,7 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
             if not fell and (why or tilt > FALL_TILT_DEG):
                 fell, fell_at = True, round(now + CTRL_DT, 3)
                 reason = why or f"root tilted more than {FALL_TILT_DEG:.0f} deg"
-                if not record:
+                if stop_on_fall and not record:
                     break
         if record:
             snap()
@@ -308,6 +319,7 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
                   max_pitch_change_deg=round(max_pitch, 3), fell=fell, fell_at_s=fell_at,
                   fall_reason=reason, joints=loads, self_collisions=collisions,
                   self_collision_pairs=[list(pr) for pr in sorted(pairs)], world=world.to_dict(),
+                  start_xy_m=[round(x0, 5), round(y0, 5)], end_xy_m=[round(float(p[0]), 5), round(float(p[1]), 5)],
                   ground={name: GroundPart(start_cm=round(ground_start[name] * 100, 3),
                                            lift_cm=round(ground_max[name] * 100, 3),
                                            contact_frac=round(ground_touch[name] / n, 4)) for name, _ in ground_parts},
