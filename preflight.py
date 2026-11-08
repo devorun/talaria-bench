@@ -153,8 +153,10 @@ def check(spec: Spec, name: str, move: dict[str, Any], speed: float = 1.0, world
     if not tip_ok:
         reasons.append(f"tips in {_pct(k / n)} ({_pct(lo)}-{_pct(hi)}) of simulated worlds"
                        + (f", mostly during frame {fall_frame + 1}" if fall_frame is not None else ""))
-    for j, v in over.items():
-        reasons.append(f"{j} peaks at {v['peak_pct_p90']:.0f}% of stall torque (estimate, 90th percentile)")
+    if over:
+        worst = sorted(over.items(), key=lambda kv: -kv[1]["peak_pct_p90"])
+        reasons.append("servo load above " + f"{max_load * 100:.0f}% of stall (estimate, 90th percentile): "
+                       + ", ".join(f"{j} {v['peak_pct_p90']:.0f}%" for j, v in worst))
     if verdict == "inconclusive":
         reasons = [f"0 tips in {n} worlds is not enough to show the tip chance is below {_pct(max_tip_upper)} "
                    f"(upper bound {_pct(hi)}); run the check with {DEFAULT_WORLDS} or more worlds"]
@@ -206,9 +208,9 @@ def suggestions(plan: dict[str, Any], limits: dict[str, Any], fall_frame: Option
     if len(moving) >= 2:
         tips.append(f"One limb at a time: frame {focus + 1} moves {', '.join(moving)} together; split it into "
                     f"{len(moving)} frames that each move one of them.")
-    big = [n for n, d in delta.items() if d >= 40]
-    for n in big or [n for n in over]:
-        tips.append(f"Smaller amplitude: swing {n} about 30% less in frame {focus + 1}.")
+    big = [n for n, d in delta.items() if d >= 40] or list(over)
+    if big:
+        tips.append(f"Smaller amplitude: swing {', '.join(big)} about 30% less in frame {focus + 1}.")
     if not tips:
         tips.append("Slow it down: play the move at speed 0.5 and check again.")
     return tips
