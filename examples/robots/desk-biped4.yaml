@@ -1,0 +1,115 @@
+# desk-biped4: the classic 4-servo educational desk biped (two hip yaw + two ankle roll servos, SG90).
+# A made-up but representative design in the style of the open school bipeds, not a specific kit.
+# Walking = rock onto one foot with the ankles, swing the free foot forward with the hips.
+talaria: 1
+name: desk-biped4
+title: Desk biped (4 servos)
+family: biped
+role: The most common robot in schools and maker clubs.
+description: >-
+  Small PLA biped, about 12 cm tall and 170 g: a body box on two short legs with flat feet.
+voltage: 5.0
+
+parts:
+  - name: body
+    shape: box
+    size: [4.5, 8, 5]
+    mass: 120                      # hip servos, controller, 4xAA or LiPo
+    material: pla
+    color: "#f2c14e"
+
+  - name: leg_l
+    parent: body
+    shape: box
+    size: [2.3, 1.3, 3.5]
+    mass: 15                       # leg bracket + ankle servo
+    material: pla
+    color: "#f2c14e"
+    joint: {axis: yaw, anchor: [0, 2.2, -2.5], offset: [0, 0, -1.75], range: [-60, 60], servo: SG90}
+  - name: foot_l
+    parent: leg_l
+    shape: box
+    size: [5.5, 3.2, 0.4]
+    mass: 8
+    material: pla
+    color: "#3d7bd9"
+    ground_contact: true
+    joint: {axis: roll, anchor: [0, 0, -1.75], offset: [0.5, 0.5, -0.3], range: [-50, 50], servo: SG90}
+
+  - name: leg_r
+    parent: body
+    shape: box
+    size: [2.3, 1.3, 3.5]
+    mass: 15
+    material: pla
+    color: "#f2c14e"
+    joint: {axis: yaw, anchor: [0, -2.2, -2.5], offset: [0, 0, -1.75], range: [-60, 60], servo: SG90}
+  - name: foot_r
+    parent: leg_r
+    shape: box
+    size: [5.5, 3.2, 0.4]
+    mass: 8
+    material: pla
+    color: "#3d7bd9"
+    ground_contact: true
+    joint: {axis: roll, anchor: [0, 0, -1.75], offset: [0.5, -0.5, -0.3], range: [-50, 50], servo: SG90}
+
+moves:
+  stand:
+    description: Feet flat, legs straight.
+    loops: 1
+    frames:
+      - {ms: 400, joints: {leg_l: 0, leg_r: 0, foot_l: 0, foot_r: 0}}
+
+  # Rock onto one foot with the ankles (15 deg) while the hips swing the feet (20 deg), a quarter
+  # cycle apart; 1 s per step cycle, sampled as 12 constant-speed keyframes (like an oscillator).
+  walk:
+    description: Shuffle-walk forward (ankle rock + hip swing; repeats until stopped).
+    loops: 1
+    repeat: true
+    easing: linear
+    frames:
+      - {ms: 83, joints: {leg_l: 10, leg_r: 10, foot_l: -12.99, foot_r: -12.99}}
+      - {ms: 83, joints: {leg_l: 17.32, leg_r: 17.32, foot_l: -7.5, foot_r: -7.5}}
+      - {ms: 83, joints: {leg_l: 20, leg_r: 20, foot_l: 0, foot_r: 0}}
+      - {ms: 83, joints: {leg_l: 17.32, leg_r: 17.32, foot_l: 7.5, foot_r: 7.5}}
+      - {ms: 83, joints: {leg_l: 10, leg_r: 10, foot_l: 12.99, foot_r: 12.99}}
+      - {ms: 83, joints: {leg_l: 0, leg_r: 0, foot_l: 15, foot_r: 15}}
+      - {ms: 83, joints: {leg_l: -10, leg_r: -10, foot_l: 12.99, foot_r: 12.99}}
+      - {ms: 83, joints: {leg_l: -17.32, leg_r: -17.32, foot_l: 7.5, foot_r: 7.5}}
+      - {ms: 83, joints: {leg_l: -20, leg_r: -20, foot_l: 0, foot_r: 0}}
+      - {ms: 83, joints: {leg_l: -17.32, leg_r: -17.32, foot_l: -7.5, foot_r: -7.5}}
+      - {ms: 83, joints: {leg_l: -10, leg_r: -10, foot_l: -12.99, foot_r: -12.99}}
+      - {ms: 83, joints: {leg_l: -0, leg_r: -0, foot_l: -15, foot_r: -15}}
+
+  # Same rhythm, but only the left hip swings: the robot pivots to the left almost on the spot.
+  turn_left:
+    description: Turn left on the spot (repeats until stopped).
+    loops: 1
+    repeat: true
+    easing: linear
+    frames:
+      - {ms: 83, joints: {leg_l: 10, leg_r: 0, foot_l: -12.99, foot_r: -12.99}}
+      - {ms: 83, joints: {leg_l: 17.32, leg_r: 0, foot_l: -7.5, foot_r: -7.5}}
+      - {ms: 83, joints: {leg_l: 20, leg_r: 0, foot_l: 0, foot_r: 0}}
+      - {ms: 83, joints: {leg_l: 17.32, leg_r: 0, foot_l: 7.5, foot_r: 7.5}}
+      - {ms: 83, joints: {leg_l: 10, leg_r: 0, foot_l: 12.99, foot_r: 12.99}}
+      - {ms: 83, joints: {leg_l: 0, leg_r: 0, foot_l: 15, foot_r: 15}}
+      - {ms: 83, joints: {leg_l: -10, leg_r: 0, foot_l: 12.99, foot_r: 12.99}}
+      - {ms: 83, joints: {leg_l: -17.32, leg_r: 0, foot_l: 7.5, foot_r: 7.5}}
+      - {ms: 83, joints: {leg_l: -20, leg_r: 0, foot_l: 0, foot_r: 0}}
+      - {ms: 83, joints: {leg_l: -17.32, leg_r: 0, foot_l: -7.5, foot_r: -7.5}}
+      - {ms: 83, joints: {leg_l: -10, leg_r: 0, foot_l: -12.99, foot_r: -12.99}}
+      - {ms: 83, joints: {leg_l: -0, leg_r: 0, foot_l: -15, foot_r: -15}}
+
+  dance:
+    description: Ankle rocks and hip twists.
+    loops: 2
+    easing: linear
+    frames:
+      - {ms: 400, joints: {foot_l: 20, foot_r: 20}}
+      - {ms: 400, joints: {foot_l: -20, foot_r: -20}}
+      - {ms: 400, joints: {foot_l: 0, foot_r: 0, leg_l: 30, leg_r: -30}}
+      - {ms: 400, joints: {leg_l: -30, leg_r: 30}}
+      - {ms: 400, joints: {leg_l: 0, leg_r: 0, foot_l: 25, foot_r: -25}}
+      - {ms: 400, joints: {foot_l: 0, foot_r: 0}}

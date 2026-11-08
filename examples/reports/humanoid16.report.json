@@ -1,0 +1,981 @@
+{
+ "format": "talaria-bench/report",
+ "version": 1,
+ "simulation": true,
+ "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
+ "created": "2026-11-08T16:40:50+00:00",
+ "robot": {
+  "name": "humanoid16",
+  "title": "Small humanoid (16 servos)",
+  "family": "humanoid",
+  "role": "Dance and motion-preflight showcase - one dance is safe, one looks fine and tips it over.",
+  "base": "free",
+  "parts": 18,
+  "joints": [
+   "hipyaw_l",
+   "hipyaw_r",
+   "shoulder_l",
+   "shoulder_r",
+   "hiproll_l",
+   "hiproll_r",
+   "upperarm_l",
+   "upperarm_r",
+   "thigh_l",
+   "thigh_r",
+   "forearm_l",
+   "forearm_r",
+   "shin_l",
+   "shin_r",
+   "foot_l",
+   "foot_r"
+  ],
+  "total_mass_g": 802.0,
+  "moves": [
+   "bow",
+   "dance_risky",
+   "dance_safe",
+   "stand",
+   "wave"
+  ],
+  "hash": "a009b4e9f5fa4bf7e9083f8c01879d0295d4b676cdaeec88bb00c50ca8b04b1c",
+  "warnings": [],
+  "source": "/home/devran_an/talaria-work/talaria-bench/examples/robots/humanoid16.yaml",
+  "limitations": [],
+  "world_ranges": {
+   "friction": [
+    0.3,
+    0.7
+   ],
+   "mass_scale": [
+    0.85,
+    1.15
+   ],
+   "torque_scale": [
+    0.7,
+    1.1
+   ],
+   "kp_scale": [
+    0.6,
+    1.2
+   ],
+   "latency_s": [
+    0.0,
+    0.04
+   ],
+   "offset_deg": [
+    -3.0,
+    3.0
+   ],
+   "floor_tilt_deg": [
+    0.0,
+    1.5
+   ],
+   "tether_scale": [
+    0.0,
+    1.0
+   ],
+   "tether_dir_deg": [
+    120.0,
+    240.0
+   ]
+  }
+ },
+ "settings": {
+  "scenes": [
+   "flat",
+   "ramp_5",
+   "ramp_10",
+   "ramp_15",
+   "obstacle_1cm",
+   "obstacle_2cm",
+   "push",
+   "slippery",
+   "payload",
+   "move:stand",
+   "move:wave",
+   "move:bow",
+   "move:dance_safe",
+   "move:dance_risky"
+  ],
+  "worlds": 30,
+  "seed": 0,
+  "quick": false,
+  "walk_move": null,
+  "bench": {
+   "walk_move": "walk",
+   "flat_min_cm": 5.0,
+   "seconds": null,
+   "payload_move": null,
+   "payload_steps_g": [
+    0.0,
+    50.0,
+    100.0,
+    200.0,
+    300.0
+   ]
+  },
+  "scene_version": 2
+ },
+ "world_ranges": {
+  "friction": [
+   0.3,
+   0.7
+  ],
+  "mass_scale": [
+   0.85,
+   1.15
+  ],
+  "torque_scale": [
+   0.7,
+   1.1
+  ],
+  "kp_scale": [
+   0.6,
+   1.2
+  ],
+  "latency_s": [
+   0.0,
+   0.04
+  ],
+  "offset_deg": [
+   -3.0,
+   3.0
+  ],
+  "floor_tilt_deg": [
+   0.0,
+   1.5
+  ],
+  "tether_scale": [
+   0.0,
+   1.0
+  ],
+  "tether_dir_deg": [
+   120.0,
+   240.0
+  ]
+ },
+ "scenes": [
+  {
+   "id": "flat",
+   "title": "Flat floor",
+   "family": "flat",
+   "applicable": false,
+   "status": "n/a",
+   "reliable": true,
+   "note": "the robot has no walk move",
+   "conditions": "move 'None', pass: >= 5 cm steady progress, no fall",
+   "runs": 0,
+   "pass_rate": null
+  },
+  {
+   "id": "ramp_5",
+   "title": "Ramp 5 deg",
+   "family": "ramp",
+   "applicable": false,
+   "status": "n/a",
+   "reliable": true,
+   "note": "the robot has no walk move",
+   "conditions": "slope 5 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
+   "runs": 0,
+   "pass_rate": null
+  },
+  {
+   "id": "ramp_10",
+   "title": "Ramp 10 deg",
+   "family": "ramp",
+   "applicable": false,
+   "status": "n/a",
+   "reliable": true,
+   "note": "the robot has no walk move",
+   "conditions": "slope 10 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
+   "runs": 0,
+   "pass_rate": null
+  },
+  {
+   "id": "ramp_15",
+   "title": "Ramp 15 deg",
+   "family": "ramp",
+   "applicable": false,
+   "status": "n/a",
+   "reliable": true,
+   "note": "the robot has no walk move",
+   "conditions": "slope 15 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
+   "runs": 0,
+   "pass_rate": null
+  },
+  {
+   "id": "obstacle_1cm",
+   "title": "Bar 1 cm",
+   "family": "obstacle",
+   "applicable": false,
+   "status": "n/a",
+   "reliable": true,
+   "note": "the robot has no walk move",
+   "conditions": "bar 1 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it",
+   "runs": 0,
+   "pass_rate": null
+  },
+  {
+   "id": "obstacle_2cm",
+   "title": "Bar 2 cm",
+   "family": "obstacle",
+   "applicable": false,
+   "status": "n/a",
+   "reliable": true,
+   "note": "the robot has no walk move",
+   "conditions": "bar 2 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it",
+   "runs": 0,
+   "pass_rate": null
+  },
+  {
+   "id": "push",
+   "title": "Push test",
+   "family": "push",
+   "applicable": true,
+   "status": "green",
+   "computed_status": "green",
+   "reliable": true,
+   "note": null,
+   "conditions": "pushes of 0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1 x body weight for 0.1 s from 4 sides while standing; pass: survives the nudge (0.1 x weight) from every side",
+   "runs": 30,
+   "passed": 28,
+   "pass_rate": 0.933,
+   "metric": {
+    "name": "weakest tipping push",
+    "unit": "x weight",
+    "median": 0.2,
+    "p10": 0.2,
+    "worst": {
+     "value": 0.05,
+     "seed": 7,
+     "reason": "tips at a nudge from the front"
+    }
+   },
+   "failure_reasons": {
+    "tips at a nudge from the front": 2
+   },
+   "falls": 2,
+   "loads": {
+    "foot_l": {
+     "peak_pct_median": 65.9,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "foot_r": {
+     "peak_pct_median": 68.2,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "forearm_l": {
+     "peak_pct_median": 1.3,
+     "peak_pct_max": 2.8,
+     "near_limit_time_pct_median": 0.0
+    },
+    "forearm_r": {
+     "peak_pct_median": 1.4,
+     "peak_pct_max": 3.1,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hiproll_l": {
+     "peak_pct_median": 27.2,
+     "peak_pct_max": 64.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hiproll_r": {
+     "peak_pct_median": 26.1,
+     "peak_pct_max": 67.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hipyaw_l": {
+     "peak_pct_median": 5.7,
+     "peak_pct_max": 19.3,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hipyaw_r": {
+     "peak_pct_median": 5.6,
+     "peak_pct_max": 11.7,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shin_l": {
+     "peak_pct_median": 45.1,
+     "peak_pct_max": 78.1,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shin_r": {
+     "peak_pct_median": 46.3,
+     "peak_pct_max": 79.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shoulder_l": {
+     "peak_pct_median": 6.3,
+     "peak_pct_max": 11.7,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shoulder_r": {
+     "peak_pct_median": 6.5,
+     "peak_pct_max": 12.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "thigh_l": {
+     "peak_pct_median": 22.1,
+     "peak_pct_max": 41.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "thigh_r": {
+     "peak_pct_median": 22.8,
+     "peak_pct_max": 44.7,
+     "near_limit_time_pct_median": 0.0
+    },
+    "upperarm_l": {
+     "peak_pct_median": 4.2,
+     "peak_pct_max": 15.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "upperarm_r": {
+     "peak_pct_median": 3.3,
+     "peak_pct_max": 14.0,
+     "near_limit_time_pct_median": 0.0
+    }
+   },
+   "push": {
+    "levels": [
+     0.05,
+     0.1,
+     0.2,
+     0.3,
+     0.5,
+     0.75,
+     1.0
+    ],
+    "nudge": 0.1,
+    "duration_s": 0.1,
+    "thresholds": {
+     "front": {
+      "median": 0.3,
+      "p10": 0.2,
+      "survives_nudge_pct": 93.3,
+      "slide_nudge_cm_median": 0.58,
+      "slide_half_weight_cm_median": null,
+      "slide_full_weight_cm_median": null
+     },
+     "back": {
+      "median": 0.3,
+      "p10": 0.2,
+      "survives_nudge_pct": 93.3,
+      "slide_nudge_cm_median": 0.55,
+      "slide_half_weight_cm_median": null,
+      "slide_full_weight_cm_median": null
+     },
+     "left": {
+      "median": 0.5,
+      "p10": 0.48,
+      "survives_nudge_pct": 93.3,
+      "slide_nudge_cm_median": 0.55,
+      "slide_half_weight_cm_median": 1.38,
+      "slide_full_weight_cm_median": null
+     },
+     "right": {
+      "median": 0.5,
+      "p10": 0.5,
+      "survives_nudge_pct": 93.3,
+      "slide_nudge_cm_median": 0.51,
+      "slide_half_weight_cm_median": null,
+      "slide_full_weight_cm_median": null
+     }
+    }
+   }
+  },
+  {
+   "id": "slippery",
+   "title": "Slippery floor",
+   "family": "slippery",
+   "applicable": false,
+   "status": "n/a",
+   "reliable": true,
+   "note": "the robot has no walk move",
+   "conditions": "effective foot-floor friction 0.08-0.15 (any foot material); pass: >= 50% of the flat median, no fall",
+   "runs": 0,
+   "pass_rate": null
+  },
+  {
+   "id": "payload",
+   "title": "Payload",
+   "family": "payload",
+   "applicable": false,
+   "status": "n/a",
+   "reliable": true,
+   "note": "the robot has no payload_part",
+   "conditions": "payload steps lumped at the payload part; a step passes below 80% of stall at every joint, no tipping and < 2 cm drift from the no-load path; pass: >= the first non-zero step",
+   "runs": 0,
+   "pass_rate": null
+  },
+  {
+   "id": "move:stand",
+   "title": "Move 'stand'",
+   "family": "moves",
+   "applicable": true,
+   "status": "green",
+   "computed_status": "green",
+   "reliable": true,
+   "note": null,
+   "conditions": "plays 'stand' standing; pass: no fall",
+   "runs": 30,
+   "passed": 28,
+   "pass_rate": 0.933,
+   "metric": {
+    "name": "max body tilt",
+    "unit": "deg",
+    "median": 2.946,
+    "p10": 0.865,
+    "worst": {
+     "value": 0.355,
+     "seed": 4,
+     "reason": null
+    }
+   },
+   "failure_reasons": {
+    "tipped over": 2
+   },
+   "falls": 2,
+   "loads": {
+    "foot_l": {
+     "peak_pct_median": 39.9,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "foot_r": {
+     "peak_pct_median": 47.4,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "forearm_l": {
+     "peak_pct_median": 0.6,
+     "peak_pct_max": 2.6,
+     "near_limit_time_pct_median": 0.0
+    },
+    "forearm_r": {
+     "peak_pct_median": 0.6,
+     "peak_pct_max": 2.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hiproll_l": {
+     "peak_pct_median": 12.9,
+     "peak_pct_max": 55.3,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hiproll_r": {
+     "peak_pct_median": 11.4,
+     "peak_pct_max": 54.4,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hipyaw_l": {
+     "peak_pct_median": 2.9,
+     "peak_pct_max": 19.3,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hipyaw_r": {
+     "peak_pct_median": 3.3,
+     "peak_pct_max": 11.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shin_l": {
+     "peak_pct_median": 29.0,
+     "peak_pct_max": 70.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shin_r": {
+     "peak_pct_median": 32.0,
+     "peak_pct_max": 77.2,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shoulder_l": {
+     "peak_pct_median": 2.9,
+     "peak_pct_max": 11.8,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shoulder_r": {
+     "peak_pct_median": 3.2,
+     "peak_pct_max": 10.6,
+     "near_limit_time_pct_median": 0.0
+    },
+    "thigh_l": {
+     "peak_pct_median": 13.5,
+     "peak_pct_max": 31.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "thigh_r": {
+     "peak_pct_median": 14.8,
+     "peak_pct_max": 40.8,
+     "near_limit_time_pct_median": 0.0
+    },
+    "upperarm_l": {
+     "peak_pct_median": 0.5,
+     "peak_pct_max": 2.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "upperarm_r": {
+     "peak_pct_median": 0.5,
+     "peak_pct_max": 2.6,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "move:wave",
+   "title": "Move 'wave'",
+   "family": "moves",
+   "applicable": true,
+   "status": "green",
+   "computed_status": "green",
+   "reliable": true,
+   "note": null,
+   "conditions": "plays 'wave' standing; pass: no fall",
+   "runs": 30,
+   "passed": 27,
+   "pass_rate": 0.9,
+   "metric": {
+    "name": "max body tilt",
+    "unit": "deg",
+    "median": 3.081,
+    "p10": 1.549,
+    "worst": {
+     "value": 1.081,
+     "seed": 5,
+     "reason": null
+    }
+   },
+   "failure_reasons": {
+    "tipped over": 3
+   },
+   "falls": 3,
+   "loads": {
+    "foot_l": {
+     "peak_pct_median": 42.5,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "foot_r": {
+     "peak_pct_median": 47.4,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "forearm_l": {
+     "peak_pct_median": 0.7,
+     "peak_pct_max": 2.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "forearm_r": {
+     "peak_pct_median": 25.5,
+     "peak_pct_max": 52.3,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hiproll_l": {
+     "peak_pct_median": 20.4,
+     "peak_pct_max": 58.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hiproll_r": {
+     "peak_pct_median": 18.5,
+     "peak_pct_max": 56.2,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hipyaw_l": {
+     "peak_pct_median": 5.3,
+     "peak_pct_max": 20.6,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hipyaw_r": {
+     "peak_pct_median": 6.1,
+     "peak_pct_max": 22.3,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shin_l": {
+     "peak_pct_median": 29.3,
+     "peak_pct_max": 71.1,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shin_r": {
+     "peak_pct_median": 31.9,
+     "peak_pct_max": 85.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shoulder_l": {
+     "peak_pct_median": 3.2,
+     "peak_pct_max": 12.7,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shoulder_r": {
+     "peak_pct_median": 6.4,
+     "peak_pct_max": 10.4,
+     "near_limit_time_pct_median": 0.0
+    },
+    "thigh_l": {
+     "peak_pct_median": 17.0,
+     "peak_pct_max": 36.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "thigh_r": {
+     "peak_pct_median": 15.9,
+     "peak_pct_max": 54.8,
+     "near_limit_time_pct_median": 0.0
+    },
+    "upperarm_l": {
+     "peak_pct_median": 0.7,
+     "peak_pct_max": 5.8,
+     "near_limit_time_pct_median": 0.0
+    },
+    "upperarm_r": {
+     "peak_pct_median": 50.3,
+     "peak_pct_max": 96.9,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "move:bow",
+   "title": "Move 'bow'",
+   "family": "moves",
+   "applicable": true,
+   "status": "green",
+   "computed_status": "green",
+   "reliable": true,
+   "note": null,
+   "conditions": "plays 'bow' standing; pass: no fall",
+   "runs": 30,
+   "passed": 27,
+   "pass_rate": 0.9,
+   "metric": {
+    "name": "max body tilt",
+    "unit": "deg",
+    "median": 13.508,
+    "p10": 9.24,
+    "worst": {
+     "value": 6.692,
+     "seed": 28,
+     "reason": null
+    }
+   },
+   "failure_reasons": {
+    "tipped over": 2,
+    "'shin_l' touched the floor": 1
+   },
+   "falls": 3,
+   "loads": {
+    "foot_l": {
+     "peak_pct_median": 59.0,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "foot_r": {
+     "peak_pct_median": 55.5,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "forearm_l": {
+     "peak_pct_median": 1.0,
+     "peak_pct_max": 2.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "forearm_r": {
+     "peak_pct_median": 0.9,
+     "peak_pct_max": 2.3,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hiproll_l": {
+     "peak_pct_median": 23.1,
+     "peak_pct_max": 57.1,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hiproll_r": {
+     "peak_pct_median": 18.0,
+     "peak_pct_max": 59.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hipyaw_l": {
+     "peak_pct_median": 7.7,
+     "peak_pct_max": 24.7,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hipyaw_r": {
+     "peak_pct_median": 6.7,
+     "peak_pct_max": 22.8,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shin_l": {
+     "peak_pct_median": 30.9,
+     "peak_pct_max": 70.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shin_r": {
+     "peak_pct_median": 33.1,
+     "peak_pct_max": 76.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shoulder_l": {
+     "peak_pct_median": 5.9,
+     "peak_pct_max": 10.7,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shoulder_r": {
+     "peak_pct_median": 5.8,
+     "peak_pct_max": 11.3,
+     "near_limit_time_pct_median": 0.0
+    },
+    "thigh_l": {
+     "peak_pct_median": 29.0,
+     "peak_pct_max": 42.8,
+     "near_limit_time_pct_median": 0.0
+    },
+    "thigh_r": {
+     "peak_pct_median": 25.8,
+     "peak_pct_max": 54.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "upperarm_l": {
+     "peak_pct_median": 0.7,
+     "peak_pct_max": 2.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "upperarm_r": {
+     "peak_pct_median": 0.8,
+     "peak_pct_max": 3.5,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "move:dance_safe",
+   "title": "Move 'dance_safe'",
+   "family": "moves",
+   "applicable": true,
+   "status": "green",
+   "computed_status": "green",
+   "reliable": true,
+   "note": null,
+   "conditions": "plays 'dance_safe' standing; pass: no fall",
+   "runs": 30,
+   "passed": 28,
+   "pass_rate": 0.933,
+   "metric": {
+    "name": "max body tilt",
+    "unit": "deg",
+    "median": 4.626,
+    "p10": 3.128,
+    "worst": {
+     "value": 1.517,
+     "seed": 27,
+     "reason": null
+    }
+   },
+   "failure_reasons": {
+    "tipped over": 2
+   },
+   "falls": 2,
+   "loads": {
+    "foot_l": {
+     "peak_pct_median": 46.5,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "foot_r": {
+     "peak_pct_median": 54.6,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "forearm_l": {
+     "peak_pct_median": 13.9,
+     "peak_pct_max": 26.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "forearm_r": {
+     "peak_pct_median": 14.2,
+     "peak_pct_max": 27.8,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hiproll_l": {
+     "peak_pct_median": 26.8,
+     "peak_pct_max": 60.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hiproll_r": {
+     "peak_pct_median": 25.7,
+     "peak_pct_max": 58.4,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hipyaw_l": {
+     "peak_pct_median": 7.6,
+     "peak_pct_max": 19.7,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hipyaw_r": {
+     "peak_pct_median": 6.9,
+     "peak_pct_max": 13.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shin_l": {
+     "peak_pct_median": 42.3,
+     "peak_pct_max": 74.1,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shin_r": {
+     "peak_pct_median": 45.9,
+     "peak_pct_max": 81.3,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shoulder_l": {
+     "peak_pct_median": 21.3,
+     "peak_pct_max": 45.1,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shoulder_r": {
+     "peak_pct_median": 22.2,
+     "peak_pct_max": 45.4,
+     "near_limit_time_pct_median": 0.0
+    },
+    "thigh_l": {
+     "peak_pct_median": 21.1,
+     "peak_pct_max": 40.6,
+     "near_limit_time_pct_median": 0.0
+    },
+    "thigh_r": {
+     "peak_pct_median": 24.2,
+     "peak_pct_max": 48.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "upperarm_l": {
+     "peak_pct_median": 35.0,
+     "peak_pct_max": 60.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "upperarm_r": {
+     "peak_pct_median": 34.4,
+     "peak_pct_max": 62.5,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "move:dance_risky",
+   "title": "Move 'dance_risky'",
+   "family": "moves",
+   "applicable": true,
+   "status": "red",
+   "computed_status": "red",
+   "reliable": true,
+   "note": null,
+   "conditions": "plays 'dance_risky' standing; pass: no fall",
+   "runs": 30,
+   "passed": 2,
+   "pass_rate": 0.067,
+   "metric": {
+    "name": "max body tilt",
+    "unit": "deg",
+    "median": 56.932,
+    "p10": 40.516,
+    "worst": {
+     "value": 23.547,
+     "seed": 0,
+     "reason": null
+    }
+   },
+   "failure_reasons": {
+    "tipped over": 27,
+    "'shin_r' touched the floor": 1
+   },
+   "falls": 28,
+   "loads": {
+    "foot_l": {
+     "peak_pct_median": 100.0,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 10.9
+    },
+    "foot_r": {
+     "peak_pct_median": 100.0,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 5.3
+    },
+    "forearm_l": {
+     "peak_pct_median": 18.8,
+     "peak_pct_max": 26.8,
+     "near_limit_time_pct_median": 0.0
+    },
+    "forearm_r": {
+     "peak_pct_median": 18.1,
+     "peak_pct_max": 30.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hiproll_l": {
+     "peak_pct_median": 70.9,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hiproll_r": {
+     "peak_pct_median": 84.0,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hipyaw_l": {
+     "peak_pct_median": 50.8,
+     "peak_pct_max": 92.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hipyaw_r": {
+     "peak_pct_median": 60.4,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shin_l": {
+     "peak_pct_median": 74.5,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shin_r": {
+     "peak_pct_median": 95.3,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shoulder_l": {
+     "peak_pct_median": 84.9,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "shoulder_r": {
+     "peak_pct_median": 85.7,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "thigh_l": {
+     "peak_pct_median": 75.3,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "thigh_r": {
+     "peak_pct_median": 89.1,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "upperarm_l": {
+     "peak_pct_median": 80.8,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "upperarm_r": {
+     "peak_pct_median": 70.1,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  }
+ ],
+ "servo_note": "Servo load is an estimate: peak torque as a share of the datasheet stall torque. Stall torque is not a safe continuous torque; a servo held near it overheats.",
+ "limitations": [],
+ "timing": {
+  "jobs": 180,
+  "computed": 180,
+  "cached": 0,
+  "workers": 8,
+  "seconds_jobs": 10.0,
+  "seconds_total": 12.98
+ },
+ "summary": "Walking scenes do not apply (the robot has no walk move). Survives a nudge from every side in 93% of worlds; a push of 0.3 x body weight from the front tips it (median). Move 'dance_risky' tips the robot in 93% of worlds. Move 'wave' tips the robot in 10% of worlds. Move 'bow' tips the robot in 10% of worlds. Move 'stand' tips the robot in 7% of worlds. Move 'dance_safe' tips the robot in 7% of worlds. The upperarm r servo is near its limit (peak 100% of stall, estimate) during the move 'dance_risky' test."
+}

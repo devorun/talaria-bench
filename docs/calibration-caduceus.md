@@ -33,6 +33,11 @@ then 3a (video only).
   of both arms throws it. The same move at 600 ms per swing tips it in 4/100 worlds, at 300 ms in
   11/100, at 250 ms in 41/100. So "slow it down" or "one arm at a time" are honest fixes for
   preflight to suggest.
+* **Later numerical fix (step 4b):** the backlash hinge's inertia was raised from 1e-6 to
+  1e-4 kg m^2, because the old value made long serial chains unstable. Re-checked on Caduceus:
+  * wave: 100% pass, 0 falls (was 99%);
+  * arms_up_both: 40/100 (was 41);
+  * arms_up_alternating: 0/100.
 * **`caduceus_v2`** (design variant, not a robot): tight joints (1.5 deg everywhere) and the
   electronics low inside the head (centre of mass -2 cm); everything else is the same. Wave 100%
   pass; `arms_up_both` 0/100 falls (vs 41/100 for the real design). The walk is still unreliable

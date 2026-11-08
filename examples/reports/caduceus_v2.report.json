@@ -1,0 +1,793 @@
+{
+ "format": "talaria-bench/report",
+ "version": 1,
+ "simulation": true,
+ "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
+ "created": "2026-11-08T16:39:35+00:00",
+ "robot": {
+  "name": "caduceus_v2",
+  "title": "Caduceus v2 (design variant)",
+  "family": "biped",
+  "role": "\"What would the fixed design do?\" - compare it with caduceus.",
+  "base": "free",
+  "parts": 5,
+  "joints": [
+   "left_arm",
+   "left_leg",
+   "right_leg",
+   "right_arm"
+  ],
+  "total_mass_g": 437.0,
+  "moves": [
+   "arms_up_alternating",
+   "arms_up_both",
+   "walk",
+   "wave"
+  ],
+  "hash": "b87fbcae7048b3e4cec8b5d2debffd8393d047edc0065d7707ac3ef320aee9de",
+  "warnings": [],
+  "source": "/home/devran_an/talaria-work/talaria-bench/examples/robots/caduceus_v2.yaml",
+  "limitations": [
+   {
+    "scope": "locomotion",
+    "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles)."
+   }
+  ],
+  "world_ranges": {
+   "friction": [
+    0.33,
+    0.63
+   ],
+   "mass_scale": [
+    0.85,
+    1.15
+   ],
+   "torque_scale": [
+    0.82,
+    1.06
+   ],
+   "kp_scale": [
+    0.67,
+    1.1
+   ],
+   "latency_s": [
+    0.005,
+    0.034
+   ],
+   "offset_deg": [
+    -2.5,
+    2.5
+   ],
+   "floor_tilt_deg": [
+    0.1,
+    1.2
+   ],
+   "tether_scale": [
+    0.0,
+    1.0
+   ],
+   "tether_dir_deg": [
+    113.0,
+    255.0
+   ]
+  }
+ },
+ "settings": {
+  "scenes": [
+   "flat",
+   "ramp_5",
+   "ramp_10",
+   "ramp_15",
+   "obstacle_1cm",
+   "obstacle_2cm",
+   "push",
+   "slippery",
+   "payload",
+   "move:wave",
+   "move:arms_up_both",
+   "move:arms_up_alternating"
+  ],
+  "worlds": 30,
+  "seed": 0,
+  "quick": false,
+  "walk_move": "walk",
+  "bench": {
+   "walk_move": "walk",
+   "flat_min_cm": 5.0,
+   "seconds": null,
+   "payload_move": null,
+   "payload_steps_g": [
+    0.0,
+    50.0,
+    100.0,
+    200.0,
+    300.0
+   ]
+  },
+  "scene_version": 2
+ },
+ "world_ranges": {
+  "friction": [
+   0.33,
+   0.63
+  ],
+  "mass_scale": [
+   0.85,
+   1.15
+  ],
+  "torque_scale": [
+   0.82,
+   1.06
+  ],
+  "kp_scale": [
+   0.67,
+   1.1
+  ],
+  "latency_s": [
+   0.005,
+   0.034
+  ],
+  "offset_deg": [
+   -2.5,
+   2.5
+  ],
+  "floor_tilt_deg": [
+   0.1,
+   1.2
+  ],
+  "tether_scale": [
+   0.0,
+   1.0
+  ],
+  "tether_dir_deg": [
+   113.0,
+   255.0
+  ]
+ },
+ "scenes": [
+  {
+   "id": "flat",
+   "title": "Flat floor",
+   "family": "flat",
+   "applicable": true,
+   "status": "unreliable",
+   "computed_status": "red",
+   "reliable": false,
+   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles).",
+   "conditions": "move 'walk', pass: >= 5 cm steady progress, no fall",
+   "runs": 30,
+   "passed": 6,
+   "pass_rate": 0.2,
+   "metric": {
+    "name": "steady progress",
+    "unit": "cm",
+    "median": 0.0,
+    "p10": 0.0,
+    "worst": {
+     "value": 0.0,
+     "seed": 0,
+     "reason": "fell (tipped over)"
+    }
+   },
+   "failure_reasons": {
+    "fell (tipped over)": 23,
+    "too slow (< 5 cm)": 1
+   },
+   "falls": 23,
+   "loads": {
+    "left_arm": {
+     "peak_pct_median": 64.0,
+     "peak_pct_max": 84.2,
+     "near_limit_time_pct_median": 0.0
+    },
+    "left_leg": {
+     "peak_pct_median": 60.7,
+     "peak_pct_max": 93.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_arm": {
+     "peak_pct_median": 65.0,
+     "peak_pct_max": 83.4,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_leg": {
+     "peak_pct_median": 55.3,
+     "peak_pct_max": 89.8,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "ramp_5",
+   "title": "Ramp 5 deg",
+   "family": "ramp",
+   "applicable": true,
+   "status": "unreliable",
+   "computed_status": "red",
+   "reliable": false,
+   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles).",
+   "conditions": "slope 5 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
+   "runs": 30,
+   "passed": 0,
+   "pass_rate": 0.0,
+   "metric": {
+    "name": "climb along the slope",
+    "unit": "cm",
+    "median": -14.005,
+    "p10": -15.132,
+    "worst": {
+     "value": -15.358,
+     "seed": 24,
+     "reason": "tipped backward"
+    }
+   },
+   "failure_reasons": {
+    "tipped backward": 30
+   },
+   "falls": 30,
+   "loads": {
+    "left_arm": {
+     "peak_pct_median": 36.3,
+     "peak_pct_max": 69.2,
+     "near_limit_time_pct_median": 0.0
+    },
+    "left_leg": {
+     "peak_pct_median": 42.6,
+     "peak_pct_max": 64.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_arm": {
+     "peak_pct_median": 45.3,
+     "peak_pct_max": 72.2,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_leg": {
+     "peak_pct_median": 41.5,
+     "peak_pct_max": 65.4,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "ramp_10",
+   "title": "Ramp 10 deg",
+   "family": "ramp",
+   "applicable": true,
+   "status": "unreliable",
+   "computed_status": "red",
+   "reliable": false,
+   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles).",
+   "conditions": "slope 10 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
+   "runs": 30,
+   "passed": 0,
+   "pass_rate": 0.0,
+   "metric": {
+    "name": "climb along the slope",
+    "unit": "cm",
+    "median": 0.0,
+    "p10": -5.363,
+    "worst": {
+     "value": -6.136,
+     "seed": 29,
+     "reason": "tipped backward"
+    }
+   },
+   "failure_reasons": {
+    "cannot stand on the slope": 20,
+    "tipped backward": 10
+   },
+   "falls": 30,
+   "loads": {
+    "left_arm": {
+     "peak_pct_median": 0.0,
+     "peak_pct_max": 20.3,
+     "near_limit_time_pct_median": 0.0
+    },
+    "left_leg": {
+     "peak_pct_median": 0.0,
+     "peak_pct_max": 13.2,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_arm": {
+     "peak_pct_median": 0.0,
+     "peak_pct_max": 16.1,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_leg": {
+     "peak_pct_median": 0.0,
+     "peak_pct_max": 22.9,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "ramp_15",
+   "title": "Ramp 15 deg",
+   "family": "ramp",
+   "applicable": true,
+   "status": "unreliable",
+   "computed_status": "red",
+   "reliable": false,
+   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles).",
+   "conditions": "slope 15 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
+   "runs": 30,
+   "passed": 0,
+   "pass_rate": 0.0,
+   "metric": {
+    "name": "climb along the slope",
+    "unit": "cm",
+    "median": 0.0,
+    "p10": 0.0,
+    "worst": {
+     "value": 0.0,
+     "seed": 0,
+     "reason": "cannot stand on the slope"
+    }
+   },
+   "failure_reasons": {
+    "cannot stand on the slope": 30
+   },
+   "falls": 30,
+   "loads": {
+    "left_arm": {
+     "peak_pct_median": 0.0,
+     "peak_pct_max": 0.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "left_leg": {
+     "peak_pct_median": 0.0,
+     "peak_pct_max": 0.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_arm": {
+     "peak_pct_median": 0.0,
+     "peak_pct_max": 0.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_leg": {
+     "peak_pct_median": 0.0,
+     "peak_pct_max": 0.0,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "obstacle_1cm",
+   "title": "Bar 1 cm",
+   "family": "obstacle",
+   "applicable": true,
+   "status": "unreliable",
+   "computed_status": "red",
+   "reliable": false,
+   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles).",
+   "conditions": "bar 1 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it",
+   "runs": 30,
+   "passed": 0,
+   "pass_rate": 0.0,
+   "metric": {
+    "name": "distance past the bar",
+    "unit": "cm",
+    "median": -22.391,
+    "p10": -24.469,
+    "worst": {
+     "value": -25.041,
+     "seed": 28,
+     "reason": "fell (tipped over)"
+    }
+   },
+   "failure_reasons": {
+    "fell (tipped over)": 25,
+    "stuck at the bar": 5
+   },
+   "falls": 25,
+   "loads": {
+    "left_arm": {
+     "peak_pct_median": 70.7,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "left_leg": {
+     "peak_pct_median": 71.5,
+     "peak_pct_max": 93.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_arm": {
+     "peak_pct_median": 68.9,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_leg": {
+     "peak_pct_median": 56.9,
+     "peak_pct_max": 92.9,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "obstacle_2cm",
+   "title": "Bar 2 cm",
+   "family": "obstacle",
+   "applicable": true,
+   "status": "unreliable",
+   "computed_status": "red",
+   "reliable": false,
+   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles).",
+   "conditions": "bar 2 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it",
+   "runs": 30,
+   "passed": 0,
+   "pass_rate": 0.0,
+   "metric": {
+    "name": "distance past the bar",
+    "unit": "cm",
+    "median": -22.312,
+    "p10": -24.661,
+    "worst": {
+     "value": -25.261,
+     "seed": 28,
+     "reason": "fell (tipped over)"
+    }
+   },
+   "failure_reasons": {
+    "fell (tipped over)": 23,
+    "stuck at the bar": 7
+   },
+   "falls": 23,
+   "loads": {
+    "left_arm": {
+     "peak_pct_median": 75.8,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "left_leg": {
+     "peak_pct_median": 73.1,
+     "peak_pct_max": 94.1,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_arm": {
+     "peak_pct_median": 81.6,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_leg": {
+     "peak_pct_median": 68.3,
+     "peak_pct_max": 92.9,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "push",
+   "title": "Push test",
+   "family": "push",
+   "applicable": true,
+   "status": "green",
+   "computed_status": "green",
+   "reliable": true,
+   "note": null,
+   "conditions": "pushes of 0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1 x body weight for 0.1 s from 4 sides while standing; pass: survives the nudge (0.1 x weight) from every side",
+   "runs": 30,
+   "passed": 30,
+   "pass_rate": 1.0,
+   "metric": {
+    "name": "weakest tipping push",
+    "unit": "x weight",
+    "median": 0.3,
+    "p10": 0.3,
+    "worst": {
+     "value": 0.3,
+     "seed": 0,
+     "reason": null
+    }
+   },
+   "failure_reasons": {},
+   "falls": 0,
+   "loads": {
+    "left_arm": {
+     "peak_pct_median": 1.1,
+     "peak_pct_max": 3.7,
+     "near_limit_time_pct_median": 0.0
+    },
+    "left_leg": {
+     "peak_pct_median": 8.8,
+     "peak_pct_max": 23.2,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_arm": {
+     "peak_pct_median": 1.1,
+     "peak_pct_max": 4.2,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_leg": {
+     "peak_pct_median": 8.6,
+     "peak_pct_max": 23.5,
+     "near_limit_time_pct_median": 0.0
+    }
+   },
+   "push": {
+    "levels": [
+     0.05,
+     0.1,
+     0.2,
+     0.3,
+     0.5,
+     0.75,
+     1.0
+    ],
+    "nudge": 0.1,
+    "duration_s": 0.1,
+    "thresholds": {
+     "front": {
+      "median": 0.3,
+      "p10": 0.3,
+      "survives_nudge_pct": 100.0,
+      "slide_nudge_cm_median": 0.19,
+      "slide_half_weight_cm_median": null,
+      "slide_full_weight_cm_median": null
+     },
+     "back": {
+      "median": 0.3,
+      "p10": 0.3,
+      "survives_nudge_pct": 100.0,
+      "slide_nudge_cm_median": 0.14,
+      "slide_half_weight_cm_median": null,
+      "slide_full_weight_cm_median": null
+     },
+     "left": {
+      "median": 1.25,
+      "p10": 1.25,
+      "survives_nudge_pct": 100.0,
+      "slide_nudge_cm_median": 0.16,
+      "slide_half_weight_cm_median": 0.88,
+      "slide_full_weight_cm_median": 6.56
+     },
+     "right": {
+      "median": 1.25,
+      "p10": 1.25,
+      "survives_nudge_pct": 100.0,
+      "slide_nudge_cm_median": 0.18,
+      "slide_half_weight_cm_median": 1.09,
+      "slide_full_weight_cm_median": 7.14
+     }
+    },
+    "mid_walk": {
+     "survives_nudge_pct": {
+      "front": 6.7,
+      "back": 43.3,
+      "left": 23.3,
+      "right": 23.3
+     },
+     "reliable": false,
+     "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles)."
+    }
+   }
+  },
+  {
+   "id": "slippery",
+   "title": "Slippery floor",
+   "family": "slippery",
+   "applicable": true,
+   "status": "unreliable",
+   "computed_status": "red",
+   "reliable": false,
+   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles).",
+   "conditions": "effective foot-floor friction 0.08-0.15 (any foot material); pass: >= 50% of the flat median, no fall",
+   "runs": 30,
+   "passed": 0,
+   "pass_rate": 0.0,
+   "metric": {
+    "name": "steady progress",
+    "unit": "cm",
+    "median": 0.0,
+    "p10": 0.0,
+    "worst": {
+     "value": 0.0,
+     "seed": 0,
+     "reason": "fell (tipped over)"
+    }
+   },
+   "failure_reasons": {
+    "fell (tipped over)": 22,
+    "no flat progress to compare with": 8
+   },
+   "falls": 22,
+   "loads": {
+    "left_arm": {
+     "peak_pct_median": 28.3,
+     "peak_pct_max": 45.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "left_leg": {
+     "peak_pct_median": 32.3,
+     "peak_pct_max": 53.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_arm": {
+     "peak_pct_median": 31.6,
+     "peak_pct_max": 44.7,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_leg": {
+     "peak_pct_median": 27.6,
+     "peak_pct_max": 50.5,
+     "near_limit_time_pct_median": 0.0
+    }
+   },
+   "needed_cm": null
+  },
+  {
+   "id": "payload",
+   "title": "Payload",
+   "family": "payload",
+   "applicable": false,
+   "status": "n/a",
+   "reliable": true,
+   "note": "the robot has no payload_part",
+   "conditions": "payload steps lumped at the payload part; a step passes below 80% of stall at every joint, no tipping and < 2 cm drift from the no-load path; pass: >= the first non-zero step",
+   "runs": 0,
+   "pass_rate": null
+  },
+  {
+   "id": "move:wave",
+   "title": "Move 'wave'",
+   "family": "moves",
+   "applicable": true,
+   "status": "green",
+   "computed_status": "green",
+   "reliable": true,
+   "note": null,
+   "conditions": "plays 'wave' standing; pass: no fall",
+   "runs": 30,
+   "passed": 30,
+   "pass_rate": 1.0,
+   "metric": {
+    "name": "max body tilt",
+    "unit": "deg",
+    "median": 0.725,
+    "p10": 0.455,
+    "worst": {
+     "value": 0.359,
+     "seed": 22,
+     "reason": null
+    }
+   },
+   "failure_reasons": {},
+   "falls": 0,
+   "loads": {
+    "left_arm": {
+     "peak_pct_median": 0.9,
+     "peak_pct_max": 2.4,
+     "near_limit_time_pct_median": 0.0
+    },
+    "left_leg": {
+     "peak_pct_median": 10.4,
+     "peak_pct_max": 27.4,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_arm": {
+     "peak_pct_median": 16.8,
+     "peak_pct_max": 21.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_leg": {
+     "peak_pct_median": 11.5,
+     "peak_pct_max": 26.6,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "move:arms_up_both",
+   "title": "Move 'arms_up_both'",
+   "family": "moves",
+   "applicable": true,
+   "status": "green",
+   "computed_status": "green",
+   "reliable": true,
+   "note": null,
+   "conditions": "plays 'arms_up_both' standing; pass: no fall",
+   "runs": 30,
+   "passed": 30,
+   "pass_rate": 1.0,
+   "metric": {
+    "name": "max body tilt",
+    "unit": "deg",
+    "median": 2.098,
+    "p10": 1.361,
+    "worst": {
+     "value": 1.283,
+     "seed": 0,
+     "reason": null
+    }
+   },
+   "failure_reasons": {},
+   "falls": 0,
+   "loads": {
+    "left_arm": {
+     "peak_pct_median": 51.1,
+     "peak_pct_max": 69.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "left_leg": {
+     "peak_pct_median": 28.1,
+     "peak_pct_max": 66.3,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_arm": {
+     "peak_pct_median": 50.9,
+     "peak_pct_max": 73.8,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_leg": {
+     "peak_pct_median": 40.3,
+     "peak_pct_max": 75.0,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "move:arms_up_alternating",
+   "title": "Move 'arms_up_alternating'",
+   "family": "moves",
+   "applicable": true,
+   "status": "green",
+   "computed_status": "green",
+   "reliable": true,
+   "note": null,
+   "conditions": "plays 'arms_up_alternating' standing; pass: no fall",
+   "runs": 30,
+   "passed": 30,
+   "pass_rate": 1.0,
+   "metric": {
+    "name": "max body tilt",
+    "unit": "deg",
+    "median": 1.003,
+    "p10": 0.585,
+    "worst": {
+     "value": 0.54,
+     "seed": 22,
+     "reason": null
+    }
+   },
+   "failure_reasons": {},
+   "falls": 0,
+   "loads": {
+    "left_arm": {
+     "peak_pct_median": 51.4,
+     "peak_pct_max": 68.6,
+     "near_limit_time_pct_median": 0.0
+    },
+    "left_leg": {
+     "peak_pct_median": 21.4,
+     "peak_pct_max": 46.7,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_arm": {
+     "peak_pct_median": 52.0,
+     "peak_pct_max": 70.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "right_leg": {
+     "peak_pct_median": 23.0,
+     "peak_pct_max": 39.5,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  }
+ ],
+ "servo_note": "Servo load is an estimate: peak torque as a share of the datasheet stall torque. Stall torque is not a safe continuous torque; a servo held near it overheats.",
+ "limitations": [
+  {
+   "scope": "locomotion",
+   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles)."
+  }
+ ],
+ "timing": {
+  "jobs": 330,
+  "computed": 330,
+  "cached": 0,
+  "workers": 8,
+  "seconds_jobs": 15.24,
+  "seconds_total": 22.45
+ },
+ "summary": "Survives a nudge from every side in 100% of worlds; a push of 0.3 x body weight from the front tips it (median). Standing moves that never or almost never tip it: wave, arms_up_both, arms_up_alternating. 7 walking scene(s) are marked not reliable for this robot: Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles)."
+}

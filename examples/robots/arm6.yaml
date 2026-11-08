@@ -1,0 +1,111 @@
+# arm6: a typical 3D-printed desktop robot arm. Base yaw, shoulder and elbow on MG996R servos; wrist
+# pitch, wrist roll and the gripper on SG90s. A made-up but representative design, not a specific kit.
+# At 0 deg the arm points straight up; negative shoulder/elbow/wrist angles lean it forward (+x).
+# Set `base: free` to see whether a free-standing base tips when the arm reaches out with a load.
+talaria: 1
+name: arm6
+title: Desk arm (6 servos)
+family: arm
+role: The most common hobby robot of all; shows how much it can lift before a servo is near its limit.
+description: >-
+  Desktop arm with 5 joints and a gripper, about 30 cm tall. Base clamped to the table.
+voltage: 5.0
+base: fixed
+payload_part: hand
+
+parts:
+  - name: base
+    shape: cylinder
+    size: [6, 4]                   # radius 6 cm, 4 cm tall
+    mass: 500                      # printed base with the base servo, electronics and some ballast
+    material: pla
+    color: "#2f3b4c"
+    ground_contact: true
+
+  - name: turret
+    parent: base
+    shape: cylinder
+    size: [4, 3]
+    mass: 80                       # bracket + shoulder MG996R
+    material: pla
+    color: "#e0a030"
+    joint: {axis: yaw, anchor: [0, 0, 2], offset: [0, 0, 1.5], range: [-90, 90], servo: MG996R}
+
+  - name: upper_arm
+    parent: turret
+    shape: box
+    size: [3, 4, 12]
+    mass: 90                       # link + elbow MG996R
+    material: pla
+    color: "#e0a030"
+    joint: {axis: pitch, anchor: [0, 0, 2.5], offset: [0, 0, 6], range: [-100, 100], servo: MG996R}
+
+  - name: forearm
+    parent: upper_arm
+    shape: box
+    size: [2.5, 3.5, 10]
+    mass: 40                       # link + wrist SG90
+    material: pla
+    color: "#e0a030"
+    joint: {axis: pitch, anchor: [0, 0, 6], offset: [0, 0, 5], range: [-130, 130], servo: MG996R}
+
+  - name: wrist
+    parent: forearm
+    shape: box
+    size: [2, 3, 4]
+    mass: 20                       # bracket + wrist-roll SG90
+    material: pla
+    color: "#3d7bd9"
+    ground_contact: true
+    joint: {axis: pitch, anchor: [0, 0, 5], offset: [0, 0, 2], range: [-100, 100], servo: SG90}
+
+  - name: hand
+    parent: wrist
+    shape: box
+    size: [2, 4, 2]
+    mass: 20                       # palm + gripper SG90
+    material: pla
+    color: "#3d7bd9"
+    ground_contact: true
+    joint: {axis: yaw, anchor: [0, 0, 2], offset: [0, 0, 1], range: [-90, 90], servo: SG90}
+
+  - name: finger
+    parent: hand
+    shape: box
+    size: [1, 0.6, 4]
+    mass: 8
+    material: rubber
+    color: "#333333"
+    ground_contact: true
+    joint: {axis: roll, anchor: [0, 1.2, 1], offset: [0, 0, 2], range: [0, 60], servo: SG90}
+
+moves:
+  home:
+    description: Arm straight up, gripper closed.
+    loops: 1
+    frames:
+      - {ms: 800, joints: {turret: 0, upper_arm: 0, forearm: 0, wrist: 0, hand: 0, finger: 0}}
+
+  wave:
+    description: Lean forward and wave the hand.
+    loops: 1
+    frames:
+      - {ms: 700, joints: {upper_arm: -20, forearm: -40, wrist: 30}}
+      - {ms: 350, joints: {wrist: -20, hand: 30}}
+      - {ms: 350, joints: {wrist: 30, hand: -30}}
+      - {ms: 350, joints: {wrist: -20, hand: 30}}
+      - {ms: 350, joints: {wrist: 30, hand: 0}}
+      - {ms: 700, joints: {upper_arm: 0, forearm: 0, wrist: 0}}
+
+  # Reach down in front, close the gripper, lift, turn 60 deg, put it down, let go, go home.
+  pick_and_place:
+    description: Pick something up in front of the base and put it down 60 deg to the left.
+    loops: 1
+    frames:
+      - {ms: 900, joints: {upper_arm: -50, forearm: -60, wrist: -40, finger: 50}}
+      - {ms: 400, hold: 200, joints: {finger: 10}}
+      - {ms: 700, joints: {upper_arm: -30, forearm: -40}}
+      - {ms: 900, joints: {turret: 60}}
+      - {ms: 700, joints: {upper_arm: -50, forearm: -60}}
+      - {ms: 400, hold: 200, joints: {finger: 50}}
+      - {ms: 900, joints: {turret: 0, upper_arm: 0, forearm: 0, wrist: 0, finger: 0}}

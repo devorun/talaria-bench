@@ -36,6 +36,9 @@ def _conditions(sid: str, results: dict) -> str:
     scene = get_scene(sid)
     if scene.family == "moves":
         return f"plays '{scene.params['move']}' standing; pass: no fall"
+    if scene.family == "payload":
+        return ("payload steps lumped at the payload part; a step passes below 80% of stall at every joint, "
+                "no tipping and < 2 cm drift from the no-load path; pass: >= the first non-zero step")
     walk = results["settings"].get("walk_move")
     if scene.family == "flat":
         need = results["settings"].get("bench", {}).get("flat_min_cm", 5.0)
@@ -118,6 +121,21 @@ def _scene_card(sid: str, jobs: list[dict], results: dict) -> dict[str, Any]:
                 "reliable": not walk_limits, "note": " ".join(walk_limits) if walk_limits else None}
     if sid == "slippery":
         card["needed_cm"] = (jobs[0]["metrics"].get("needed_cm") if jobs else None)
+    if sid == "payload" and jobs:
+        steps = [st["grams"] for st in jobs[0]["metrics"]["steps"]]
+        rows = []
+        for k, g in enumerate(steps):
+            sts = [j["metrics"]["steps"][k] for j in jobs]
+            rows.append({"grams": g, "pass_pct": round(100 * sum(s["ok"] for s in sts) / len(sts), 1),
+                         "max_peak_pct_median": round(float(np.median([s["max_peak_pct"] for s in sts])), 1),
+                         "tracking_error_cm_median": round(float(np.median([s["tracking_error_cm"] for s in sts])), 2),
+                         "tipped": sum(s["tipped"] for s in sts),
+                         "worst_joint": Counter(s["worst_joint"] for s in sts).most_common(1)[0][0],
+                         "top_reason": next(iter(Counter(
+                             ("tips" if s["tipped"] else "load" if s["max_peak_pct"] >= 80 else "drift")
+                             for s in sts if not s["ok"]).most_common(1)), (None,))[0]})
+        card["payload"] = {"move": jobs[0]["metrics"]["move"], "part": jobs[0]["metrics"]["payload_part"],
+                           "load_limit_pct": 80, "track_limit_cm": 2.0, "steps": rows}
     return card
 
 
@@ -205,6 +223,19 @@ def summary(report: dict) -> str:
             out.append("Standing moves that never or almost never tip it: " + ", ".join(safe) + ".")
         for c in sorted(risky, key=lambda c: c["pass_rate"]):
             out.append(f"Move '{c['id'][5:]}' tips the robot in {100 - c['pass_rate'] * 100:.0f}% of worlds.")
+    pay = cards.get("payload")
+    if pay and pay.get("applicable"):
+        m = pay["metric"]
+        limit = next((r for r in pay["payload"]["steps"] if r["pass_pct"] < 50), None)
+        txt = f"Max safe payload (simulation estimate): median {_fmt(max(m['median'], 0))} g (p10 {_fmt(max(m['p10'], 0))} g)"
+        if limit:
+            why = {"tips": "the base tips over",
+                   "drift": f"the gripper sags off its path (median {limit['tracking_error_cm_median']:.1f} cm; "
+                            f"{limit['worst_joint'].replace('_', ' ')} at {limit['max_peak_pct_median']:.0f}% of stall)",
+                   "load": f"the {limit['worst_joint'].replace('_', ' ')} reaches {limit['max_peak_pct_median']:.0f}% "
+                           "of stall"}.get(limit.get("top_reason"), "it fails")
+            txt += f"; at {limit['grams']:g} g {why}"
+        out.append(txt + ".")
     slip = cards.get("slippery")
     if slip and slip.get("applicable") and slip.get("reliable", True):
         if slip["status"] == "red":
@@ -268,6 +299,16 @@ def to_markdown(report: dict) -> str:
             note = "" if mw["reliable"] else " (NOT RELIABLE for this robot)"
             lines += ["", f"Mid-walk nudge survived{note}: " +
                       ", ".join(f"{d} {v:.0f}%" for d, v in mw["survives_nudge_pct"].items())]
+        lines.append("")
+    pay = next((c for c in report["scenes"] if c["id"] == "payload" and c.get("applicable")), None)
+    if pay:
+        lines += [f"**Payload** (move '{pay['payload']['move']}', weight at '{pay['payload']['part']}'; a step passes "
+                  "below 80% of stall, no tipping, < 2 cm drift):", "",
+                  "| Payload | Pass | Peak load (median, % of stall) | Drift (median) | Tipped | Limiting joint |",
+                  "|---|---|---|---|---|---|"]
+        for r in pay["payload"]["steps"]:
+            lines.append(f"| {r['grams']:g} g | {r['pass_pct']:.0f}% | {r['max_peak_pct_median']:.0f}% | "
+                         f"{r['tracking_error_cm_median']:.1f} cm | {r['tipped']} | {r['worst_joint']} |")
         lines.append("")
     joints: dict[str, tuple[float, float, str]] = {}
     for c in report["scenes"]:

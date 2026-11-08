@@ -4,6 +4,8 @@
 talaria: 1
 name: spider8
 title: Spider (8 servos)
+family: quadruped
+role: A cheap 8-servo crawler that really walks in simulation - the arena success story.
 description: >-
   Four-legged 8-servo PLA crawler: a 10 x 10 cm body with a hip and a knee servo per leg.
 voltage: 5.0

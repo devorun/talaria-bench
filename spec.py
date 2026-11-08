@@ -25,8 +25,9 @@ SHAPES = {"box": 3, "cylinder": 2, "sphere": 1}
 SHAPE_HELP = {"box": "[x depth, y width, z height]", "cylinder": "[radius, length]", "sphere": "[radius]"}
 NAMED_AXES = {"pitch": (0.0, -1.0, 0.0), "roll": (1.0, 0.0, 0.0), "yaw": (0.0, 0.0, 1.0)}
 TOP_KEYS = {"talaria", "name", "title", "description", "photo", "voltage", "parts", "moves", "tether", "worlds",
-            "materials", "limitations", "bench"}
-BENCH_KEYS = {"walk_move", "flat_min_cm", "seconds"}
+            "materials", "limitations", "bench", "family", "role", "base", "payload_part"}
+BENCH_KEYS = {"walk_move", "flat_min_cm", "seconds", "payload_move", "payload_steps_g"}
+BASES = ("free", "fixed")
 #: what a limitation can cover: scenes that need walking, standing/arm-gesture moves, payload/arm work, or everything
 LIMITATION_SCOPES = ("locomotion", "standing", "manipulation", "all")
 MATERIAL_KEYS = {"friction", "solref", "solimp"}
@@ -100,6 +101,10 @@ class Spec:
     limitations: list[dict[str, str]] = field(default_factory=list)
     #: benchmark settings: which move is the walk, the flat-floor pass threshold, run time
     bench: dict[str, Any] = field(default_factory=dict)
+    family: str = ""                        # e.g. "quadruped", "humanoid", "arm" (gallery metadata)
+    role: str = ""                          # one line: why this robot is in the gallery
+    base: str = "free"                      # free: the root floats (walkers); fixed: bolted to the table (arms)
+    payload_part: Optional[str] = None      # where the payload scene hangs its weight (e.g. the gripper)
 
     def limitations_for(self, scope: str) -> list[str]:
         """Notes of the limitations that cover ``scope`` (including ``all``)."""
@@ -170,6 +175,7 @@ class Spec:
         mats = {name: {"friction": r(self.materials[name].friction), "solref": vec(self.materials[name].solref),
                        "solimp": vec(self.materials[name].solimp)} for name in used}
         return {"talaria": SPEC_VERSION, "voltage": r(self.voltage), "parts": parts, "materials": mats,
+                **({"base": self.base} if self.base != "free" else {}),
                 "tether": {"part": self.tether["part"], "max_force_n": r(self.tether["max_force_n"]),
                            "at": vec(self.tether["at"])} if self.tether else None,
                 "worlds": {k: vec(v) for k, v in sorted(self.world_ranges.items())}}
@@ -179,7 +185,8 @@ class Spec:
         return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
     def summary(self) -> dict[str, Any]:
-        return {"name": self.name, "title": self.title, "parts": len(self.parts), "joints": self.joint_names,
+        return {"name": self.name, "title": self.title, "family": self.family, "role": self.role,
+                "base": self.base, "parts": len(self.parts), "joints": self.joint_names,
                 "total_mass_g": round(self.total_mass_g, 1), "moves": sorted(self.moves),
                 "hash": self.hash()[:16], "warnings": list(self.warnings)}
 
@@ -242,7 +249,9 @@ def parse_spec(data: Any, base_dir: Optional[Path] = None) -> Spec:
         name = "robot"
     title = data.get("title", name)
     description = data.get("description", "")
-    for key, value in (("title", title), ("description", description)):
+    family = data.get("family", "")
+    role = data.get("role", "")
+    for key, value in (("title", title), ("description", description), ("family", family), ("role", role)):
         if not isinstance(value, str):
             problems.append(f"{key}: must be text")
     voltage = _num(data.get("voltage", servos.DEFAULT_VOLTAGE))
@@ -335,17 +344,30 @@ def parse_spec(data: Any, base_dir: Optional[Path] = None) -> Spec:
     limitations = _parse_limitations(data.get("limitations"), problems)
     bench = _parse_bench(data.get("bench"), moves, problems)
 
+    base = data.get("base", "free")
+    if base not in BASES:
+        problems.append(f"base: must be one of {', '.join(BASES)} (got {base!r})")
+        base = "free"
+    payload_part = data.get("payload_part")
+    if payload_part is not None and payload_part not in seen:
+        problems.append(f"payload_part: part {payload_part!r} does not exist")
+        payload_part = None
+    if bench.get("payload_move") and payload_part is None:
+        problems.append("bench: payload_move needs a payload_part")
+
     if problems:
         raise SpecError(problems)
     return Spec(name=name, title=title, description=description, voltage=voltage, parts=ordered, moves=moves,
                 tether=tether, world_ranges=world_ranges, photo=photo, warnings=warnings, materials=table,
-                limitations=limitations, bench=bench)
+                limitations=limitations, bench=bench, family=family, role=role, base=base,
+                payload_part=payload_part)
 
 
 def _parse_bench(raw: Any, moves: Mapping[str, Any], problems: list[str]) -> dict[str, Any]:
     """Benchmark settings. Defaults: the walk is the move named ``walk``, flat floor passes at 5 cm of
     steady progress, gaits (repeat moves) run 8 s and other moves run their own length + 1 s."""
-    out: dict[str, Any] = {"walk_move": "walk", "flat_min_cm": 5.0, "seconds": None}
+    out: dict[str, Any] = {"walk_move": "walk", "flat_min_cm": 5.0, "seconds": None,
+                           "payload_move": None, "payload_steps_g": [0.0, 50.0, 100.0, 200.0, 300.0]}
     if raw is None:
         return out
     if not isinstance(raw, Mapping):
@@ -357,6 +379,18 @@ def _parse_bench(raw: Any, moves: Mapping[str, Any], problems: list[str]) -> dic
             problems.append(f"bench: walk_move {raw['walk_move']!r} is not one of the moves")
         else:
             out["walk_move"] = raw["walk_move"]
+    if raw.get("payload_move") is not None:
+        if raw["payload_move"] not in moves:
+            problems.append(f"bench: payload_move {raw['payload_move']!r} is not one of the moves")
+        else:
+            out["payload_move"] = raw["payload_move"]
+    if raw.get("payload_steps_g") is not None:
+        steps = raw["payload_steps_g"]
+        nums = [_num(v) for v in steps] if isinstance(steps, list) else [None]
+        if not nums or any(v is None or v < 0 for v in nums) or nums != sorted(nums) or nums[0] != 0:
+            problems.append("bench: payload_steps_g must be an increasing list of grams starting at 0")
+        else:
+            out["payload_steps_g"] = nums
     for key, lo, hi in (("flat_min_cm", 0.0, 500.0), ("seconds", 1.0, 120.0)):
         if raw.get(key) is not None:
             v = _num(raw[key])

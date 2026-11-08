@@ -1,0 +1,213 @@
+# humanoid16: a typical 16-servo small humanoid (about 33 cm, 0.85 kg). Legs: hip yaw, hip roll,
+# hip pitch, knee, ankle pitch per side (MG90S); arms: shoulder pitch, shoulder roll, elbow (SG90).
+# Note: with 3 hobby servos in series per leg, a heavier or taller build cannot even stand (the leg
+# joints are softer than gravity); this one is near that limit, which makes it a good preflight demo.
+# A made-up but representative design, not a specific kit. It is a dance and preflight showcase:
+# walking is not modelled (no walk move), so the locomotion scenes are "not applicable".
+# Signs: +pitch swings a part's lower end forward; +roll moves it to the left (+y).
+talaria: 1
+name: humanoid16
+title: Small humanoid (16 servos)
+family: humanoid
+role: Dance and motion-preflight showcase - one dance is safe, one looks fine and tips it over.
+description: >-
+  Small servo humanoid, about 33 cm tall and 0.8 kg: 10 leg servos and 6 arm servos, battery low in the torso.
+voltage: 6.0                       # 2S LiPo through a 6 V BEC (common for small humanoids)
+
+parts:
+  - name: torso
+    shape: box
+    size: [5, 10, 9]
+    mass: 300                      # frame, controller, PCA9685, 2S battery
+    com: [0, 0, -2]                # the battery sits low in the torso
+    material: pla
+    color: "#d8dde6"
+  - {name: head, parent: torso, shape: sphere, size: [3], mass: 30, material: pla, color: "#3d7bd9", pos: [0, 0, 7.5]}
+
+  # Left leg (right leg mirrors it at -y)
+  - name: hipyaw_l
+    parent: torso
+    shape: box
+    size: [3, 3, 1.5]
+    mass: 18
+    material: pla
+    color: "#555c66"
+    joint: {axis: yaw, anchor: [0, 2.8, -4.5], offset: [0, 0, -0.75], range: [-45, 45], servo: MG90S}
+  - name: hiproll_l
+    parent: hipyaw_l
+    shape: box
+    size: [3, 3, 1.5]
+    mass: 18
+    material: pla
+    color: "#555c66"
+    joint: {axis: roll, anchor: [0, 0, -0.75], offset: [0, 0, -0.75], range: [-40, 40], servo: MG90S}
+  - name: thigh_l
+    parent: hiproll_l
+    shape: box
+    size: [3, 3, 7]
+    mass: 45
+    material: pla
+    color: "#d8dde6"
+    joint: {axis: pitch, anchor: [0, 0, -0.75], offset: [0, 0, -3.5], range: [-90, 90], servo: MG90S}
+  - name: shin_l
+    parent: thigh_l
+    shape: box
+    size: [3, 3, 7]
+    mass: 45
+    material: pla
+    color: "#d8dde6"
+    joint: {axis: pitch, anchor: [0, 0, -3.5], offset: [0, 0, -3.5], range: [-130, 10], servo: MG90S}
+  - name: foot_l
+    parent: shin_l
+    shape: box
+    size: [9, 4.5, 1]
+    mass: 35
+    material: pla
+    color: "#555c66"
+    ground_contact: true
+    joint: {axis: pitch, anchor: [0, 0, -3.5], offset: [1, 0, -0.5], range: [-60, 60], servo: MG90S}
+
+  - name: hipyaw_r
+    parent: torso
+    shape: box
+    size: [3, 3, 1.5]
+    mass: 18
+    material: pla
+    color: "#555c66"
+    joint: {axis: yaw, anchor: [0, -2.8, -4.5], offset: [0, 0, -0.75], range: [-45, 45], servo: MG90S}
+  - name: hiproll_r
+    parent: hipyaw_r
+    shape: box
+    size: [3, 3, 1.5]
+    mass: 18
+    material: pla
+    color: "#555c66"
+    joint: {axis: roll, anchor: [0, 0, -0.75], offset: [0, 0, -0.75], range: [-40, 40], servo: MG90S}
+  - name: thigh_r
+    parent: hiproll_r
+    shape: box
+    size: [3, 3, 7]
+    mass: 45
+    material: pla
+    color: "#d8dde6"
+    joint: {axis: pitch, anchor: [0, 0, -0.75], offset: [0, 0, -3.5], range: [-90, 90], servo: MG90S}
+  - name: shin_r
+    parent: thigh_r
+    shape: box
+    size: [3, 3, 7]
+    mass: 45
+    material: pla
+    color: "#d8dde6"
+    joint: {axis: pitch, anchor: [0, 0, -3.5], offset: [0, 0, -3.5], range: [-130, 10], servo: MG90S}
+  - name: foot_r
+    parent: shin_r
+    shape: box
+    size: [9, 4.5, 1]
+    mass: 35
+    material: pla
+    color: "#555c66"
+    ground_contact: true
+    joint: {axis: pitch, anchor: [0, 0, -3.5], offset: [1, 0, -0.5], range: [-60, 60], servo: MG90S}
+
+  # Arms: shoulder pitch (swing forward/back), shoulder roll (raise sideways), elbow
+  - name: shoulder_l
+    parent: torso
+    shape: box
+    size: [2.5, 2.5, 2.5]
+    mass: 20
+    material: pla
+    color: "#555c66"
+    joint: {axis: pitch, anchor: [0, 6.45, 3], offset: [0, 0, 0], range: [-170, 170], servo: SG90}
+  - name: upperarm_l
+    parent: shoulder_l
+    shape: box
+    size: [2.5, 2.5, 6]
+    mass: 30
+    material: pla
+    color: "#d8dde6"
+    joint: {axis: roll, anchor: [0, 0, -1.25], offset: [0, 0, -3], range: [-20, 170], servo: SG90}
+  - name: forearm_l
+    parent: upperarm_l
+    shape: box
+    size: [2.2, 2.2, 6]
+    mass: 25
+    material: pla
+    color: "#3d7bd9"
+    joint: {axis: pitch, anchor: [0, 0, -3], offset: [0, 0, -3], range: [-10, 150], servo: SG90}
+
+  - name: shoulder_r
+    parent: torso
+    shape: box
+    size: [2.5, 2.5, 2.5]
+    mass: 20
+    material: pla
+    color: "#555c66"
+    joint: {axis: pitch, anchor: [0, -6.45, 3], offset: [0, 0, 0], range: [-170, 170], servo: SG90}
+  - name: upperarm_r
+    parent: shoulder_r
+    shape: box
+    size: [2.5, 2.5, 6]
+    mass: 30
+    material: pla
+    color: "#d8dde6"
+    joint: {axis: roll, anchor: [0, 0, -1.25], offset: [0, 0, -3], range: [-170, 20], servo: SG90}
+  - name: forearm_r
+    parent: upperarm_r
+    shape: box
+    size: [2.2, 2.2, 6]
+    mass: 25
+    material: pla
+    color: "#3d7bd9"
+    joint: {axis: pitch, anchor: [0, 0, -3], offset: [0, 0, -3], range: [-10, 150], servo: SG90}
+
+moves:
+  stand:
+    description: Stand straight, arms down.
+    loops: 1
+    frames:
+      - {ms: 600, joints: {thigh_l: 0, shin_l: 0, foot_l: 0, thigh_r: 0, shin_r: 0, foot_r: 0, upperarm_l: 0, upperarm_r: 0}}
+
+  wave:
+    description: Raise the right arm to the side and wave the forearm.
+    loops: 1
+    frames:
+      - {ms: 600, joints: {upperarm_r: -150, forearm_r: 60}}
+      - {ms: 300, joints: {forearm_r: 20}}
+      - {ms: 300, joints: {forearm_r: 80}}
+      - {ms: 300, joints: {forearm_r: 20}}
+      - {ms: 300, joints: {forearm_r: 80}}
+      - {ms: 600, joints: {upperarm_r: 0, forearm_r: 0}}
+
+  # Lean the legs back a little (ankles) while the torso bows, so the weight stays over the feet.
+  bow:
+    description: A polite bow from the hips, arms back, legs leaning back to stay balanced.
+    loops: 1
+    frames:
+      - {ms: 900, hold: 600, joints: {thigh_l: -25, thigh_r: -25, foot_l: 12, foot_r: 12, shoulder_l: -20, shoulder_r: -20}}
+      - {ms: 900, joints: {thigh_l: 0, thigh_r: 0, shin_l: 0, shin_r: 0, foot_l: 0, foot_r: 0, shoulder_l: 0, shoulder_r: 0}}
+
+  # Arm swings and shallow knee bends (thigh +12, knee -24, ankle +12 keeps the feet flat).
+  dance_safe:
+    description: Arms out and up, shallow knee bends, shoulder swings (stays upright in >= 90% of worlds).
+    loops: 2
+    frames:
+      - {ms: 500, joints: {upperarm_l: 90, upperarm_r: -90}}
+      - {ms: 500, joints: {thigh_l: 12, thigh_r: 12, shin_l: -24, shin_r: -24, foot_l: 12, foot_r: 12, forearm_l: 60, forearm_r: 60}}
+      - {ms: 500, joints: {thigh_l: 0, thigh_r: 0, shin_l: 0, shin_r: 0, foot_l: 0, foot_r: 0, forearm_l: 0, forearm_r: 0}}
+      - {ms: 500, joints: {thigh_l: 12, thigh_r: 12, shin_l: -24, shin_r: -24, foot_l: 12, foot_r: 12, upperarm_l: 150, upperarm_r: -150}}
+      - {ms: 500, joints: {thigh_l: 0, thigh_r: 0, shin_l: 0, shin_r: 0, foot_l: 0, foot_r: 0, upperarm_l: 90, upperarm_r: -90}}
+      - {ms: 400, joints: {shoulder_l: 40, shoulder_r: -40}}
+      - {ms: 400, joints: {shoulder_l: -40, shoulder_r: 40}}
+      - {ms: 600, joints: {shoulder_l: 0, shoulder_r: 0, upperarm_l: 0, upperarm_r: 0}}
+
+  # Looks like a fun twist: arms up, hips twisting fast left and right. On a 0.8 kg humanoid with soft
+  # hobby servos the fast hip yaw swings throw it over in most worlds. The motion-preflight demo move.
+  dance_risky:
+    description: Arms up and a fast hip twist (tips the robot in most worlds - for the preflight demo).
+    loops: 2
+    frames:
+      - {ms: 300, joints: {upperarm_l: 150, upperarm_r: -150}}
+      - {ms: 220, joints: {hipyaw_l: 30, hipyaw_r: 30, shoulder_l: 90, shoulder_r: -90}}
+      - {ms: 220, joints: {hipyaw_l: -30, hipyaw_r: -30, shoulder_l: -90, shoulder_r: 90}}
+      - {ms: 220, joints: {hipyaw_l: 30, hipyaw_r: 30, thigh_l: -20, thigh_r: -20}}
+      - {ms: 400, joints: {thigh_l: 0, thigh_r: 0, shin_l: 0, shin_r: 0, foot_l: 0, foot_r: 0, hipyaw_l: 0, hipyaw_r: 0, shoulder_l: 0, shoulder_r: 0, upperarm_l: 0, upperarm_r: 0}}

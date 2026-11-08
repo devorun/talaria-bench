@@ -7,6 +7,8 @@
 talaria: 1
 name: caduceus_v2
 title: Caduceus v2 (design variant)
+family: biped
+role: '"What would the fixed design do?" - compare it with caduceus.'
 description: >-
   Design variant of Caduceus for comparison: tight joints and the electronics low inside the head.
   Same size, masses, servos, moves and cable as caduceus.yaml.

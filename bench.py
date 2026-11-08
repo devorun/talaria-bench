@@ -17,6 +17,7 @@ from typing import Any, Callable, Optional
 
 import numpy as np
 
+from .builder import MODEL_VERSION
 from .scenes import SCENE_VERSION, SCENES, applicable, decide_slippery, resolve_scenes, run_scene, walk_move
 from .spec import Spec
 
@@ -59,7 +60,7 @@ def move_hash(spec: Spec) -> str:
 
 
 def job_key(spec: Spec, scene_id: str, seed: int) -> str:
-    blob = json.dumps([SCENE_VERSION, spec.hash(), move_hash(spec), scene_id, int(seed)])
+    blob = json.dumps([SCENE_VERSION, MODEL_VERSION, spec.hash(), move_hash(spec), scene_id, int(seed)])
     return hashlib.sha256(blob.encode()).hexdigest()[:32]
 
 

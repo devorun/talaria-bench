@@ -14,6 +14,10 @@ Every scene runs in randomized worlds (worlds.py) and every number is simulation
   a walk are also nudged mid-walk (reported, not part of the pass rule).
 * ``slippery``: effective foot-floor friction 0.08-0.15 whatever the feet are made of; pass = steady progress >= 50% of the robot's flat median and no
   fall (decided by the benchmark once the flat results are in).
+* ``payload``: for robots with a ``payload_part`` (an arm's gripper): the payload move is played with
+  0 / 50 / 100 / 200 / 300 g (spec ``bench.payload_steps_g``) lumped at that part. A step passes when every
+  joint stays below 80% of stall torque at its peak (an estimate), a free base does not tip, and the
+  payload part stays within 2 cm of its no-load path. Result: the max safe payload (simulation estimate).
 * ``move:<name>`` (family ``moves``): every move of the robot that is not its walk or a repeating gait,
   played standing; pass = no fall. This is where arm gestures and dances are screened.
 
@@ -73,7 +77,10 @@ SCENES: dict[str, Scene] = {
                           {"height": 0.02}),
     "push": Scene("push", "push", "Push test", False, "weakest tipping push", "x weight"),
     "slippery": Scene("slippery", "slippery", "Slippery floor", True, "steady progress", "cm"),
+    "payload": Scene("payload", "payload", "Payload", False, "max safe payload", "g"),
 }
+PAYLOAD_LOAD_LIMIT = 0.8           # share of stall torque at the peak
+PAYLOAD_TRACK_LIMIT_M = 0.02       # payload part's distance from its no-load path
 FAMILIES: dict[str, list[str]] = {}
 for _s in SCENES.values():
     FAMILIES.setdefault(_s.family, []).append(_s.id)
@@ -118,10 +125,27 @@ def walk_move(spec: Spec) -> Optional[str]:
     return name if name in spec.moves else None
 
 
+def payload_move(spec: Spec) -> Optional[str]:
+    """``bench.payload_move``, else ``pick_and_place``, else the robot's first standing move."""
+    if spec.bench and spec.bench.get("payload_move"):
+        return spec.bench["payload_move"]
+    if "pick_and_place" in spec.moves:
+        return "pick_and_place"
+    standing = move_scenes(spec)
+    return standing[0][5:] if standing else None
+
+
 def applicable(spec: Spec, scene_id: str) -> tuple[bool, str]:
     scene = get_scene(scene_id)
     if scene.family == "moves" and scene.params["move"] not in spec.moves:
         return False, f"the robot has no move {scene.params['move']!r}"
+    if scene.family == "push" and spec.base == "fixed":
+        return False, "the base is fixed to the table"
+    if scene.family == "payload":
+        if spec.payload_part is None:
+            return False, "the robot has no payload_part"
+        if payload_move(spec) is None:
+            return False, "the robot has no move to carry a payload"
     if scene.locomotion and walk_move(spec) is None:
         return False, "the robot has no walk move"
     return True, ""
@@ -170,6 +194,8 @@ def run_scene(spec: Spec, scene_id: str, seed: int, record: bool = False) -> dic
     seconds = spec.bench.get("seconds") if spec.bench else None
     if scene.family == "push":
         return _run_push(spec, seed, world, record)
+    if scene.family == "payload":
+        return _run_payload(spec, seed, world, record)
     if scene.family == "moves":
         r = run_move(spec, scene.params["move"], world, None, record=record)
         job = _job(scene_id, seed, world, fell=r.fell, loads=_loads(r), passed=not r.fell,
@@ -289,6 +315,67 @@ def _run_push(spec: Spec, seed: int, world: World, record: bool) -> dict[str, An
         level = worst if worst is not None else NUDGE
         job["trace"] = _push(spec, world, None, level, worst_dir, PUSH_AT, PUSH_RUN, record=True).trace
         job["trace_note"] = f"push {level:g} x weight from the {worst_dir}"
+    return job
+
+
+def with_payload(spec: Spec, grams: float) -> Spec:
+    """A copy of the spec with ``grams`` lumped at the payload part (at its center)."""
+    import copy
+
+    out = copy.deepcopy(spec)
+    if grams:
+        out.part(spec.payload_part).mass += grams
+    return out
+
+
+def _run_payload(spec: Spec, seed: int, world: World, record: bool) -> dict[str, Any]:
+    move = payload_move(spec)
+    steps = [float(g) for g in (spec.bench.get("payload_steps_g") or [0, 50, 100, 200, 300])]
+    names = [p.name for p in spec.parts]
+    idx = names.index(spec.payload_part)
+    ref = None
+    out_steps = []
+    loads0: dict[str, dict[str, float]] = {}
+    traces = {}
+    for g in steps:
+        r = run_move(with_payload(spec, g), move, world, None, record=True)
+        path = np.array([frame[idx][:3] for frame in r.trace["frames"]])
+        if ref is None:
+            ref = path
+            loads0 = _loads(r)
+        n = min(len(ref), len(path))
+        err = float(np.max(np.linalg.norm(path[:n] - ref[:n], axis=1))) if n else 0.0
+        peaks = {j: v.peak_ratio for j, v in r.joints.items()}
+        worst_joint = max(peaks, key=peaks.get)
+        ok = peaks[worst_joint] < PAYLOAD_LOAD_LIMIT and not r.fell and err < PAYLOAD_TRACK_LIMIT_M
+        why = None
+        if not ok:
+            fall = ("the base tips" if "tilted" in (r.fall_reason or "") else
+                    _short_fall(r.fall_reason).replace("'", ""))
+            why = (fall if r.fell else
+                   f"{worst_joint} at {peaks[worst_joint] * 100:.0f}% of stall" if peaks[worst_joint] >= PAYLOAD_LOAD_LIMIT
+                   else f"the payload drifts {err * 100:.1f} cm off its path")
+        out_steps.append({"grams": g, "ok": ok, "why": why, "tipped": r.fell, "tracking_error_cm": round(err * 100, 2),
+                          "peak_pct": {j: round(v * 100, 1) for j, v in peaks.items()},
+                          "max_peak_pct": round(peaks[worst_joint] * 100, 1), "worst_joint": worst_joint,
+                          "near_limit_time_pct": round(max(v.saturated_frac for v in r.joints.values()) * 100, 1)})
+        if record:
+            traces[g] = r.trace
+    max_safe = None
+    for st in out_steps:
+        if not st["ok"]:
+            break
+        max_safe = st["grams"]
+    first_bad = next((st for st in out_steps if not st["ok"]), None)
+    need = steps[1] if len(steps) > 1 else steps[0]
+    job = _job("payload", seed, world, passed=max_safe is not None and max_safe >= need,
+               metric=max_safe if max_safe is not None else -1.0, loads=loads0,
+               reason=None if first_bad is None else f"at {first_bad['grams']:g} g: {first_bad['why']}",
+               metrics={"steps": out_steps, "move": move, "payload_part": spec.payload_part})
+    if record:
+        g = first_bad["grams"] if first_bad else steps[-1]
+        job["trace"] = traces.get(g)
+        job["trace_note"] = f"{g:g} g at {spec.payload_part}"
     return job
 
 

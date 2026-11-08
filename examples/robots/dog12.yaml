@@ -1,0 +1,177 @@
+# dog12: a 12-servo quadruped "robot dog" (hip roll, hip pitch and knee per leg, MG996R-class servos),
+# about 1.6 kg with a 25 x 10 cm body. A made-up but representative design, not a specific kit.
+# Home pose: thighs 35 deg forward, knees bent 70 deg back, feet under the hips.
+# Signs: +roll swings a leg's lower end to the left (+y); +pitch swings it forward (+x).
+talaria: 1
+name: dog12
+title: Robot dog (12 servos)
+family: quadruped
+role: The eye-catcher - a 12-servo dog that trots, and struggles where real ones do.
+description: >-
+  Quadruped robot dog, 25 x 10 cm body, about 1.6 kg, three MG996R servos per leg.
+voltage: 6.0                       # 2S LiPo through a 6 V high-current BEC
+bench: {walk_move: trot}           # the arena tests the trot
+
+parts:
+  - name: body
+    shape: box
+    size: [25, 10, 5]
+    mass: 770                      # aluminium/PLA frame, controller, PCA9685, 2S LiPo
+    material: pla
+    color: "#4a4f57"
+  - {name: head, parent: body, shape: box, size: [5, 7, 5], mass: 30, material: pla, color: "#e0a030", pos: [14.5, 0, 1]}
+
+  - name: hip_fl
+    parent: body
+    shape: box
+    size: [5, 3, 4]
+    mass: 70                       # bracket + hip-pitch MG996R
+    material: pla
+    color: "#e0a030"
+    joint: {axis: roll, anchor: [10, 5, 0], offset: [0, 1.5, 0], range: [-30, 30], servo: MG996R}
+  - name: thigh_fl
+    parent: hip_fl
+    shape: box
+    size: [2.5, 2, 10]
+    mass: 80                       # link + knee MG996R
+    material: pla
+    color: "#4a4f57"
+    ground_contact: true
+    joint: {axis: pitch, anchor: [0, 2.5, 0], offset: [0, 0, -5], range: [-90, 90], home: 35, servo: MG996R}
+  - name: shin_fl
+    parent: thigh_fl
+    shape: box
+    size: [2, 2, 10]
+    mass: 40
+    material: pla
+    color: "#4a4f57"
+    ground_contact: true
+    joint: {axis: pitch, anchor: [0, 0, -5], offset: [0, 0, -5], range: [-140, 10], home: -70, servo: MG996R}
+  - {name: foot_fl, parent: shin_fl, shape: sphere, size: [1.2], mass: 10, material: rubber, ground_contact: true, pos: [0, 0, -5]}
+  - name: hip_fr
+    parent: body
+    shape: box
+    size: [5, 3, 4]
+    mass: 70                       # bracket + hip-pitch MG996R
+    material: pla
+    color: "#e0a030"
+    joint: {axis: roll, anchor: [10, -5, 0], offset: [0, -1.5, 0], range: [-30, 30], servo: MG996R}
+  - name: thigh_fr
+    parent: hip_fr
+    shape: box
+    size: [2.5, 2, 10]
+    mass: 80                       # link + knee MG996R
+    material: pla
+    color: "#4a4f57"
+    ground_contact: true
+    joint: {axis: pitch, anchor: [0, -2.5, 0], offset: [0, 0, -5], range: [-90, 90], home: 35, servo: MG996R}
+  - name: shin_fr
+    parent: thigh_fr
+    shape: box
+    size: [2, 2, 10]
+    mass: 40
+    material: pla
+    color: "#4a4f57"
+    ground_contact: true
+    joint: {axis: pitch, anchor: [0, 0, -5], offset: [0, 0, -5], range: [-140, 10], home: -70, servo: MG996R}
+  - {name: foot_fr, parent: shin_fr, shape: sphere, size: [1.2], mass: 10, material: rubber, ground_contact: true, pos: [0, 0, -5]}
+  - name: hip_hl
+    parent: body
+    shape: box
+    size: [5, 3, 4]
+    mass: 70                       # bracket + hip-pitch MG996R
+    material: pla
+    color: "#e0a030"
+    joint: {axis: roll, anchor: [-10, 5, 0], offset: [0, 1.5, 0], range: [-30, 30], servo: MG996R}
+  - name: thigh_hl
+    parent: hip_hl
+    shape: box
+    size: [2.5, 2, 10]
+    mass: 80                       # link + knee MG996R
+    material: pla
+    color: "#4a4f57"
+    ground_contact: true
+    joint: {axis: pitch, anchor: [0, 2.5, 0], offset: [0, 0, -5], range: [-90, 90], home: 35, servo: MG996R}
+  - name: shin_hl
+    parent: thigh_hl
+    shape: box
+    size: [2, 2, 10]
+    mass: 40
+    material: pla
+    color: "#4a4f57"
+    ground_contact: true
+    joint: {axis: pitch, anchor: [0, 0, -5], offset: [0, 0, -5], range: [-140, 10], home: -70, servo: MG996R}
+  - {name: foot_hl, parent: shin_hl, shape: sphere, size: [1.2], mass: 10, material: rubber, ground_contact: true, pos: [0, 0, -5]}
+  - name: hip_hr
+    parent: body
+    shape: box
+    size: [5, 3, 4]
+    mass: 70                       # bracket + hip-pitch MG996R
+    material: pla
+    color: "#e0a030"
+    joint: {axis: roll, anchor: [-10, -5, 0], offset: [0, -1.5, 0], range: [-30, 30], servo: MG996R}
+  - name: thigh_hr
+    parent: hip_hr
+    shape: box
+    size: [2.5, 2, 10]
+    mass: 80                       # link + knee MG996R
+    material: pla
+    color: "#4a4f57"
+    ground_contact: true
+    joint: {axis: pitch, anchor: [0, -2.5, 0], offset: [0, 0, -5], range: [-90, 90], home: 35, servo: MG996R}
+  - name: shin_hr
+    parent: thigh_hr
+    shape: box
+    size: [2, 2, 10]
+    mass: 40
+    material: pla
+    color: "#4a4f57"
+    ground_contact: true
+    joint: {axis: pitch, anchor: [0, 0, -5], offset: [0, 0, -5], range: [-140, 10], home: -70, servo: MG996R}
+  - {name: foot_hr, parent: shin_hr, shape: sphere, size: [1.2], mass: 10, material: rubber, ground_contact: true, pos: [0, 0, -5]}
+
+moves:
+  stand:
+    description: Stand on four bent legs.
+    loops: 1
+    frames:
+      - {ms: 600, joints: {thigh_fl: 35, shin_fl: -70, hip_fl: 0, thigh_fr: 35, shin_fr: -70, hip_fr: 0, thigh_hl: 35, shin_hl: -70, hip_hl: 0, thigh_hr: 35, shin_hr: -70, hip_hr: 0}}
+
+  # Fold the hind legs (thigh forward, knee fully bent) so the rear sinks; front legs stay.
+  sit:
+    description: Sit down on the folded hind legs, hold, stand up again.
+    loops: 1
+    frames:
+      - {ms: 1200, hold: 1500, joints: {thigh_fl: 35, shin_fl: -70, thigh_fr: 35, shin_fr: -70, thigh_hl: 75, shin_hl: -135, thigh_hr: 75, shin_hr: -135}}
+      - {ms: 1200, joints: {thigh_fl: 35, shin_fl: -70, thigh_fr: 35, shin_fr: -70, thigh_hl: 35, shin_hl: -70, thigh_hr: 35, shin_hr: -70}}
+
+  # Diagonal pairs (front-left + hind-right, front-right + hind-left) swing together: knee +40 deg bend
+  # to lift, thighs sweep +-10 deg around the 35 deg stance; 0.6 s per cycle.
+  trot:
+    description: Trot forward on diagonal leg pairs (repeats until stopped).
+    loops: 1
+    repeat: true
+    frames:
+      - {ms: 150, joints: {thigh_fl: 35, shin_fl: -110, thigh_hr: 35, shin_hr: -110, thigh_fr: 35, shin_fr: -70, thigh_hl: 35, shin_hl: -70}}
+      - {ms: 150, joints: {thigh_fl: 45, shin_fl: -70, thigh_hr: 45, shin_hr: -70, thigh_fr: 25, shin_fr: -70, thigh_hl: 25, shin_hl: -70}}
+      - {ms: 150, joints: {thigh_fl: 35, shin_fl: -70, thigh_hr: 35, shin_hr: -70, thigh_fr: 35, shin_fr: -110, thigh_hl: 35, shin_hl: -110}}
+      - {ms: 150, joints: {thigh_fl: 25, shin_fl: -70, thigh_hr: 25, shin_hr: -70, thigh_fr: 45, shin_fr: -70, thigh_hl: 45, shin_hl: -70}}
+
+  # One foot in the air at a time (hind-left, front-left, hind-right, front-right), stride +-20 deg.
+  walk:
+    description: Slow creep walk, one foot at a time (repeats until stopped).
+    loops: 1
+    repeat: true
+    frames:
+      - {ms: 180, joints: {thigh_hl: 15, shin_hl: -95, thigh_fl: 25, shin_fl: -70, thigh_hr: 38.33, shin_hr: -70, thigh_fr: 51.67, shin_fr: -70}}
+      - {ms: 240, joints: {thigh_hl: 55, shin_hl: -95, thigh_fl: 18.33, shin_fl: -70, thigh_hr: 31.67, shin_hr: -70, thigh_fr: 45, shin_fr: -70}}
+      - {ms: 180, joints: {thigh_hl: 55, shin_hl: -70, thigh_fl: 15, shin_fl: -70, thigh_hr: 28.33, shin_hr: -70, thigh_fr: 41.67, shin_fr: -70}}
+      - {ms: 180, joints: {thigh_hl: 51.67, shin_hl: -70, thigh_fl: 15, shin_fl: -95, thigh_hr: 25, shin_hr: -70, thigh_fr: 38.33, shin_fr: -70}}
+      - {ms: 240, joints: {thigh_hl: 45, shin_hl: -70, thigh_fl: 55, shin_fl: -95, thigh_hr: 18.33, shin_hr: -70, thigh_fr: 31.67, shin_fr: -70}}
+      - {ms: 180, joints: {thigh_hl: 41.67, shin_hl: -70, thigh_fl: 55, shin_fl: -70, thigh_hr: 15, shin_hr: -70, thigh_fr: 28.33, shin_fr: -70}}
+      - {ms: 180, joints: {thigh_hl: 38.33, shin_hl: -70, thigh_fl: 51.67, shin_fl: -70, thigh_hr: 15, shin_hr: -95, thigh_fr: 25, shin_fr: -70}}
+      - {ms: 240, joints: {thigh_hl: 31.67, shin_hl: -70, thigh_fl: 45, shin_fl: -70, thigh_hr: 55, shin_hr: -95, thigh_fr: 18.33, shin_fr: -70}}
+      - {ms: 180, joints: {thigh_hl: 28.33, shin_hl: -70, thigh_fl: 41.67, shin_fl: -70, thigh_hr: 55, shin_hr: -70, thigh_fr: 15, shin_fr: -70}}
+      - {ms: 180, joints: {thigh_hl: 25, shin_hl: -70, thigh_fl: 38.33, shin_fl: -70, thigh_hr: 51.67, shin_hr: -70, thigh_fr: 15, shin_fr: -95}}
+      - {ms: 240, joints: {thigh_hl: 18.33, shin_hl: -70, thigh_fl: 31.67, shin_fl: -70, thigh_hr: 45, shin_hr: -70, thigh_fr: 55, shin_fr: -95}}
+      - {ms: 180, joints: {thigh_hl: 15, shin_hl: -70, thigh_fl: 28.33, shin_fl: -70, thigh_hr: 41.67, shin_hr: -70, thigh_fr: 55, shin_fr: -70}}

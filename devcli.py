@@ -246,6 +246,54 @@ def cmd_compare(args) -> int:
     return 0
 
 
+def gallery_rows() -> list[dict]:
+    """Every bundled example robot with its metadata and, when saved, its report headline."""
+    load_package()
+    from talaria_bench.spec import load_spec
+
+    rows = []
+    for path in sorted((PLUGIN_ROOT / "examples" / "robots").glob("*.yaml")):
+        if ".calibration" in path.name:
+            continue
+        spec = load_spec(path)
+        rep_path = PLUGIN_ROOT / "examples" / "reports" / f"{spec.name}.report.json"
+        headline = ""
+        if rep_path.is_file():
+            rep = json.loads(rep_path.read_text(encoding="utf-8"))
+            cards = [c for c in rep["scenes"] if c.get("applicable")]
+            colours = {}
+            for c in cards:
+                colours[c["status"]] = colours.get(c["status"], 0) + 1
+            counts = ", ".join(f"{n} {k}" for k, n in sorted(colours.items()))
+            sentences = [s.strip().rstrip(".") for s in rep["summary"].split(". ") if s.strip()]
+            pick = None
+            for key in ("Max safe payload", "tips the robot in", "Walks well", "Walks on", "Struggles"):
+                pick = next((s for s in sentences if key in s), None)
+                if pick:
+                    break
+            pick = pick or next((s for s in sentences if not s.startswith("Walking scenes")), "")
+            headline = (pick + ". " if pick else "") + f"[{counts}]"
+        rows.append({"name": spec.name, "title": spec.title, "family": spec.family or "-",
+                     "servos": len(spec.joint_parts), "mass_g": round(spec.total_mass_g), "base": spec.base,
+                     "role": spec.role or spec.description, "headline": headline})
+    return rows
+
+
+def cmd_gallery(args) -> int:
+    rows = gallery_rows()
+    if args.markdown:
+        print("| Robot | Family | Servos | Mass | Role | Benchmark headline (simulation) |")
+        print("|---|---|---|---|---|---|")
+        for r in rows:
+            base = " (fixed base)" if r["base"] == "fixed" else ""
+            print(f"| `{r['name']}` {r['title']}{base} | {r['family']} | {r['servos']} | {r['mass_g']} g | "
+                  f"{r['role']} | {r['headline'] or '-'} |")
+    else:
+        for r in rows:
+            print(f"{r['name']:14s} {r['family']:10s} {r['servos']:2d} servos {r['mass_g']:5d} g  {r['base']:5s}  {r['role']}")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="devcli.py", description="Talaria Bench developer CLI (simulation only)")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -306,6 +354,9 @@ def main(argv=None) -> int:
     p.add_argument("--out", default=None)
     bench_args(p)
     p.set_defaults(fn=cmd_compare)
+    p = sub.add_parser("gallery", help="list the bundled example robots")
+    p.add_argument("--markdown", action="store_true", help="a Markdown table with benchmark headlines")
+    p.set_defaults(fn=cmd_gallery)
     args = ap.parse_args(argv)
     try:
         return args.fn(args)

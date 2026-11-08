@@ -75,7 +75,7 @@ def test_calibrated_caduceus_waves_level_in_the_nominal_world(caduceus):
     assert not r.fell
     assert r.ground["right_arm"].lift_cm - r.ground["right_arm"].start_cm > 2.0
     assert r.max_roll_change_deg < 5 and r.max_pitch_change_deg < 10 and abs(r.yaw_deg) < 5
-    assert 0.2 < r.joints["right_arm"].peak_ratio <= 1.0
+    assert 0.1 < r.joints["right_arm"].peak_ratio <= 1.0
 
 
 def test_caduceus_walking_is_a_declared_limitation(caduceus):

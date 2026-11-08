@@ -29,11 +29,12 @@ from .spec import Part, Spec
 from .worlds import World
 
 TIMESTEP = 0.002
+MODEL_VERSION = 2              # bump when the model built from a spec changes (invalidates cached results)
 SATURATE_DEG = 3.0            # this much position error alone saturates the servo
 KV_PER_KP = 0.02              # actuator damping, seconds
 JOINT_DAMPING = 0.002         # N*m*s/rad, bearing/gear friction of the servo joint
 PLAY_DAMPING = 0.0005         # N*m*s/rad, the gear slop moves almost freely
-PLAY_ARMATURE = 1e-6
+PLAY_ARMATURE = 1e-4          # kg*m^2; much smaller makes long serial chains numerically unstable
 FLOOR_SIZE = 5.0              # half-size of the floor plane, m
 DROP_CLEARANCE = 0.0005       # m between the lowest foot and the floor before the settle phase
 CM = 0.01
@@ -109,7 +110,8 @@ def _body_xml(spec: Spec, part: Part, indent: str, root_z: float) -> str:
     lines = []
     if part.parent is None:
         lines.append(f'{indent}<body name="{part.name}" pos="0 0 {_f(root_z)}">')
-        lines.append(f'{indent}  <freejoint name="root"/>')
+        if spec.base == "free":
+            lines.append(f'{indent}  <freejoint name="root"/>')
     else:
         parent = spec.part(part.parent)
         base = _center_in_body(parent)
@@ -164,7 +166,13 @@ def _mjcf(spec: Spec, root_z: float, excluded: list[tuple[str, str]], terrain: t
         lo, hi = (math.radians(a) for a in part.joint.range)
         actuators.append(f'    <position name="{part.name}" joint="{part.name}" kp="{_f(kp)}" kv="{_f(kv)}" '
                          f'ctrlrange="{_f(lo)} {_f(hi)}" forcerange="{_f(-torque)} {_f(torque)}"/>')
-    excludes = "".join(f'\n    <exclude body1="{a}" body2="{b}"/>' for a, b in excluded)
+    pairs = list(excluded)
+    if spec.base == "fixed":
+        # A fixed root is welded to the world, and MuJoCo does not filter contacts between the world and
+        # its children, so the root would collide with every part mounted on it. Exclude those pairs.
+        pairs += [(spec.root.name, c.name) for c in spec.children(spec.root.name)
+                  if (spec.root.name, c.name) not in pairs and (c.name, spec.root.name) not in pairs]
+    excludes = "".join(f'\n    <exclude body1="{a}" body2="{b}"/>' for a, b in pairs)
     return f"""<mujoco model="{spec.name}">
   <compiler angle="degree"/>
   <option timestep="{TIMESTEP}" integrator="implicitfast"/>

@@ -1,0 +1,856 @@
+{
+ "format": "talaria-bench/report",
+ "version": 1,
+ "simulation": true,
+ "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
+ "created": "2026-11-08T16:38:49+00:00",
+ "robot": {
+  "name": "spider8",
+  "title": "Spider (8 servos)",
+  "family": "quadruped",
+  "role": "A cheap 8-servo crawler that really walks in simulation - the arena success story.",
+  "base": "free",
+  "parts": 13,
+  "joints": [
+   "hip_fl",
+   "hip_fr",
+   "hip_hl",
+   "hip_hr",
+   "knee_fl",
+   "knee_fr",
+   "knee_hl",
+   "knee_hr"
+  ],
+  "total_mass_g": 250.0,
+  "moves": [
+   "stand",
+   "walk",
+   "walk_high"
+  ],
+  "hash": "6ffd18ca18bc659f30b5a8dc2221476daec123b8e6403753f74a9dbbf4ca01bc",
+  "warnings": [],
+  "source": "/home/devran_an/talaria-work/talaria-bench/examples/robots/spider8.yaml",
+  "limitations": [],
+  "world_ranges": {
+   "friction": [
+    0.3,
+    0.7
+   ],
+   "mass_scale": [
+    0.85,
+    1.15
+   ],
+   "torque_scale": [
+    0.7,
+    1.1
+   ],
+   "kp_scale": [
+    0.6,
+    1.2
+   ],
+   "latency_s": [
+    0.0,
+    0.04
+   ],
+   "offset_deg": [
+    -3.0,
+    3.0
+   ],
+   "floor_tilt_deg": [
+    0.0,
+    1.5
+   ],
+   "tether_scale": [
+    0.0,
+    1.0
+   ],
+   "tether_dir_deg": [
+    120.0,
+    240.0
+   ]
+  }
+ },
+ "settings": {
+  "scenes": [
+   "flat",
+   "ramp_5",
+   "ramp_10",
+   "ramp_15",
+   "obstacle_1cm",
+   "obstacle_2cm",
+   "push",
+   "slippery",
+   "payload",
+   "move:stand"
+  ],
+  "worlds": 30,
+  "seed": 0,
+  "quick": false,
+  "walk_move": "walk",
+  "bench": {
+   "walk_move": "walk",
+   "flat_min_cm": 5.0,
+   "seconds": null,
+   "payload_move": null,
+   "payload_steps_g": [
+    0.0,
+    50.0,
+    100.0,
+    200.0,
+    300.0
+   ]
+  },
+  "scene_version": 2
+ },
+ "world_ranges": {
+  "friction": [
+   0.3,
+   0.7
+  ],
+  "mass_scale": [
+   0.85,
+   1.15
+  ],
+  "torque_scale": [
+   0.7,
+   1.1
+  ],
+  "kp_scale": [
+   0.6,
+   1.2
+  ],
+  "latency_s": [
+   0.0,
+   0.04
+  ],
+  "offset_deg": [
+   -3.0,
+   3.0
+  ],
+  "floor_tilt_deg": [
+   0.0,
+   1.5
+  ],
+  "tether_scale": [
+   0.0,
+   1.0
+  ],
+  "tether_dir_deg": [
+   120.0,
+   240.0
+  ]
+ },
+ "scenes": [
+  {
+   "id": "flat",
+   "title": "Flat floor",
+   "family": "flat",
+   "applicable": true,
+   "status": "green",
+   "computed_status": "green",
+   "reliable": true,
+   "note": null,
+   "conditions": "move 'walk', pass: >= 5 cm steady progress, no fall",
+   "runs": 30,
+   "passed": 30,
+   "pass_rate": 1.0,
+   "metric": {
+    "name": "steady progress",
+    "unit": "cm",
+    "median": 23.344,
+    "p10": 22.198,
+    "worst": {
+     "value": 20.822,
+     "seed": 7,
+     "reason": null
+    }
+   },
+   "failure_reasons": {},
+   "falls": 0,
+   "loads": {
+    "hip_fl": {
+     "peak_pct_median": 28.1,
+     "peak_pct_max": 60.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_fr": {
+     "peak_pct_median": 28.0,
+     "peak_pct_max": 59.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hl": {
+     "peak_pct_median": 27.9,
+     "peak_pct_max": 59.7,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hr": {
+     "peak_pct_median": 27.8,
+     "peak_pct_max": 59.4,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fl": {
+     "peak_pct_median": 33.8,
+     "peak_pct_max": 56.4,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fr": {
+     "peak_pct_median": 34.3,
+     "peak_pct_max": 56.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hl": {
+     "peak_pct_median": 30.3,
+     "peak_pct_max": 56.7,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hr": {
+     "peak_pct_median": 29.2,
+     "peak_pct_max": 56.8,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "ramp_5",
+   "title": "Ramp 5 deg",
+   "family": "ramp",
+   "applicable": true,
+   "status": "green",
+   "computed_status": "green",
+   "reliable": true,
+   "note": null,
+   "conditions": "slope 5 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
+   "runs": 30,
+   "passed": 30,
+   "pass_rate": 1.0,
+   "metric": {
+    "name": "climb along the slope",
+    "unit": "cm",
+    "median": 15.396,
+    "p10": 14.678,
+    "worst": {
+     "value": 14.089,
+     "seed": 18,
+     "reason": null
+    }
+   },
+   "failure_reasons": {},
+   "falls": 0,
+   "loads": {
+    "hip_fl": {
+     "peak_pct_median": 27.9,
+     "peak_pct_max": 59.2,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_fr": {
+     "peak_pct_median": 27.7,
+     "peak_pct_max": 59.4,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hl": {
+     "peak_pct_median": 27.8,
+     "peak_pct_max": 58.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hr": {
+     "peak_pct_median": 26.7,
+     "peak_pct_max": 57.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fl": {
+     "peak_pct_median": 32.4,
+     "peak_pct_max": 56.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fr": {
+     "peak_pct_median": 32.7,
+     "peak_pct_max": 56.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hl": {
+     "peak_pct_median": 30.8,
+     "peak_pct_max": 59.2,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hr": {
+     "peak_pct_median": 29.0,
+     "peak_pct_max": 59.3,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "ramp_10",
+   "title": "Ramp 10 deg",
+   "family": "ramp",
+   "applicable": true,
+   "status": "amber",
+   "computed_status": "amber",
+   "reliable": true,
+   "note": null,
+   "conditions": "slope 10 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
+   "runs": 30,
+   "passed": 22,
+   "pass_rate": 0.733,
+   "metric": {
+    "name": "climb along the slope",
+    "unit": "cm",
+    "median": 6.049,
+    "p10": 4.718,
+    "worst": {
+     "value": 3.387,
+     "seed": 29,
+     "reason": "no progress"
+    }
+   },
+   "failure_reasons": {
+    "no progress": 8
+   },
+   "falls": 0,
+   "loads": {
+    "hip_fl": {
+     "peak_pct_median": 27.6,
+     "peak_pct_max": 58.7,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_fr": {
+     "peak_pct_median": 28.5,
+     "peak_pct_max": 58.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hl": {
+     "peak_pct_median": 26.7,
+     "peak_pct_max": 58.1,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hr": {
+     "peak_pct_median": 29.0,
+     "peak_pct_max": 58.4,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fl": {
+     "peak_pct_median": 31.9,
+     "peak_pct_max": 59.3,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fr": {
+     "peak_pct_median": 31.6,
+     "peak_pct_max": 56.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hl": {
+     "peak_pct_median": 31.4,
+     "peak_pct_max": 59.6,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hr": {
+     "peak_pct_median": 31.6,
+     "peak_pct_max": 59.1,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "ramp_15",
+   "title": "Ramp 15 deg",
+   "family": "ramp",
+   "applicable": true,
+   "status": "red",
+   "computed_status": "red",
+   "reliable": true,
+   "note": null,
+   "conditions": "slope 15 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
+   "runs": 30,
+   "passed": 0,
+   "pass_rate": 0.0,
+   "metric": {
+    "name": "climb along the slope",
+    "unit": "cm",
+    "median": -3.864,
+    "p10": -8.198,
+    "worst": {
+     "value": -13.867,
+     "seed": 29,
+     "reason": "slid back"
+    }
+   },
+   "failure_reasons": {
+    "slid back": 29,
+    "no progress": 1
+   },
+   "falls": 0,
+   "loads": {
+    "hip_fl": {
+     "peak_pct_median": 27.0,
+     "peak_pct_max": 57.3,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_fr": {
+     "peak_pct_median": 27.0,
+     "peak_pct_max": 58.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hl": {
+     "peak_pct_median": 31.7,
+     "peak_pct_max": 56.6,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hr": {
+     "peak_pct_median": 30.6,
+     "peak_pct_max": 55.4,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fl": {
+     "peak_pct_median": 30.8,
+     "peak_pct_max": 59.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fr": {
+     "peak_pct_median": 31.7,
+     "peak_pct_max": 58.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hl": {
+     "peak_pct_median": 33.1,
+     "peak_pct_max": 58.8,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hr": {
+     "peak_pct_median": 33.3,
+     "peak_pct_max": 57.9,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "obstacle_1cm",
+   "title": "Bar 1 cm",
+   "family": "obstacle",
+   "applicable": true,
+   "status": "red",
+   "computed_status": "red",
+   "reliable": true,
+   "note": null,
+   "conditions": "bar 1 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it",
+   "runs": 30,
+   "passed": 7,
+   "pass_rate": 0.233,
+   "metric": {
+    "name": "distance past the bar",
+    "unit": "cm",
+    "median": 1.318,
+    "p10": -11.879,
+    "worst": {
+     "value": -12.229,
+     "seed": 24,
+     "reason": "stuck at the bar"
+    }
+   },
+   "failure_reasons": {
+    "stuck at the bar": 23
+   },
+   "falls": 0,
+   "loads": {
+    "hip_fl": {
+     "peak_pct_median": 50.0,
+     "peak_pct_max": 89.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_fr": {
+     "peak_pct_median": 59.9,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hl": {
+     "peak_pct_median": 41.8,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hr": {
+     "peak_pct_median": 34.0,
+     "peak_pct_max": 59.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fl": {
+     "peak_pct_median": 50.4,
+     "peak_pct_max": 97.3,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fr": {
+     "peak_pct_median": 47.9,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hl": {
+     "peak_pct_median": 42.6,
+     "peak_pct_max": 88.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hr": {
+     "peak_pct_median": 42.0,
+     "peak_pct_max": 58.7,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "obstacle_2cm",
+   "title": "Bar 2 cm",
+   "family": "obstacle",
+   "applicable": true,
+   "status": "red",
+   "computed_status": "red",
+   "reliable": true,
+   "note": null,
+   "conditions": "bar 2 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it",
+   "runs": 30,
+   "passed": 0,
+   "pass_rate": 0.0,
+   "metric": {
+    "name": "distance past the bar",
+    "unit": "cm",
+    "median": -12.652,
+    "p10": -12.966,
+    "worst": {
+     "value": -13.187,
+     "seed": 25,
+     "reason": "stuck at the bar"
+    }
+   },
+   "failure_reasons": {
+    "stuck at the bar": 30
+   },
+   "falls": 0,
+   "loads": {
+    "hip_fl": {
+     "peak_pct_median": 100.0,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.1
+    },
+    "hip_fr": {
+     "peak_pct_median": 97.5,
+     "peak_pct_max": 100.0,
+     "near_limit_time_pct_median": 0.1
+    },
+    "hip_hl": {
+     "peak_pct_median": 40.7,
+     "peak_pct_max": 59.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hr": {
+     "peak_pct_median": 42.4,
+     "peak_pct_max": 59.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fl": {
+     "peak_pct_median": 42.5,
+     "peak_pct_max": 57.4,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fr": {
+     "peak_pct_median": 37.9,
+     "peak_pct_max": 57.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hl": {
+     "peak_pct_median": 30.1,
+     "peak_pct_max": 56.9,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hr": {
+     "peak_pct_median": 29.6,
+     "peak_pct_max": 56.6,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  },
+  {
+   "id": "push",
+   "title": "Push test",
+   "family": "push",
+   "applicable": true,
+   "status": "green",
+   "computed_status": "green",
+   "reliable": true,
+   "note": null,
+   "conditions": "pushes of 0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1 x body weight for 0.1 s from 4 sides while standing; pass: survives the nudge (0.1 x weight) from every side",
+   "runs": 30,
+   "passed": 30,
+   "pass_rate": 1.0,
+   "metric": {
+    "name": "weakest tipping push",
+    "unit": "x weight",
+    "median": 1.25,
+    "p10": 1.25,
+    "worst": {
+     "value": null,
+     "seed": 0,
+     "reason": null
+    }
+   },
+   "failure_reasons": {},
+   "falls": 0,
+   "loads": {
+    "hip_fl": {
+     "peak_pct_median": 4.3,
+     "peak_pct_max": 7.4,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_fr": {
+     "peak_pct_median": 4.3,
+     "peak_pct_max": 7.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hl": {
+     "peak_pct_median": 4.2,
+     "peak_pct_max": 6.1,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hr": {
+     "peak_pct_median": 4.0,
+     "peak_pct_max": 7.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fl": {
+     "peak_pct_median": 5.4,
+     "peak_pct_max": 11.1,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fr": {
+     "peak_pct_median": 6.3,
+     "peak_pct_max": 13.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hl": {
+     "peak_pct_median": 5.4,
+     "peak_pct_max": 11.6,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hr": {
+     "peak_pct_median": 5.1,
+     "peak_pct_max": 10.6,
+     "near_limit_time_pct_median": 0.0
+    }
+   },
+   "push": {
+    "levels": [
+     0.05,
+     0.1,
+     0.2,
+     0.3,
+     0.5,
+     0.75,
+     1.0
+    ],
+    "nudge": 0.1,
+    "duration_s": 0.1,
+    "thresholds": {
+     "front": {
+      "median": 1.25,
+      "p10": 1.25,
+      "survives_nudge_pct": 100.0,
+      "slide_nudge_cm_median": 0.23,
+      "slide_half_weight_cm_median": 0.56,
+      "slide_full_weight_cm_median": 2.82
+     },
+     "back": {
+      "median": 1.25,
+      "p10": 1.25,
+      "survives_nudge_pct": 100.0,
+      "slide_nudge_cm_median": 0.26,
+      "slide_half_weight_cm_median": 0.54,
+      "slide_full_weight_cm_median": 2.83
+     },
+     "left": {
+      "median": 1.25,
+      "p10": 1.25,
+      "survives_nudge_pct": 100.0,
+      "slide_nudge_cm_median": 0.2,
+      "slide_half_weight_cm_median": 0.5,
+      "slide_full_weight_cm_median": 2.63
+     },
+     "right": {
+      "median": 1.25,
+      "p10": 1.25,
+      "survives_nudge_pct": 100.0,
+      "slide_nudge_cm_median": 0.26,
+      "slide_half_weight_cm_median": 0.65,
+      "slide_full_weight_cm_median": 2.91
+     }
+    },
+    "mid_walk": {
+     "survives_nudge_pct": {
+      "front": 100.0,
+      "back": 100.0,
+      "left": 100.0,
+      "right": 100.0
+     },
+     "reliable": true,
+     "note": null
+    }
+   }
+  },
+  {
+   "id": "slippery",
+   "title": "Slippery floor",
+   "family": "slippery",
+   "applicable": true,
+   "status": "green",
+   "computed_status": "green",
+   "reliable": true,
+   "note": null,
+   "conditions": "effective foot-floor friction 0.08-0.15 (any foot material); pass: >= 50% of the flat median, no fall",
+   "runs": 30,
+   "passed": 30,
+   "pass_rate": 1.0,
+   "metric": {
+    "name": "steady progress",
+    "unit": "cm",
+    "median": 21.88,
+    "p10": 18.47,
+    "worst": {
+     "value": 15.308,
+     "seed": 22,
+     "reason": null
+    }
+   },
+   "failure_reasons": {},
+   "falls": 0,
+   "loads": {
+    "hip_fl": {
+     "peak_pct_median": 27.7,
+     "peak_pct_max": 59.1,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_fr": {
+     "peak_pct_median": 28.3,
+     "peak_pct_max": 59.0,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hl": {
+     "peak_pct_median": 27.5,
+     "peak_pct_max": 59.1,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hr": {
+     "peak_pct_median": 27.7,
+     "peak_pct_max": 59.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fl": {
+     "peak_pct_median": 25.3,
+     "peak_pct_max": 56.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fr": {
+     "peak_pct_median": 24.8,
+     "peak_pct_max": 56.6,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hl": {
+     "peak_pct_median": 25.4,
+     "peak_pct_max": 56.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hr": {
+     "peak_pct_median": 25.3,
+     "peak_pct_max": 56.9,
+     "near_limit_time_pct_median": 0.0
+    }
+   },
+   "needed_cm": 11.672
+  },
+  {
+   "id": "payload",
+   "title": "Payload",
+   "family": "payload",
+   "applicable": false,
+   "status": "n/a",
+   "reliable": true,
+   "note": "the robot has no payload_part",
+   "conditions": "payload steps lumped at the payload part; a step passes below 80% of stall at every joint, no tipping and < 2 cm drift from the no-load path; pass: >= the first non-zero step",
+   "runs": 0,
+   "pass_rate": null
+  },
+  {
+   "id": "move:stand",
+   "title": "Move 'stand'",
+   "family": "moves",
+   "applicable": true,
+   "status": "green",
+   "computed_status": "green",
+   "reliable": true,
+   "note": null,
+   "conditions": "plays 'stand' standing; pass: no fall",
+   "runs": 30,
+   "passed": 30,
+   "pass_rate": 1.0,
+   "metric": {
+    "name": "max body tilt",
+    "unit": "deg",
+    "median": 0.002,
+    "p10": 0.0,
+    "worst": {
+     "value": 0.0,
+     "seed": 2,
+     "reason": null
+    }
+   },
+   "failure_reasons": {},
+   "falls": 0,
+   "loads": {
+    "hip_fl": {
+     "peak_pct_median": 0.1,
+     "peak_pct_max": 0.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_fr": {
+     "peak_pct_median": 0.1,
+     "peak_pct_max": 0.6,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hl": {
+     "peak_pct_median": 0.2,
+     "peak_pct_max": 0.6,
+     "near_limit_time_pct_median": 0.0
+    },
+    "hip_hr": {
+     "peak_pct_median": 0.1,
+     "peak_pct_max": 0.5,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fl": {
+     "peak_pct_median": 1.2,
+     "peak_pct_max": 2.6,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_fr": {
+     "peak_pct_median": 1.2,
+     "peak_pct_max": 2.1,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hl": {
+     "peak_pct_median": 1.1,
+     "peak_pct_max": 1.7,
+     "near_limit_time_pct_median": 0.0
+    },
+    "knee_hr": {
+     "peak_pct_median": 1.2,
+     "peak_pct_max": 1.9,
+     "near_limit_time_pct_median": 0.0
+    }
+   }
+  }
+ ],
+ "servo_note": "Servo load is an estimate: peak torque as a share of the datasheet stall torque. Stall torque is not a safe continuous torque; a servo held near it overheats.",
+ "limitations": [],
+ "timing": {
+  "jobs": 270,
+  "computed": 270,
+  "cached": 0,
+  "workers": 8,
+  "seconds_jobs": 18.85,
+  "seconds_total": 26.23
+ },
+ "summary": "Walks well on flat ground (100% of worlds, median 23.34 cm). Climbs the 10 deg ramp in 73% of worlds but slid back on the 15 deg ramp in 97% of worlds. The bar 1 cm: stuck at the bar in most worlds (passes 23%). The bar 2 cm: stuck at the bar in most worlds (passes 0%). Survives a nudge from every side in 100% of worlds; does not tip even at the largest push. Standing moves that never or almost never tip it: stand. Keeps at least half its flat speed on a slippery floor in 100% of worlds. The knee fr servo is near its limit (peak 100% of stall, estimate) during the bar 1 cm test."
+}

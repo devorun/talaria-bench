@@ -53,6 +53,13 @@ Written by `report.build_report(results)` (`devcli.py bench` also saves `<out>.r
 | `loads` | `{joint: {peak_pct_median, peak_pct_max, near_limit_time_pct_median}}` (% of stall torque) |
 | `push` (push scene only) | `levels`, `nudge`, `duration_s`, `thresholds: {front/back/left/right: {median, p10, survives_nudge_pct}}`, optional `mid_walk: {survives_nudge_pct, reliable, note}` |
 | `needed_cm` (slippery only) | 50% of the flat median |
+| `payload` (payload scene only) | `move`, `part`, `load_limit_pct` (80), `track_limit_cm` (2), `steps: [{grams, pass_pct, max_peak_pct_median, tracking_error_cm_median, tipped, worst_joint, top_reason}]` |
+
+The push `thresholds` entries also hold `slide_nudge_cm_median`, `slide_half_weight_cm_median` and
+`slide_full_weight_cm_median`: how far the root moved after a push it survived. The slippery scene
+sets the effective foot-floor friction directly (0.08-0.15, whatever the material); the job's
+`world.effective_friction` holds the value. Payload jobs keep every step in `metrics.steps`, and
+their `metric` is the max safe payload in grams (-1 when even the no-load run fails).
 
 Push thresholds are in multiples of body weight. "Did not tip at the largest push (1.0 x weight)" is
 stored as 1.25 and shown as `>1`.
