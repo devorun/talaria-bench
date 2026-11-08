@@ -3,7 +3,8 @@ version: 0.1.0
 manifest_version: 2
 description: >-
   A physics test bench for DIY servo robots. Describe your robot (parts, sizes, masses, hobby servos)
-  and test it in MuJoCo across many randomized worlds before it moves. No GPU, no CAD.
+  and test it in MuJoCo across many randomized worlds; every move gets a simulated preflight (tip chance
+  with a 95% interval, servo load estimates) before it may play on the real robot. No GPU, no CAD.
 author: Devran (devorun)
 homepage: https://github.com/devorun/talaria-bench
 license: MIT
@@ -13,3 +14,45 @@ python_dependencies:
   - mujoco>=4.0,<5
   - numpy>=1.26,<3
   - pyyaml>=6.0,<7
+provides_tools:
+  - robot_list
+  - robot_define
+  - robot_show
+  - bench_run
+  - bench_status
+  - bench_report
+  - bench_compare
+  - move_check
+  - move_save
+  - move_list
+  - robot_play
+  - robot_pose
+  - robot_stop
+  - robot_status
+provides_hooks:
+  - pre_tool_call
+config_schema:
+  robot_url:
+    type: str
+    default: ""
+    label: Robot address
+    description: "Where the real robot (Talaria firmware) answers, e.g. http://192.168.1.8. Used only for target 'real'."
+  robot_token:
+    type: secret
+    env: TALARIA_ROBOT_TOKEN
+    label: Robot token
+    description: "Optional shared token; the same value as ROBOT_TOKEN in the firmware's secrets.h."
+  real_robot:
+    type: str
+    default: caduceus
+    label: Robot at that address
+    description: "Which robot spec the real robot is (its firmware must report the same name)."
+  timeout_s:
+    type: float
+    default: 3.0
+    label: Request timeout (seconds)
+  check_worlds:
+    type: int
+    default: 60
+    label: Preflight worlds
+    description: "Randomized worlds per move_check (30 to 500). Below 60, a move with no tips cannot get under the 10% bound."

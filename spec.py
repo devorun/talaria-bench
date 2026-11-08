@@ -25,7 +25,10 @@ SHAPES = {"box": 3, "cylinder": 2, "sphere": 1}
 SHAPE_HELP = {"box": "[x depth, y width, z height]", "cylinder": "[radius, length]", "sphere": "[radius]"}
 NAMED_AXES = {"pitch": (0.0, -1.0, 0.0), "roll": (1.0, 0.0, 0.0), "yaw": (0.0, 0.0, 1.0)}
 TOP_KEYS = {"talaria", "name", "title", "description", "photo", "voltage", "parts", "moves", "tether", "worlds",
-            "materials", "limitations", "bench", "family", "role", "base", "payload_part"}
+            "materials", "limitations", "bench", "family", "role", "base", "payload_part", "controller"}
+#: firmware settings for the real robot's controller board (ESP32 + PCA9685)
+CONTROLLER_DEFAULTS = {"sda": 21, "scl": 22, "pca9685_addr": 0x40, "servo_freq_hz": 50, "servo_min_us": 500,
+                       "servo_max_us": 2500, "hostname": ""}
 BENCH_KEYS = {"walk_move", "flat_min_cm", "seconds", "payload_move", "payload_steps_g"}
 BASES = ("free", "fixed")
 #: what a limitation can cover: scenes that need walking, standing/arm-gesture moves, payload/arm work, or everything
@@ -97,7 +100,7 @@ class Spec:
     source: Optional[Path] = None
     warnings: list[str] = field(default_factory=list)
     materials: dict[str, materials.Material] = field(default_factory=lambda: dict(materials.MATERIALS))
-    #: known model limitations, ``[{"scope": ..., "note": ...}]``; results in that scope are "not reliable"
+    #: known model limitations, ``[{"scope": ..., "note": ...}]``; results in that scope are "out of model scope"
     limitations: list[dict[str, str]] = field(default_factory=list)
     #: benchmark settings: which move is the walk, the flat-floor pass threshold, run time
     bench: dict[str, Any] = field(default_factory=dict)
@@ -105,6 +108,19 @@ class Spec:
     role: str = ""                          # one line: why this robot is in the gallery
     base: str = "free"                      # free: the root floats (walkers); fixed: bolted to the table (arms)
     payload_part: Optional[str] = None      # where the payload scene hangs its weight (e.g. the gripper)
+    controller: dict[str, Any] = field(default_factory=dict)   # ESP32/PCA9685 settings for the firmware
+
+    def hardware_mapping(self) -> dict[str, Any]:
+        """Everything the firmware is configured with: controller settings and each joint's channel,
+        pulse center, pulse per degree, direction, range and speed limit (part of approval keys)."""
+        joints = []
+        for k, p in enumerate(self.joint_parts):
+            hw = p.joint.hardware
+            joints.append({"name": p.name, "channel": int(hw.get("channel", k)),
+                           "center_us": float(hw.get("center_us", 1500)), "us_per_deg": float(hw.get("us_per_deg", 11.1)),
+                           "direction": int(hw.get("direction", 1)), "min": p.joint.range[0], "max": p.joint.range[1],
+                           "home": p.joint.home, "max_speed": round(p.joint.max_speed, 3)})
+        return {"controller": {**CONTROLLER_DEFAULTS, **self.controller}, "joints": joints}
 
     def limitations_for(self, scope: str) -> list[str]:
         """Notes of the limitations that cover ``scope`` (including ``all``)."""
@@ -348,6 +364,22 @@ def parse_spec(data: Any, base_dir: Optional[Path] = None) -> Spec:
     if base not in BASES:
         problems.append(f"base: must be one of {', '.join(BASES)} (got {base!r})")
         base = "free"
+    controller: dict[str, Any] = {}
+    raw_ctl = data.get("controller")
+    if raw_ctl is not None:
+        if not isinstance(raw_ctl, Mapping):
+            problems.append("controller: must be a mapping (sda, scl, pca9685_addr, servo_freq_hz, ...)")
+        else:
+            _unknown("controller", raw_ctl, set(CONTROLLER_DEFAULTS), problems)
+            for key, value in raw_ctl.items():
+                if key == "hostname":
+                    if not isinstance(value, str) or not re.fullmatch(r"[a-z0-9-]{0,32}", value):
+                        problems.append("controller: hostname must be lowercase letters, digits and -")
+                        continue
+                elif key in CONTROLLER_DEFAULTS and (isinstance(value, bool) or not isinstance(value, int) or value < 0):
+                    problems.append(f"controller: {key} must be a whole number")
+                    continue
+                controller[str(key)] = value
     payload_part = data.get("payload_part")
     if payload_part is not None and payload_part not in seen:
         problems.append(f"payload_part: part {payload_part!r} does not exist")
@@ -360,7 +392,7 @@ def parse_spec(data: Any, base_dir: Optional[Path] = None) -> Spec:
     return Spec(name=name, title=title, description=description, voltage=voltage, parts=ordered, moves=moves,
                 tether=tether, world_ranges=world_ranges, photo=photo, warnings=warnings, materials=table,
                 limitations=limitations, bench=bench, family=family, role=role, base=base,
-                payload_part=payload_part)
+                payload_part=payload_part, controller=controller)
 
 
 def _parse_bench(raw: Any, moves: Mapping[str, Any], problems: list[str]) -> dict[str, Any]:

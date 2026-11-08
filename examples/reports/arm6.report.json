@@ -3,7 +3,7 @@
  "version": 1,
  "simulation": true,
  "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
- "created": "2026-11-08T16:40:55+00:00",
+ "created": "2026-11-08T17:03:38+00:00",
  "robot": {
   "name": "arm6",
   "title": "Desk arm (6 servos)",
@@ -27,7 +27,7 @@
   ],
   "hash": "297eee32befbdcb62e5e70f102574cb86edacbe65e0824f50a3e1b95dd16ad78",
   "warnings": [],
-  "source": "/home/devran_an/talaria-work/talaria-bench/examples/robots/arm6.yaml",
+  "source": "examples/robots/arm6.yaml",
   "limitations": [],
   "world_ranges": {
    "friction": [
@@ -100,7 +100,7 @@
     300.0
    ]
   },
-  "scene_version": 2
+  "scene_version": 3
  },
  "world_ranges": {
   "friction": [
@@ -147,7 +147,7 @@
    "family": "flat",
    "applicable": false,
    "status": "n/a",
-   "reliable": true,
+   "in_scope": true,
    "note": "the robot has no walk move",
    "conditions": "move 'None', pass: >= 5 cm steady progress, no fall",
    "runs": 0,
@@ -159,7 +159,7 @@
    "family": "ramp",
    "applicable": false,
    "status": "n/a",
-   "reliable": true,
+   "in_scope": true,
    "note": "the robot has no walk move",
    "conditions": "slope 5 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
    "runs": 0,
@@ -171,7 +171,7 @@
    "family": "ramp",
    "applicable": false,
    "status": "n/a",
-   "reliable": true,
+   "in_scope": true,
    "note": "the robot has no walk move",
    "conditions": "slope 10 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
    "runs": 0,
@@ -183,7 +183,7 @@
    "family": "ramp",
    "applicable": false,
    "status": "n/a",
-   "reliable": true,
+   "in_scope": true,
    "note": "the robot has no walk move",
    "conditions": "slope 15 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
    "runs": 0,
@@ -195,7 +195,7 @@
    "family": "obstacle",
    "applicable": false,
    "status": "n/a",
-   "reliable": true,
+   "in_scope": true,
    "note": "the robot has no walk move",
    "conditions": "bar 1 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it",
    "runs": 0,
@@ -207,7 +207,7 @@
    "family": "obstacle",
    "applicable": false,
    "status": "n/a",
-   "reliable": true,
+   "in_scope": true,
    "note": "the robot has no walk move",
    "conditions": "bar 2 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it",
    "runs": 0,
@@ -219,7 +219,7 @@
    "family": "push",
    "applicable": false,
    "status": "n/a",
-   "reliable": true,
+   "in_scope": true,
    "note": "the base is fixed to the table",
    "conditions": "pushes of 0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1 x body weight for 0.1 s from 4 sides while standing; pass: survives the nudge (0.1 x weight) from every side",
    "runs": 0,
@@ -231,9 +231,9 @@
    "family": "slippery",
    "applicable": false,
    "status": "n/a",
-   "reliable": true,
+   "in_scope": true,
    "note": "the robot has no walk move",
-   "conditions": "effective foot-floor friction 0.08-0.15 (any foot material); pass: >= 50% of the flat median, no fall",
+   "conditions": "effective foot-floor friction 0.08-0.15 (any foot material); pass: 50-150% of the flat median and no fall; more than 150% = uncontrolled sliding",
    "runs": 0,
    "pass_rate": null
   },
@@ -243,8 +243,7 @@
    "family": "payload",
    "applicable": true,
    "status": "green",
-   "computed_status": "green",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "payload steps lumped at the payload part; a step passes below 80% of stall at every joint, no tipping and < 2 cm drift from the no-load path; pass: >= the first non-zero step",
    "runs": 30,
@@ -355,8 +354,7 @@
    "family": "moves",
    "applicable": true,
    "status": "green",
-   "computed_status": "green",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "plays 'home' standing; pass: no fall",
    "runs": 30,
@@ -414,8 +412,7 @@
    "family": "moves",
    "applicable": true,
    "status": "green",
-   "computed_status": "green",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "plays 'wave' standing; pass: no fall",
    "runs": 30,
@@ -473,8 +470,7 @@
    "family": "moves",
    "applicable": true,
    "status": "green",
-   "computed_status": "green",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "plays 'pick_and_place' standing; pass: no fall",
    "runs": 30,
@@ -534,8 +530,8 @@
   "computed": 120,
   "cached": 0,
   "workers": 8,
-  "seconds_jobs": 3.68,
-  "seconds_total": 5.08
+  "seconds_jobs": 4.33,
+  "seconds_total": 5.88
  },
  "summary": "Walking scenes do not apply (the robot has no walk move). Standing moves that never or almost never tip it: home, wave, pick_and_place. Max safe payload (simulation estimate): median 100 g (p10 95 g); at 200 g the upper arm reaches 100% of stall."
 }

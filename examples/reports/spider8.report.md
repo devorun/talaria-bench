@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `spider8` (250 g, 8 servos, spec `6ffd18ca18bc`), 30 worlds per scene (seeds 0..29), 26 s.
+Robot `spider8` (250 g, 8 servos, spec `6ffd18ca18bc`), 30 worlds per scene (seeds 0..29), 32 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|
@@ -17,7 +17,7 @@ Robot `spider8` (250 g, 8 servos, spec `6ffd18ca18bc`), 30 worlds per scene (see
 | Payload | n/a | - | - | - | the robot has no payload_part |
 | Move 'stand' | GREEN | 100% | max body tilt: 0 (0) deg | 0 (world 2) | - |
 
-**Summary.** Walks well on flat ground (100% of worlds, median 23.34 cm). Climbs the 10 deg ramp in 73% of worlds but slid back on the 15 deg ramp in 97% of worlds. The bar 1 cm: stuck at the bar in most worlds (passes 23%). The bar 2 cm: stuck at the bar in most worlds (passes 0%). Survives a nudge from every side in 100% of worlds; does not tip even at the largest push. Standing moves that never or almost never tip it: stand. Keeps at least half its flat speed on a slippery floor in 100% of worlds. The knee fr servo is near its limit (peak 100% of stall, estimate) during the bar 1 cm test.
+**Summary.** On flat ground it covers the target distance in 100% of worlds (median 23.34 cm). Climbs the 10 deg ramp in 73% of worlds but slid back on the 15 deg ramp in 97% of worlds. The bar 1 cm: stuck at the bar in most worlds (passes 23%). The bar 2 cm: stuck at the bar in most worlds (passes 0%). Survives a nudge from every side in 100% of worlds; does not tip even at the largest push. Standing moves that never or almost never tip it: stand. Keeps at least half its flat speed on a slippery floor in 100% of worlds. The knee fr servo is near its limit (peak 100% of stall, estimate) during the bar 1 cm test.
 
 **Push test** (tipping push in x body weight, median / p10; how far it slides when it does not tip, median):
 
@@ -54,7 +54,7 @@ _Servo load is an estimate: peak torque as a share of the datasheet stall torque
 - Bar 1 cm: bar 1 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it
 - Bar 2 cm: bar 2 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it
 - Push test: pushes of 0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1 x body weight for 0.1 s from 4 sides while standing; pass: survives the nudge (0.1 x weight) from every side
-- Slippery floor: effective foot-floor friction 0.08-0.15 (any foot material); pass: >= 50% of the flat median, no fall
+- Slippery floor: effective foot-floor friction 0.08-0.15 (any foot material); pass: 50-150% of the flat median and no fall; more than 150% = uncontrolled sliding
 - Payload: payload steps lumped at the payload part; a step passes below 80% of stall at every joint, no tipping and < 2 cm drift from the no-load path; pass: >= the first non-zero step
 - Move 'stand': plays 'stand' standing; pass: no fall
 

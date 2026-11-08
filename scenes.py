@@ -12,7 +12,9 @@ Every scene runs in randomized worlds (worlds.py) and every number is simulation
   0.1 s, i.e. a velocity change of ~10 cm/s) from every side while standing. How far the robot slides
   after each push it survives is measured too (a low, wide robot slides instead of tipping). Robots with
   a walk are also nudged mid-walk (reported, not part of the pass rule).
-* ``slippery``: effective foot-floor friction 0.08-0.15 whatever the feet are made of; pass = steady progress >= 50% of the robot's flat median and no
+* ``slippery``: effective foot-floor friction 0.08-0.15 whatever the feet are made of. Going more than
+  1.5 x the flat median counts as "uncontrolled sliding" (the feet skate and the body glides), not a
+  success. Otherwise pass = steady progress >= 50% of the robot's flat median and no
   fall (decided by the benchmark once the flat results are in).
 * ``payload``: for robots with a ``payload_part`` (an arm's gripper): the payload move is played with
   0 / 50 / 100 / 200 / 300 g (spec ``bench.payload_steps_g``) lumped at that part. A step passes when every
@@ -37,7 +39,7 @@ from .simrun import Result, run_move
 from .spec import Spec
 from .worlds import World
 
-SCENE_VERSION = 2
+SCENE_VERSION = 3
 NUDGE = 0.1                                   # x body weight, for PUSH_DURATION seconds
 PUSH_LEVELS = (0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1.0)
 PUSH_DURATION = 0.1                           # s
@@ -52,6 +54,7 @@ OBSTACLE_PASS_M = 0.05
 STUCK_MARGIN_M = 0.03
 SLIPPERY_FRICTION = (0.08, 0.15)        # effective foot-floor friction, any material
 SLIPPERY_SHARE = 0.5
+SLIDE_FACTOR = 1.5     # more than 1.5 x the flat progress on ice = the feet skate: not a success
 G = 9.81
 
 
@@ -218,6 +221,7 @@ def run_scene(spec: Spec, scene_id: str, seed: int, record: bool = False) -> dic
     job = _job(scene_id, seed, world, fell=r.fell, loads=_loads(r),
                metrics={"forward_cm": round(r.forward_m * 100, 3), "steady_cm": round(r.steady_m * 100, 3),
                         "yaw_deg": r.yaw_deg, "lateral_cm": round(r.lateral_m * 100, 3),
+                        "foot_slip_cm_s": r.foot_slip_cm_s, "body_speed_cm_s": r.body_speed_cm_s,
                         "max_tilt_deg": r.max_tilt_deg, "fall_reason": r.fall_reason})
     if record:
         job["trace"] = r.trace
@@ -385,11 +389,16 @@ def decide_slippery(jobs: list[dict[str, Any]], flat_median_cm: Optional[float])
         if not job.get("applicable", True) or job["scene"] != "slippery":
             continue
         need = None if flat_median_cm is None or flat_median_cm <= 0 else SLIPPERY_SHARE * flat_median_cm
+        cap = None if need is None else SLIDE_FACTOR * flat_median_cm
         m = job["metrics"]
         job["metrics"]["needed_cm"] = None if need is None else round(need, 3)
-        job["passed"] = bool(need is not None and not job["fell"] and job["metric"] >= need)
+        job["metrics"]["slide_cap_cm"] = None if cap is None else round(cap, 3)
+        skating = cap is not None and not job["fell"] and job["metric"] > cap
+        job["passed"] = bool(need is not None and not job["fell"] and need <= job["metric"] <= cap)
         if job["passed"]:
             job["reason"] = None
+        elif skating:
+            job["reason"] = "uncontrolled sliding"
         elif job["fell"]:
             job["reason"] = f"fell ({_short_fall(m.get('fall_reason'))})"
         elif need is None:

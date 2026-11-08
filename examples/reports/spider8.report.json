@@ -3,7 +3,7 @@
  "version": 1,
  "simulation": true,
  "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
- "created": "2026-11-08T16:38:49+00:00",
+ "created": "2026-11-08T17:06:26+00:00",
  "robot": {
   "name": "spider8",
   "title": "Spider (8 servos)",
@@ -29,7 +29,7 @@
   ],
   "hash": "6ffd18ca18bc659f30b5a8dc2221476daec123b8e6403753f74a9dbbf4ca01bc",
   "warnings": [],
-  "source": "/home/devran_an/talaria-work/talaria-bench/examples/robots/spider8.yaml",
+  "source": "examples/robots/spider8.yaml",
   "limitations": [],
   "world_ranges": {
    "friction": [
@@ -100,7 +100,7 @@
     300.0
    ]
   },
-  "scene_version": 2
+  "scene_version": 3
  },
  "world_ranges": {
   "friction": [
@@ -147,8 +147,7 @@
    "family": "flat",
    "applicable": true,
    "status": "green",
-   "computed_status": "green",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "move 'walk', pass: >= 5 cm steady progress, no fall",
    "runs": 30,
@@ -208,6 +207,10 @@
      "peak_pct_max": 56.8,
      "near_limit_time_pct_median": 0.0
     }
+   },
+   "foot_slip": {
+    "foot_slip_cm_s_median": 2.02,
+    "body_speed_cm_s_median": 3.44
    }
   },
   {
@@ -216,8 +219,7 @@
    "family": "ramp",
    "applicable": true,
    "status": "green",
-   "computed_status": "green",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "slope 5 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
    "runs": 30,
@@ -277,6 +279,10 @@
      "peak_pct_max": 59.3,
      "near_limit_time_pct_median": 0.0
     }
+   },
+   "foot_slip": {
+    "foot_slip_cm_s_median": 2.6,
+    "body_speed_cm_s_median": 3.36
    }
   },
   {
@@ -285,8 +291,7 @@
    "family": "ramp",
    "applicable": true,
    "status": "amber",
-   "computed_status": "amber",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "slope 10 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
    "runs": 30,
@@ -348,6 +353,10 @@
      "peak_pct_max": 59.1,
      "near_limit_time_pct_median": 0.0
     }
+   },
+   "foot_slip": {
+    "foot_slip_cm_s_median": 3.6,
+    "body_speed_cm_s_median": 3.08
    }
   },
   {
@@ -356,8 +365,7 @@
    "family": "ramp",
    "applicable": true,
    "status": "red",
-   "computed_status": "red",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "slope 15 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
    "runs": 30,
@@ -420,6 +428,10 @@
      "peak_pct_max": 57.9,
      "near_limit_time_pct_median": 0.0
     }
+   },
+   "foot_slip": {
+    "foot_slip_cm_s_median": 4.81,
+    "body_speed_cm_s_median": 2.97
    }
   },
   {
@@ -428,8 +440,7 @@
    "family": "obstacle",
    "applicable": true,
    "status": "red",
-   "computed_status": "red",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "bar 1 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it",
    "runs": 30,
@@ -491,6 +502,10 @@
      "peak_pct_max": 58.7,
      "near_limit_time_pct_median": 0.0
     }
+   },
+   "foot_slip": {
+    "foot_slip_cm_s_median": 2.63,
+    "body_speed_cm_s_median": 4.41
    }
   },
   {
@@ -499,8 +514,7 @@
    "family": "obstacle",
    "applicable": true,
    "status": "red",
-   "computed_status": "red",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "bar 2 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it",
    "runs": 30,
@@ -562,6 +576,10 @@
      "peak_pct_max": 56.6,
      "near_limit_time_pct_median": 0.0
     }
+   },
+   "foot_slip": {
+    "foot_slip_cm_s_median": 3.48,
+    "body_speed_cm_s_median": 5.01
    }
   },
   {
@@ -570,8 +588,7 @@
    "family": "push",
    "applicable": true,
    "status": "green",
-   "computed_status": "green",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "pushes of 0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1 x body weight for 0.1 s from 4 sides while standing; pass: survives the nudge (0.1 x weight) from every side",
    "runs": 30,
@@ -685,7 +702,7 @@
       "left": 100.0,
       "right": 100.0
      },
-     "reliable": true,
+     "in_scope": true,
      "note": null
     }
    }
@@ -696,10 +713,9 @@
    "family": "slippery",
    "applicable": true,
    "status": "green",
-   "computed_status": "green",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
-   "conditions": "effective foot-floor friction 0.08-0.15 (any foot material); pass: >= 50% of the flat median, no fall",
+   "conditions": "effective foot-floor friction 0.08-0.15 (any foot material); pass: 50-150% of the flat median and no fall; more than 150% = uncontrolled sliding",
    "runs": 30,
    "passed": 30,
    "pass_rate": 1.0,
@@ -758,7 +774,12 @@
      "near_limit_time_pct_median": 0.0
     }
    },
-   "needed_cm": 11.672
+   "needed_cm": 11.672,
+   "slide_cap_cm": 35.016,
+   "foot_slip": {
+    "foot_slip_cm_s_median": 2.0,
+    "body_speed_cm_s_median": 3.24
+   }
   },
   {
    "id": "payload",
@@ -766,7 +787,7 @@
    "family": "payload",
    "applicable": false,
    "status": "n/a",
-   "reliable": true,
+   "in_scope": true,
    "note": "the robot has no payload_part",
    "conditions": "payload steps lumped at the payload part; a step passes below 80% of stall at every joint, no tipping and < 2 cm drift from the no-load path; pass: >= the first non-zero step",
    "runs": 0,
@@ -778,8 +799,7 @@
    "family": "moves",
    "applicable": true,
    "status": "green",
-   "computed_status": "green",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "plays 'stand' standing; pass: no fall",
    "runs": 30,
@@ -849,8 +869,8 @@
   "computed": 270,
   "cached": 0,
   "workers": 8,
-  "seconds_jobs": 18.85,
-  "seconds_total": 26.23
+  "seconds_jobs": 22.62,
+  "seconds_total": 31.51
  },
- "summary": "Walks well on flat ground (100% of worlds, median 23.34 cm). Climbs the 10 deg ramp in 73% of worlds but slid back on the 15 deg ramp in 97% of worlds. The bar 1 cm: stuck at the bar in most worlds (passes 23%). The bar 2 cm: stuck at the bar in most worlds (passes 0%). Survives a nudge from every side in 100% of worlds; does not tip even at the largest push. Standing moves that never or almost never tip it: stand. Keeps at least half its flat speed on a slippery floor in 100% of worlds. The knee fr servo is near its limit (peak 100% of stall, estimate) during the bar 1 cm test."
+ "summary": "On flat ground it covers the target distance in 100% of worlds (median 23.34 cm). Climbs the 10 deg ramp in 73% of worlds but slid back on the 15 deg ramp in 97% of worlds. The bar 1 cm: stuck at the bar in most worlds (passes 23%). The bar 2 cm: stuck at the bar in most worlds (passes 0%). Survives a nudge from every side in 100% of worlds; does not tip even at the largest push. Standing moves that never or almost never tip it: stand. Keeps at least half its flat speed on a slippery floor in 100% of worlds. The knee fr servo is near its limit (peak 100% of stall, estimate) during the bar 1 cm test."
 }

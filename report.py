@@ -1,8 +1,9 @@
 """Report card: benchmark results -> JSON (dashboard) and Markdown (chat, README).
 
 Always labelled simulation. Status per scene: green >= 80% pass, amber 40-80%, red < 40%, "n/a" when the
-scene does not apply, and "not reliable" when the robot spec declares a limitation for that kind of
-scene (the numbers are kept, but must not be trusted). Servo loads are estimates against datasheet
+scene does not apply, and a neutral grey "out of model scope" when the robot spec declares a limitation
+for that kind of scene (the bench does not score it; raw numbers stay in the JSON for debugging only).
+Wording describes what happened in simulation, never a judgement of the robot. Servo loads are estimates against datasheet
 stall torque, which is not a safe continuous torque. The summary paragraph is generated from the
 numbers (no language model). Schema: docs/report-format.md.
 """
@@ -51,7 +52,7 @@ def _conditions(sid: str, results: dict) -> str:
         return (f"pushes of {', '.join(f'{p:g}' for p in PUSH_LEVELS)} x body weight for {PUSH_DURATION:g} s "
                 f"from 4 sides while standing; pass: survives the nudge ({NUDGE:g} x weight) from every side")
     return (f"effective foot-floor friction {SLIPPERY_FRICTION[0]:g}-{SLIPPERY_FRICTION[1]:g} (any foot "
-            "material); pass: >= 50% of the flat median, no fall")
+            "material); pass: 50-150% of the flat median and no fall; more than 150% = uncontrolled sliding")
 
 
 def _fmt(v: Optional[float], unit: str = "") -> str:
@@ -84,7 +85,7 @@ def _scene_card(sid: str, jobs: list[dict], results: dict) -> dict[str, Any]:
     computed = status_for(pass_rate)
     card: dict[str, Any] = {
         "id": sid, "title": scene.title, "family": scene.family, "applicable": True,
-        "status": "unreliable" if limits else computed, "computed_status": computed, "reliable": not limits,
+        "status": "out_of_scope" if limits else computed, "in_scope": not limits,
         "note": " ".join(limits) if limits else None, "conditions": _conditions(sid, results),
         "runs": len(jobs), "passed": len(passed), "pass_rate": None if pass_rate is None else round(pass_rate, 3),
         "metric": {"name": scene.metric, "unit": scene.unit,
@@ -118,9 +119,15 @@ def _scene_card(sid: str, jobs: list[dict], results: dict) -> dict[str, Any]:
             card["push"]["mid_walk"] = {
                 "survives_nudge_pct": {d: round(100 * sum(w[d] for w in walks) / len(walks), 1)
                                        for d in PUSH_DIRECTIONS},
-                "reliable": not walk_limits, "note": " ".join(walk_limits) if walk_limits else None}
+                "in_scope": not walk_limits, "note": " ".join(walk_limits) if walk_limits else None}
     if sid == "slippery":
         card["needed_cm"] = (jobs[0]["metrics"].get("needed_cm") if jobs else None)
+        card["slide_cap_cm"] = (jobs[0]["metrics"].get("slide_cap_cm") if jobs else None)
+    if scene.locomotion and jobs and "foot_slip_cm_s" in jobs[0]["metrics"]:
+        slip = [j["metrics"]["foot_slip_cm_s"] for j in jobs]
+        speed = [j["metrics"]["body_speed_cm_s"] for j in jobs]
+        card["foot_slip"] = {"foot_slip_cm_s_median": round(float(np.median(slip)), 2),
+                             "body_speed_cm_s_median": round(float(np.median(speed)), 2)}
     if sid == "payload" and jobs:
         steps = [st["grams"] for st in jobs[0]["metrics"]["steps"]]
         rows = []
@@ -145,7 +152,7 @@ def build_report(results: dict) -> dict[str, Any]:
         if sid in results.get("not_applicable", {}):
             scene = get_scene(sid)
             cards.append({"id": sid, "title": scene.title, "family": scene.family, "applicable": False,
-                          "status": "n/a", "reliable": True, "note": results["not_applicable"][sid],
+                          "status": "n/a", "in_scope": True, "note": results["not_applicable"][sid],
                           "conditions": _conditions(sid, results), "runs": 0, "pass_rate": None})
         else:
             cards.append(_scene_card(sid, results["scenes"][sid], results))
@@ -168,22 +175,20 @@ def summary(report: dict) -> str:
     """One plain-English paragraph built from the numbers."""
     cards = {c["id"]: c for c in report["scenes"]}
     out: list[str] = []
-    unreliable = [c for c in cards.values() if c.get("applicable") and not c.get("reliable", True)]
+    out_of_scope = [c for c in cards.values() if c.get("applicable") and not c.get("in_scope", True)]
     walk_cards = [c for c in cards.values() if get_scene(c["id"]).locomotion]
     if walk_cards and all(not c.get("applicable") for c in walk_cards):
         out.append("Walking scenes do not apply (the robot has no walk move).")
     flat = cards.get("flat")
-    if flat and flat.get("applicable") and flat.get("reliable", True):
+    if flat and flat.get("applicable") and flat.get("in_scope", True):
         m = flat["metric"]
-        if flat["status"] == "green":
-            out.append(f"Walks well on flat ground ({_pct(flat['pass_rate'])} of worlds, median {_fmt(m['median'])} cm).")
-        elif flat["status"] == "amber":
-            out.append(f"Walks on flat ground in {_pct(flat['pass_rate'])} of worlds (median {_fmt(m['median'])} cm).")
-        else:
-            top = next(iter(flat["failure_reasons"]), "no progress")
-            out.append(f"Struggles on flat ground: passes in {_pct(flat['pass_rate'])} of worlds (mostly {top}).")
+        txt = (f"On flat ground it covers the target distance in {_pct(flat['pass_rate'])} of worlds "
+               f"(median {_fmt(m['median'])} cm)")
+        if flat["status"] == "red":
+            txt += f"; most common outcome otherwise: {next(iter(flat['failure_reasons']), 'no progress')}"
+        out.append(txt + ".")
     ramps = [cards[s] for s in ("ramp_5", "ramp_10", "ramp_15") if s in cards and cards[s].get("applicable")
-             and cards[s].get("reliable", True)]
+             and cards[s].get("in_scope", True)]
     if ramps:
         ok = [c for c in ramps if c["status"] != "red"]
         bad = [c for c in ramps if c["status"] == "red"]
@@ -198,7 +203,7 @@ def summary(report: dict) -> str:
         out.append(("It " + " but ".join(parts) + ".").replace("It climbs", "Climbs"))
     for sid in ("obstacle_1cm", "obstacle_2cm"):
         c = cards.get(sid)
-        if c and c.get("applicable") and c.get("reliable", True):
+        if c and c.get("applicable") and c.get("in_scope", True):
             if c["status"] == "red":
                 top = next(iter(c["failure_reasons"]), "fails")
                 out.append(f"The {c['title'].lower()}: {top} in most worlds (passes {_pct(c['pass_rate'])}).")
@@ -215,7 +220,7 @@ def summary(report: dict) -> str:
         if slide[0] >= 2.0:
             tips += f", and it slides instead (median {slide[0]:.0f} cm after a 0.5 x weight push from the {slide[1]})"
         out.append(f"Survives a nudge from every side in {_pct(push['pass_rate'])} of worlds; {tips}.")
-    moves = [c for c in cards.values() if c["family"] == "moves" and c.get("applicable") and c.get("reliable", True)]
+    moves = [c for c in cards.values() if c["family"] == "moves" and c.get("applicable") and c.get("in_scope", True)]
     if moves:
         safe = [c["id"][5:] for c in moves if c["pass_rate"] >= 0.95]
         risky = [c for c in moves if c["pass_rate"] < 0.95]
@@ -237,24 +242,29 @@ def summary(report: dict) -> str:
             txt += f"; at {limit['grams']:g} g {why}"
         out.append(txt + ".")
     slip = cards.get("slippery")
-    if slip and slip.get("applicable") and slip.get("reliable", True):
-        if slip["status"] == "red":
+    if slip and slip.get("applicable") and slip.get("in_scope", True):
+        skating = slip["failure_reasons"].get("uncontrolled sliding", 0)
+        if skating > slip["runs"] / 2:
+            out.append(f"On a slippery floor its feet skate and it glides out of control in "
+                       f"{100 * skating / slip['runs']:.0f}% of worlds.")
+        elif slip["status"] == "red":
             top = next(iter(slip["failure_reasons"]), "slides")
-            out.append(f"On a slippery floor it mostly fails ({top}).")
+            out.append(f"On a slippery floor it passes in {_pct(slip['pass_rate'])} of worlds (most common "
+                       f"outcome otherwise: {top}).")
         else:
             out.append(f"Keeps at least half its flat speed on a slippery floor in {_pct(slip['pass_rate'])} of worlds.")
     hot = []
     for c in cards.values():
         for joint, load in (c.get("loads") or {}).items():
-            if c.get("reliable", True) and load["peak_pct_max"] >= NEAR_LIMIT * 100:
+            if c.get("in_scope", True) and load["peak_pct_max"] >= NEAR_LIMIT * 100:
                 hot.append((load["peak_pct_max"], joint, c["title"].lower()))
     if hot:
         p, joint, where = max(hot)
         out.append(f"The {joint.replace('_', ' ')} servo is near its limit (peak {p:.0f}% of stall, estimate) "
                    f"during the {where} test.")
-    if unreliable:
-        out.append(f"{len(unreliable)} walking scene(s) are marked not reliable for this robot: "
-                   f"{unreliable[0]['note']}")
+    if out_of_scope:
+        out.append(f"{len(out_of_scope)} walking scene(s) are outside this model's scope for this robot and are "
+                   f"not scored: {out_of_scope[0]['note']}")
     return " ".join(out) or "No scenes were run."
 
 
@@ -269,7 +279,7 @@ def to_markdown(report: dict) -> str:
              + (f", {t.get('seconds_total', 0):.0f} s" if t else "") + ".", "",
              "| Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |",
              "|---|---|---|---|---|---|"]
-    names = {"green": "GREEN", "amber": "AMBER", "red": "RED", "n/a": "n/a", "unreliable": "NOT RELIABLE"}
+    names = {"green": "GREEN", "amber": "AMBER", "red": "RED", "n/a": "n/a", "out_of_scope": "OUT OF MODEL SCOPE"}
     for c in report["scenes"]:
         if not c.get("applicable"):
             lines.append(f"| {c['title']} | n/a | - | - | - | {c.get('note') or ''} |")
@@ -277,8 +287,11 @@ def to_markdown(report: dict) -> str:
         m = c["metric"]
         unit = m["unit"]
         worst = m["worst"]
+        if c["status"] == "out_of_scope":
+            lines.append(f"| {c['title']} | OUT OF MODEL SCOPE | - | - | - | not scored (see limitations) |")
+            continue
         reasons = ", ".join(f"{k} ({v})" for k, v in list(c["failure_reasons"].items())[:3]) or "-"
-        status = names[c["status"]] + (f" (would be {c['computed_status']})" if c["status"] == "unreliable" else "")
+        status = names[c["status"]]
         lines.append(f"| {c['title']} | {status} | {_pct(c['pass_rate'])} | {m['name']}: {_fmt(m['median'], unit)} "
                      f"({_fmt(m['p10'], unit)}) {unit} | {_fmt(worst['value'], unit)} (world {worst['seed']}) | {reasons} |")
     lines += ["", "**Summary.** " + report["summary"], ""]
@@ -296,9 +309,11 @@ def to_markdown(report: dict) -> str:
                          f"{cm(v.get('slide_half_weight_cm_median'))} | {cm(v.get('slide_full_weight_cm_median'))} |")
         mw = push["push"].get("mid_walk")
         if mw:
-            note = "" if mw["reliable"] else " (NOT RELIABLE for this robot)"
-            lines += ["", f"Mid-walk nudge survived{note}: " +
-                      ", ".join(f"{d} {v:.0f}%" for d, v in mw["survives_nudge_pct"].items())]
+            if mw["in_scope"]:
+                lines += ["", "Mid-walk nudge survived: " +
+                          ", ".join(f"{d} {v:.0f}%" for d, v in mw["survives_nudge_pct"].items())]
+            else:
+                lines += ["", "Mid-walk nudge: OUT OF MODEL SCOPE for this robot (not scored)."]
         lines.append("")
     pay = next((c for c in report["scenes"] if c["id"] == "payload" and c.get("applicable")), None)
     if pay:
@@ -312,8 +327,8 @@ def to_markdown(report: dict) -> str:
         lines.append("")
     joints: dict[str, tuple[float, float, str]] = {}
     for c in report["scenes"]:
-        if not c.get("reliable", True):
-            continue                     # loads from scenes the model cannot be trusted in
+        if not c.get("in_scope", True):
+            continue                     # no loads from scenes outside the model's scope
         for j, load in (c.get("loads") or {}).items():
             if j not in joints or load["peak_pct_max"] > joints[j][0]:
                 joints[j] = (load["peak_pct_max"], load["near_limit_time_pct_median"], c["title"])
@@ -324,7 +339,7 @@ def to_markdown(report: dict) -> str:
             lines.append(f"| {j} | {p:.0f}% | {sat:.0f}% | {where} |")
         lines += ["", f"_{report['servo_note']}_", ""]
     if report.get("limitations"):
-        lines += ["**Known model limitations** (results in these scenes are marked NOT RELIABLE):", ""]
+        lines += ["**Outside model scope** (these scenes are shown as OUT OF MODEL SCOPE and not scored):", ""]
         lines += [f"- {lim['scope']}: {lim['note']}" for lim in report["limitations"]] + [""]
     lines += ["**Conditions**", ""] + [f"- {c['title']}: {c['conditions']}" for c in report["scenes"]]
     lines += ["", "World ranges: " + ", ".join(f"{k} {v[0]:g}..{v[1]:g}" for k, v in report["world_ranges"].items())]

@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `arm6` (758 g, 6 servos, spec `297eee32befb`), 30 worlds per scene (seeds 0..29), 5 s.
+Robot `arm6` (758 g, 6 servos, spec `297eee32befb`), 30 worlds per scene (seeds 0..29), 6 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|
@@ -53,7 +53,7 @@ _Servo load is an estimate: peak torque as a share of the datasheet stall torque
 - Bar 1 cm: bar 1 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it
 - Bar 2 cm: bar 2 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it
 - Push test: pushes of 0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1 x body weight for 0.1 s from 4 sides while standing; pass: survives the nudge (0.1 x weight) from every side
-- Slippery floor: effective foot-floor friction 0.08-0.15 (any foot material); pass: >= 50% of the flat median, no fall
+- Slippery floor: effective foot-floor friction 0.08-0.15 (any foot material); pass: 50-150% of the flat median and no fall; more than 150% = uncontrolled sliding
 - Payload: payload steps lumped at the payload part; a step passes below 80% of stall at every joint, no tipping and < 2 cm drift from the no-load path; pass: >= the first non-zero step
 - Move 'home': plays 'home' standing; pass: no fall
 - Move 'wave': plays 'wave' standing; pass: no fall

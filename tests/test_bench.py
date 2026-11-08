@@ -11,7 +11,7 @@ from talaria_bench.worlds import World
 
 TOP_KEYS = {"format", "version", "simulation", "label", "created", "robot", "settings", "world_ranges", "scenes",
             "servo_note", "limitations", "timing", "summary"}
-CARD_KEYS = {"id", "title", "family", "applicable", "status", "computed_status", "reliable", "note", "conditions",
+CARD_KEYS = {"id", "title", "family", "applicable", "status", "in_scope", "note", "conditions",
              "runs", "passed", "pass_rate", "metric", "failure_reasons", "falls", "loads"}
 
 
@@ -105,10 +105,13 @@ def test_slippery_rule_needs_the_flat_median():
     jobs = [dict(base, metric=6.0, metrics=dict(base["metrics"])),
             dict(base, metric=2.0, metrics=dict(base["metrics"])),
             dict(base, metric=1.0, metrics={"yaw_deg": 90.0, "fall_reason": None}),
-            dict(base, metric=9.0, fell=True, metrics={"yaw_deg": 0.0, "fall_reason": "root tilted more than 60 deg"})]
+            dict(base, metric=9.0, fell=True, metrics={"yaw_deg": 0.0, "fall_reason": "root tilted more than 60 deg"}),
+            dict(base, metric=24.0, metrics=dict(base["metrics"]))]
     scenes.decide_slippery(jobs, flat_median_cm=10.0)
-    assert [j["passed"] for j in jobs] == [True, False, False, False]
-    assert [j["reason"] for j in jobs] == [None, "sliding", "spinning in place", "fell (tipped over)"]
+    assert [j["passed"] for j in jobs] == [True, False, False, False, False]
+    assert [j["reason"] for j in jobs] == [None, "sliding", "spinning in place", "fell (tipped over)",
+                                           "uncontrolled sliding"]
+    assert jobs[0]["metrics"]["slide_cap_cm"] == 15.0
     scenes.decide_slippery(jobs[:1], flat_median_cm=None)
     assert jobs[0]["passed"] is False and jobs[0]["reason"] == "no flat progress to compare with"
 
@@ -149,11 +152,11 @@ def test_report_schema_and_markdown(caduceus, tmp_path):
     for card in rep["scenes"]:
         assert set(card) >= CARD_KEYS
     flat = next(c for c in rep["scenes"] if c["id"] == "flat")
-    assert flat["status"] == "unreliable" and flat["reliable"] is False and "not reliable" in flat["note"]
+    assert flat["status"] == "out_of_scope" and flat["in_scope"] is False and "does not guess" in flat["note"]
     wave = next(c for c in rep["scenes"] if c["id"] == "move:wave")
-    assert wave["reliable"] is True and wave["status"] in ("green", "amber", "red")
+    assert wave["in_scope"] is True and wave["status"] in ("green", "amber", "red")
     md = report.to_markdown(rep)
-    assert "NOT RELIABLE" in md and "(simulation)" in md and "stall torque is not a safe continuous torque" in md.lower()
+    assert "OUT OF MODEL SCOPE" in md and "NOT RELIABLE" not in md and "(simulation)" in md and "stall torque is not a safe continuous torque" in md.lower()
     path = bench.save_results(results, tmp_path / "r.json")
     assert bench.load_results(path)["robot"]["name"] == "caduceus"
 

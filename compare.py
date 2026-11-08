@@ -182,8 +182,9 @@ def to_markdown(result: dict) -> str:
                 cells.append("n/a")
                 continue
             txt = f"{c['pass_rate'] * 100:.0f}% ({_fmt(c['median'], c['unit'])} {c['unit']})"
-            if c["status"] == "unreliable":
-                txt += " NOT RELIABLE"
+            if c["status"] == "out_of_scope":
+                cells.append("OUT OF MODEL SCOPE")
+                continue
             if "delta_pass" in c:
                 txt += f" [{c['delta_pass'] * 100:+.0f} pts]"
             cells.append(txt)

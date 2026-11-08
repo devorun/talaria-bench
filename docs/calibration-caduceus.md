@@ -17,10 +17,10 @@ then 3a (video only).
 * **Sensitivity:** the wave holds at the low and middle measured values (com 2-3 cm, play 3-6.5 deg:
   99-100%). It breaks at the top of both ranges (com +4 cm and play 10 deg: 34% pass, 10 falls).
 * **Walking is a declared limitation:** `limitations: [{scope: locomotion, note: ...}]`. The note
-  says that foam feet crushing and rolling at their edges are not in this rigid model, so
-  Caduceus's walking results are not reliable. On the firmware walk the model tips backwards in
-  100% of worlds, while the real robot moves ~6 cm forward. The report card marks every scene that
-  needs walking as "not reliable" and shows the note.
+  reads "This rigid-body model does not simulate soft foam feet; the bench does not guess here."
+  On the firmware walk the model tips backwards in 100% of worlds, while the real robot moves
+  ~6 cm forward. The report card shows every scene that needs walking as a grey "OUT OF MODEL
+  SCOPE" (not scored) with that note.
 * **Demo moves** (arm gestures; 100 worlds, Caduceus's own world ranges):
 
 | move | what it does | falls / 100 |
@@ -40,8 +40,8 @@ then 3a (video only).
   * arms_up_alternating: 0/100.
 * **`caduceus_v2`** (design variant, not a robot): tight joints (1.5 deg everywhere) and the
   electronics low inside the head (centre of mass -2 cm); everything else is the same. Wave 100%
-  pass; `arms_up_both` 0/100 falls (vs 41/100 for the real design). The walk is still unreliable
-  (same foam feet).
+  pass; `arms_up_both` 0/100 falls (vs 41/100 for the real design). The walk is still outside the
+  model's scope (same foam feet).
 
 ## 3b: with real measurements (result: targets NOT met, caduceus.yaml values kept from 3a)
 

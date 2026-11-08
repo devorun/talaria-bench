@@ -68,6 +68,8 @@ class Result:
     self_collision_pairs: list[list[str]]
     world: dict[str, Any]
     ground: dict[str, GroundPart] = field(default_factory=dict)   # parts with ground_contact: true
+    foot_slip_cm_s: float = 0.0     # mean horizontal speed of ground-contact parts while they touch the floor
+    body_speed_cm_s: float = 0.0    # mean horizontal speed of the root
     start_xy_m: list[float] = field(default_factory=list)        # root position after settling
     end_xy_m: list[float] = field(default_factory=list)          # root position at the end
     warnings: list[str] = field(default_factory=list)
@@ -239,6 +241,10 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
     ground_start = {name: lowest_z(m, d, gid) for name, gid in ground_parts}
     ground_max = dict(ground_start)
     ground_touch = {name: 0 for name, _ in ground_parts}
+    ground_gid = {name: gid for name, gid in ground_parts}
+    slip_sum = slip_n = 0.0
+    body_speed_sum = 0.0
+    vel6 = np.zeros(6)
 
     trace = None
     if record:
@@ -287,6 +293,14 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
             for name, gid in ground_parts:
                 ground_max[name] = max(ground_max[name], lowest_z(m, d, gid))
                 ground_touch[name] += name in floor_parts
+            for name in floor_parts:
+                gid = ground_gid.get(name)
+                if gid is not None:
+                    mujoco.mj_objectVelocity(m, d, mujoco.mjtObj.mjOBJ_GEOM, gid, vel6, 0)
+                    slip_sum += math.hypot(vel6[3], vel6[4])
+                    slip_n += 1
+            mujoco.mj_objectVelocity(m, d, mujoco.mjtObj.mjOBJ_BODY, root_id, vel6, 0)
+            body_speed_sum += math.hypot(vel6[3], vel6[4])
             tilt = tilt_deg()
             max_tilt = max(max_tilt, tilt)
             r_now = d.xmat[root_id].reshape(3, 3)
@@ -319,6 +333,8 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
                   max_pitch_change_deg=round(max_pitch, 3), fell=fell, fell_at_s=fell_at,
                   fall_reason=reason, joints=loads, self_collisions=collisions,
                   self_collision_pairs=[list(pr) for pr in sorted(pairs)], world=world.to_dict(),
+                  foot_slip_cm_s=round(slip_sum / slip_n * 100, 3) if slip_n else 0.0,
+                  body_speed_cm_s=round(body_speed_sum / n * 100, 3),
                   start_xy_m=[round(x0, 5), round(y0, 5)], end_xy_m=[round(float(p[0]), 5), round(float(p[1]), 5)],
                   ground={name: GroundPart(start_cm=round(ground_start[name] * 100, 3),
                                            lift_cm=round(ground_max[name] * 100, 3),

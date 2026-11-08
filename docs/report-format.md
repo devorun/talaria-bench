@@ -43,15 +43,14 @@ Written by `report.build_report(results)` (`devcli.py bench` also saves `<out>.r
 |---|---|
 | `id`, `title`, `family`, `conditions` | e.g. `ramp_10`, "Ramp 10 deg", `ramp`, terrain and pass rule in words |
 | `applicable` | false -> only `status: "n/a"` and `note` (why) are meaningful |
-| `status` | `green` (pass >= 80%), `amber` (40-80%), `red` (< 40%), `n/a`, or `unreliable` |
-| `computed_status` | the colour the numbers alone would give (useful when `status` is `unreliable`) |
-| `reliable`, `note` | false + the spec's limitation note when the robot declares a limitation for this kind of scene |
+| `status` | `green` (pass >= 80%), `amber` (40-80%), `red` (< 40%), `n/a`, or `out_of_scope` (neutral grey: the robot declares a model limitation for this kind of scene; not scored) |
+| `in_scope`, `note` | false + the spec's limitation note when the robot declares a limitation for this kind of scene |
 | `runs`, `passed`, `pass_rate` | worlds run, worlds passed, share |
 | `metric` | `name`, `unit`, `median`, `p10`, `worst: {value, seed, reason}` |
 | `failure_reasons` | `{reason: count}`, most common first |
 | `falls` | runs that fell |
 | `loads` | `{joint: {peak_pct_median, peak_pct_max, near_limit_time_pct_median}}` (% of stall torque) |
-| `push` (push scene only) | `levels`, `nudge`, `duration_s`, `thresholds: {front/back/left/right: {median, p10, survives_nudge_pct}}`, optional `mid_walk: {survives_nudge_pct, reliable, note}` |
+| `push` (push scene only) | `levels`, `nudge`, `duration_s`, `thresholds: {front/back/left/right: {median, p10, survives_nudge_pct}}`, optional `mid_walk: {survives_nudge_pct, in_scope, note}` |
 | `needed_cm` (slippery only) | 50% of the flat median |
 | `payload` (payload scene only) | `move`, `part`, `load_limit_pct` (80), `track_limit_cm` (2), `steps: [{grams, pass_pct, max_peak_pct_median, tracking_error_cm_median, tipped, worst_joint, top_reason}]` |
 

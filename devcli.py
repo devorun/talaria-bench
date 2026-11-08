@@ -217,6 +217,18 @@ def cmd_report(args) -> int:
     return 0
 
 
+def _compare_progress(progress_file):
+    """Progress lines on stderr and, when asked, the latest state as JSON in ``progress_file``."""
+    def cb(name, done, total, scene):
+        _bench_progress(f"{name}: ")(done, total, scene)
+        if progress_file:
+            tmp = Path(progress_file).with_suffix(".tmp")
+            tmp.write_text(json.dumps({"variant": name, "done": done, "total": total, "scene": scene}),
+                           encoding="utf-8")
+            tmp.replace(progress_file)
+    return cb
+
+
 def cmd_compare(args) -> int:
     load_package()
     from talaria_bench.compare import compare, load_variants_file, parse_variant_arg, to_markdown
@@ -236,7 +248,7 @@ def cmd_compare(args) -> int:
     t0 = time.perf_counter()
     result = compare(spec, variants, scenes=args.scenes, worlds=args.worlds, seed=args.seed, quick=args.quick,
                      workers=args.workers or None, cache_dir=None if args.no_cache else "default", base_dir=base_dir,
-                     progress=lambda name, d, t, sc: _bench_progress(f"{name}: ")(d, t, sc))
+                     progress=_compare_progress(args.progress_file))
     md = to_markdown(result)
     if args.out:
         Path(args.out).write_text(json.dumps(result, indent=1), encoding="utf-8")
@@ -264,10 +276,11 @@ def gallery_rows() -> list[dict]:
             colours = {}
             for c in cards:
                 colours[c["status"]] = colours.get(c["status"], 0) + 1
-            counts = ", ".join(f"{n} {k}" for k, n in sorted(colours.items()))
+            counts = ", ".join(f"{n} {k.replace('out_of_scope', 'out of model scope')}"
+                               for k, n in sorted(colours.items()))
             sentences = [s.strip().rstrip(".") for s in rep["summary"].split(". ") if s.strip()]
             pick = None
-            for key in ("Max safe payload", "tips the robot in", "Walks well", "Walks on", "Struggles"):
+            for key in ("Max safe payload", "tips the robot in", "On flat ground"):
                 pick = next((s for s in sentences if key in s), None)
                 if pick:
                     break
@@ -352,6 +365,7 @@ def main(argv=None) -> int:
     p.add_argument("--variant", action="append", help="name:path=value,... (relative +x -x *x) or name:spec.yaml")
     p.add_argument("--variants", default=None, help="YAML file with a list of variants")
     p.add_argument("--out", default=None)
+    p.add_argument("--progress-file", default=None)
     bench_args(p)
     p.set_defaults(fn=cmd_compare)
     p = sub.add_parser("gallery", help="list the bundled example robots")

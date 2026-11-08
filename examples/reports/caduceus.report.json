@@ -3,12 +3,12 @@
  "version": 1,
  "simulation": true,
  "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
- "created": "2026-11-08T16:39:09+00:00",
+ "created": "2026-11-08T17:07:12+00:00",
  "robot": {
   "name": "caduceus",
   "title": "Caduceus",
   "family": "biped",
-  "role": "Devran's real robot - the model is fitted to video; arm gestures are trustworthy, walking is not.",
+  "role": "Devran's real robot - the model is fitted to video; arm gestures are in the model's scope, walking is not.",
   "base": "free",
   "parts": 5,
   "joints": [
@@ -26,11 +26,11 @@
   ],
   "hash": "88cab10ab91487a1aa7c49c4705618ee271a460a796f713c2a3031b363793eed",
   "warnings": [],
-  "source": "/home/devran_an/talaria-work/talaria-bench/examples/robots/caduceus.yaml",
+  "source": "examples/robots/caduceus.yaml",
   "limitations": [
    {
     "scope": "locomotion",
-    "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles)."
+    "note": "This rigid-body model does not simulate soft foam feet; the bench does not guess here."
    }
   ],
   "world_ranges": {
@@ -104,7 +104,7 @@
     300.0
    ]
   },
-  "scene_version": 2
+  "scene_version": 3
  },
  "world_ranges": {
   "friction": [
@@ -150,10 +150,9 @@
    "title": "Flat floor",
    "family": "flat",
    "applicable": true,
-   "status": "unreliable",
-   "computed_status": "red",
-   "reliable": false,
-   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles).",
+   "status": "out_of_scope",
+   "in_scope": false,
+   "note": "This rigid-body model does not simulate soft foam feet; the bench does not guess here.",
    "conditions": "move 'walk', pass: >= 5 cm steady progress, no fall",
    "runs": 30,
    "passed": 0,
@@ -194,6 +193,10 @@
      "peak_pct_max": 77.0,
      "near_limit_time_pct_median": 0.0
     }
+   },
+   "foot_slip": {
+    "foot_slip_cm_s_median": 2.61,
+    "body_speed_cm_s_median": 6.63
    }
   },
   {
@@ -201,10 +204,9 @@
    "title": "Ramp 5 deg",
    "family": "ramp",
    "applicable": true,
-   "status": "unreliable",
-   "computed_status": "red",
-   "reliable": false,
-   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles).",
+   "status": "out_of_scope",
+   "in_scope": false,
+   "note": "This rigid-body model does not simulate soft foam feet; the bench does not guess here.",
    "conditions": "slope 5 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
    "runs": 30,
    "passed": 0,
@@ -245,6 +247,10 @@
      "peak_pct_max": 49.8,
      "near_limit_time_pct_median": 0.0
     }
+   },
+   "foot_slip": {
+    "foot_slip_cm_s_median": 20.17,
+    "body_speed_cm_s_median": 57.1
    }
   },
   {
@@ -252,10 +258,9 @@
    "title": "Ramp 10 deg",
    "family": "ramp",
    "applicable": true,
-   "status": "unreliable",
-   "computed_status": "red",
-   "reliable": false,
-   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles).",
+   "status": "out_of_scope",
+   "in_scope": false,
+   "note": "This rigid-body model does not simulate soft foam feet; the bench does not guess here.",
    "conditions": "slope 10 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
    "runs": 30,
    "passed": 0,
@@ -297,6 +302,10 @@
      "peak_pct_max": 2.5,
      "near_limit_time_pct_median": 0.0
     }
+   },
+   "foot_slip": {
+    "foot_slip_cm_s_median": 0.0,
+    "body_speed_cm_s_median": 0.0
    }
   },
   {
@@ -304,10 +313,9 @@
    "title": "Ramp 15 deg",
    "family": "ramp",
    "applicable": true,
-   "status": "unreliable",
-   "computed_status": "red",
-   "reliable": false,
-   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles).",
+   "status": "out_of_scope",
+   "in_scope": false,
+   "note": "This rigid-body model does not simulate soft foam feet; the bench does not guess here.",
    "conditions": "slope 15 deg uphill, pass: climbs >= 5 cm, no fall or slide back",
    "runs": 30,
    "passed": 0,
@@ -348,6 +356,10 @@
      "peak_pct_max": 0.0,
      "near_limit_time_pct_median": 0.0
     }
+   },
+   "foot_slip": {
+    "foot_slip_cm_s_median": 0.0,
+    "body_speed_cm_s_median": 0.0
    }
   },
   {
@@ -355,10 +367,9 @@
    "title": "Bar 1 cm",
    "family": "obstacle",
    "applicable": true,
-   "status": "unreliable",
-   "computed_status": "red",
-   "reliable": false,
-   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles).",
+   "status": "out_of_scope",
+   "in_scope": false,
+   "note": "This rigid-body model does not simulate soft foam feet; the bench does not guess here.",
    "conditions": "bar 1 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it",
    "runs": 30,
    "passed": 0,
@@ -399,6 +410,10 @@
      "peak_pct_max": 77.0,
      "near_limit_time_pct_median": 0.0
     }
+   },
+   "foot_slip": {
+    "foot_slip_cm_s_median": 2.61,
+    "body_speed_cm_s_median": 6.63
    }
   },
   {
@@ -406,10 +421,9 @@
    "title": "Bar 2 cm",
    "family": "obstacle",
    "applicable": true,
-   "status": "unreliable",
-   "computed_status": "red",
-   "reliable": false,
-   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles).",
+   "status": "out_of_scope",
+   "in_scope": false,
+   "note": "This rigid-body model does not simulate soft foam feet; the bench does not guess here.",
    "conditions": "bar 2 cm high, 2 cm deep, 5 cm ahead; pass: root 5 cm past it",
    "runs": 30,
    "passed": 0,
@@ -450,6 +464,10 @@
      "peak_pct_max": 78.2,
      "near_limit_time_pct_median": 0.0
     }
+   },
+   "foot_slip": {
+    "foot_slip_cm_s_median": 2.42,
+    "body_speed_cm_s_median": 7.94
    }
   },
   {
@@ -458,8 +476,7 @@
    "family": "push",
    "applicable": true,
    "status": "green",
-   "computed_status": "green",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "pushes of 0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1 x body weight for 0.1 s from 4 sides while standing; pass: survives the nudge (0.1 x weight) from every side",
    "runs": 30,
@@ -553,8 +570,8 @@
       "left": 0.0,
       "right": 0.0
      },
-     "reliable": false,
-     "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles)."
+     "in_scope": false,
+     "note": "This rigid-body model does not simulate soft foam feet; the bench does not guess here."
     }
    }
   },
@@ -563,11 +580,10 @@
    "title": "Slippery floor",
    "family": "slippery",
    "applicable": true,
-   "status": "unreliable",
-   "computed_status": "red",
-   "reliable": false,
-   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles).",
-   "conditions": "effective foot-floor friction 0.08-0.15 (any foot material); pass: >= 50% of the flat median, no fall",
+   "status": "out_of_scope",
+   "in_scope": false,
+   "note": "This rigid-body model does not simulate soft foam feet; the bench does not guess here.",
+   "conditions": "effective foot-floor friction 0.08-0.15 (any foot material); pass: 50-150% of the flat median and no fall; more than 150% = uncontrolled sliding",
    "runs": 30,
    "passed": 0,
    "pass_rate": 0.0,
@@ -608,7 +624,12 @@
      "near_limit_time_pct_median": 0.0
     }
    },
-   "needed_cm": null
+   "needed_cm": null,
+   "slide_cap_cm": null,
+   "foot_slip": {
+    "foot_slip_cm_s_median": 1.18,
+    "body_speed_cm_s_median": 4.21
+   }
   },
   {
    "id": "payload",
@@ -616,7 +637,7 @@
    "family": "payload",
    "applicable": false,
    "status": "n/a",
-   "reliable": true,
+   "in_scope": true,
    "note": "the robot has no payload_part",
    "conditions": "payload steps lumped at the payload part; a step passes below 80% of stall at every joint, no tipping and < 2 cm drift from the no-load path; pass: >= the first non-zero step",
    "runs": 0,
@@ -628,8 +649,7 @@
    "family": "moves",
    "applicable": true,
    "status": "green",
-   "computed_status": "green",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "plays 'wave' standing; pass: no fall",
    "runs": 30,
@@ -677,8 +697,7 @@
    "family": "moves",
    "applicable": true,
    "status": "amber",
-   "computed_status": "amber",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "plays 'arms_up_both' standing; pass: no fall",
    "runs": 30,
@@ -728,8 +747,7 @@
    "family": "moves",
    "applicable": true,
    "status": "green",
-   "computed_status": "green",
-   "reliable": true,
+   "in_scope": true,
    "note": null,
    "conditions": "plays 'arms_up_alternating' standing; pass: no fall",
    "runs": 30,
@@ -776,16 +794,16 @@
  "limitations": [
   {
    "scope": "locomotion",
-   "note": "Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles)."
+   "note": "This rigid-body model does not simulate soft foam feet; the bench does not guess here."
   }
  ],
  "timing": {
   "jobs": 330,
-  "computed": 330,
-  "cached": 0,
+  "computed": 0,
+  "cached": 330,
   "workers": 8,
-  "seconds_jobs": 12.65,
-  "seconds_total": 19.25
+  "seconds_jobs": 0.08,
+  "seconds_total": 8.17
  },
- "summary": "Survives a nudge from every side in 100% of worlds; a push of 0.2 x body weight from the front tips it (median). Standing moves that never or almost never tip it: wave, arms_up_alternating. Move 'arms_up_both' tips the robot in 30% of worlds. The right leg servo is near its limit (peak 100% of stall, estimate) during the move 'arms_up_both' test. 7 walking scene(s) are marked not reliable for this robot: Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking results are not reliable (the model tips backwards on the firmware walk, the real robot moves ~6 cm forward in 2 cycles)."
+ "summary": "Survives a nudge from every side in 100% of worlds; a push of 0.2 x body weight from the front tips it (median). Standing moves that never or almost never tip it: wave, arms_up_alternating. Move 'arms_up_both' tips the robot in 30% of worlds. The right leg servo is near its limit (peak 100% of stall, estimate) during the move 'arms_up_both' test. 7 walking scene(s) are outside this model's scope for this robot and are not scored: This rigid-body model does not simulate soft foam feet; the bench does not guess here."
 }

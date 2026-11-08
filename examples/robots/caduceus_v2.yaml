@@ -16,10 +16,9 @@ voltage: 5.0                       # 5 V supply through the cable (the cable sag
 
 limitations:
   - scope: locomotion
-    note: >-
-      Foam feet crushing and rolling at their edges are not in this rigid model; Caduceus walking
-      results are not reliable (the model tips backwards on the firmware walk, the real robot moves
-      ~6 cm forward in 2 cycles).
+    # Measured: the real robot moves ~6 cm forward in 2 walk cycles on its foam feet; the rigid model
+    # tips backwards on the same firmware walk, so walking scenes are not scored for Caduceus.
+    note: "This rigid-body model does not simulate soft foam feet; the bench does not guess here."
 
 parts:
   - name: head
@@ -147,9 +146,9 @@ moves:
 
   # Original firmware handleWalk (/ileri, n = 2; the "come" command): smoothMove(wait 3 ms, step 2 us)
   # = 3 + 3.95 ms per 2 us (~26 deg/s), STEP_SIZE 150 us (~13.5 deg), delay(200) after each phase,
-  # then back to center. NOT RELIABLE in this model (see limitations).
+  # then back to center. Outside this model's scope (see limitations).
   walk:
-    description: Two steps forward with the original firmware gait (simulation not reliable for walking).
+    description: Two steps forward with the original firmware gait (walking is outside the model's scope).
     easing: linear
     loops: 1
     frames:

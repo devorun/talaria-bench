@@ -6,7 +6,7 @@ talaria: 1
 name: dog12
 title: Robot dog (12 servos)
 family: quadruped
-role: The eye-catcher - a 12-servo dog that trots, and struggles where real ones do.
+role: The eye-catcher - a 12-servo dog that trots; shows where slopes, bars and slippery floors stop a trot.
 description: >-
   Quadruped robot dog, 25 x 10 cm body, about 1.6 kg, three MG996R servos per leg.
 voltage: 6.0                       # 2S LiPo through a 6 V high-current BEC

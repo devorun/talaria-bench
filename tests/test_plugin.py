@@ -20,14 +20,15 @@ def test_manifest_stub():
         assert "<" in dep, dep
 
 
-def test_register_needs_no_heavy_imports():
-    calls = []
-
-    class Ctx:
-        def __getattr__(self, name):
-            return lambda *a, **k: calls.append(name)
-
-    talaria_bench.register(Ctx())
+def test_register_needs_no_heavy_imports(tmp_path):
+    """Hermes loads every plugin at start-up: registering must not import MuJoCo."""
+    code = ("import sys; sys.path.insert(0, sys.argv[1]); from devcli import load_package\n"
+            "class Ctx:\n    def __getattr__(self, name):\n        return lambda *a, **k: None\n"
+            "load_package().register(Ctx()); print('mujoco' in sys.modules)")
+    out = subprocess.run([sys.executable, "-c", code, str(ROOT)], capture_output=True, text=True, timeout=60,
+                         cwd=tmp_path, env={"HOME": str(tmp_path), "PATH": "/usr/bin:/bin"})
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.strip() == "False"
 
 
 def test_devcli_runs(tmp_path):

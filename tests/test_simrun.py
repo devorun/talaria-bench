@@ -81,7 +81,7 @@ def test_calibrated_caduceus_waves_level_in_the_nominal_world(caduceus):
 def test_caduceus_walking_is_a_declared_limitation(caduceus):
     """The rigid model cannot walk Caduceus (it tips backwards); the spec says so."""
     notes = caduceus.limitations_for("locomotion")
-    assert notes and "not reliable" in notes[0]
+    assert notes and "soft foam feet" in notes[0]
     assert caduceus.limitations_for("standing") == []
 
 
