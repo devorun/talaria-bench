@@ -14,11 +14,11 @@ python talaria-bench/devcli.py gallery --markdown
 | Robot | Family | Servos | Mass | Role | Benchmark headline (simulation) |
 |---|---|---|---|---|---|
 | `arm6` Desk arm (6 servos) (fixed base) | arm | 6 | 758 g | The most common hobby robot of all; shows how much it can lift before a servo is near its limit. | Max safe payload (simulation estimate): median 100 g (p10 95 g); at 200 g the upper arm reaches 100% of stall. [4 green] |
-| `caduceus` Caduceus | biped | 4 | 437 g | Devran's real robot - the model is fitted to video; arm gestures are in the model's scope, walking is not. | Move 'arms_up_both' tips the robot in 30% of worlds. [1 amber, 3 green, 7 out of model scope] |
+| `caduceus` Caduceus | biped | 4 | 437 g | Devran's real robot, calibrated against videos of it. Best for arm gestures and motion preflight. | Move 'arms_up_both' tips the robot in 42% of 60 preflight worlds. [1 amber, 3 green, 7 out of model scope] |
 | `caduceus_v2` Caduceus v2 (design variant) | biped | 4 | 437 g | "What would the fixed design do?" - compare it with caduceus. | Survives a nudge from every side in 100% of worlds; a push of 0.3 x body weight from the front tips it (median). [4 green, 7 out of model scope] |
 | `desk-biped4` Desk biped (4 servos) | biped | 4 | 166 g | The most common robot in schools and maker clubs. | On flat ground it covers the target distance in 100% of worlds (median 18.88 cm). [1 amber, 6 green, 3 red] |
 | `dog12` Robot dog (12 servos) | quadruped | 12 | 1600 g | The eye-catcher - a 12-servo dog that trots; shows where slopes, bars and slippery floors stop a trot. | On flat ground it covers the target distance in 97% of worlds (median 45.1 cm). [1 amber, 6 green, 3 red] |
-| `humanoid16` Small humanoid (16 servos) | humanoid | 16 | 802 g | Dance and motion-preflight showcase - one dance is safe, one looks fine and tips it over. | Move 'dance_risky' tips the robot in 93% of worlds. [5 green, 1 red] |
+| `humanoid16` Small humanoid (16 servos) | humanoid | 16 | 802 g | Dance and motion-preflight showcase - one dance is safe, one looks fine and tips it over. | Move 'dance_risky' tips the robot in 95% of 60 preflight worlds. [5 green, 1 red] |
 | `spider8` Spider (8 servos) | quadruped | 8 | 250 g | A cheap 8-servo crawler that really walks in simulation - the arena success story. | On flat ground it covers the target distance in 100% of worlds (median 23.34 cm). [1 amber, 5 green, 3 red] |
 
 ## What works and what does not (simulation)

@@ -25,7 +25,10 @@ SHAPES = {"box": 3, "cylinder": 2, "sphere": 1}
 SHAPE_HELP = {"box": "[x depth, y width, z height]", "cylinder": "[radius, length]", "sphere": "[radius]"}
 NAMED_AXES = {"pitch": (0.0, -1.0, 0.0), "roll": (1.0, 0.0, 0.0), "yaw": (0.0, 0.0, 1.0)}
 TOP_KEYS = {"talaria", "name", "title", "description", "photo", "voltage", "parts", "moves", "tether", "worlds",
-            "materials", "limitations", "bench", "family", "role", "base", "payload_part", "controller"}
+            "materials", "limitations", "bench", "family", "role", "base", "payload_part", "controller", "look"}
+#: appearance only (3D viewer and gallery renders); never part of the physics hash
+LOOK_KEYS = {"material", "accent", "badge", "decals", "showcase"}
+LOOK_MATERIALS = ("plastic", "aluminum")
 #: firmware settings for the real robot's controller board (ESP32 + PCA9685)
 CONTROLLER_DEFAULTS = {"sda": 21, "scl": 22, "pca9685_addr": 0x40, "servo_freq_hz": 50, "servo_min_us": 500,
                        "servo_max_us": 2500, "hostname": ""}
@@ -109,6 +112,7 @@ class Spec:
     base: str = "free"                      # free: the root floats (walkers); fixed: bolted to the table (arms)
     payload_part: Optional[str] = None      # where the payload scene hangs its weight (e.g. the gripper)
     controller: dict[str, Any] = field(default_factory=dict)   # ESP32/PCA9685 settings for the firmware
+    look: dict[str, Any] = field(default_factory=dict)         # appearance only (viewer, gallery renders)
 
     def hardware_mapping(self) -> dict[str, Any]:
         """Everything the firmware is configured with: controller settings and each joint's channel,
@@ -380,6 +384,7 @@ def parse_spec(data: Any, base_dir: Optional[Path] = None) -> Spec:
                     problems.append(f"controller: {key} must be a whole number")
                     continue
                 controller[str(key)] = value
+    look = _parse_look(data.get("look"), seen, problems)
     payload_part = data.get("payload_part")
     if payload_part is not None and payload_part not in seen:
         problems.append(f"payload_part: part {payload_part!r} does not exist")
@@ -392,7 +397,50 @@ def parse_spec(data: Any, base_dir: Optional[Path] = None) -> Spec:
     return Spec(name=name, title=title, description=description, voltage=voltage, parts=ordered, moves=moves,
                 tether=tether, world_ranges=world_ranges, photo=photo, warnings=warnings, materials=table,
                 limitations=limitations, bench=bench, family=family, role=role, base=base,
-                payload_part=payload_part, controller=controller)
+                payload_part=payload_part, controller=controller, look=look)
+
+
+def _parse_look(raw: Any, parts: set[str], problems: list[str]) -> dict[str, Any]:
+    """Appearance hints: material (plastic | aluminum), accent colour, a short badge, decals on parts
+    (``{part, kind: oled}``) and a showcase pose (``joints: {name: degrees}``) for gallery renders."""
+    if raw is None:
+        return {}
+    if not isinstance(raw, Mapping):
+        problems.append("look: must be a mapping (material, accent, badge, decals, showcase)")
+        return {}
+    _unknown("look", raw, LOOK_KEYS, problems)
+    out: dict[str, Any] = {}
+    if "material" in raw:
+        if raw["material"] not in LOOK_MATERIALS:
+            problems.append(f"look: material must be one of {', '.join(LOOK_MATERIALS)}")
+        else:
+            out["material"] = raw["material"]
+    if "accent" in raw:
+        if not isinstance(raw["accent"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", raw["accent"]):
+            problems.append("look: accent must be a colour like #ff7a1a")
+        else:
+            out["accent"] = raw["accent"]
+    if "badge" in raw:
+        if not isinstance(raw["badge"], str) or not 0 < len(raw["badge"]) <= 8:
+            problems.append("look: badge must be text of at most 8 characters")
+        else:
+            out["badge"] = raw["badge"]
+    decals = []
+    for i, d in enumerate(raw.get("decals") or []):
+        if not isinstance(d, Mapping) or d.get("part") not in parts or d.get("kind") not in ("oled",):
+            problems.append(f"look: decal {i + 1} needs part (an existing part) and kind: oled")
+            continue
+        decals.append({"part": d["part"], "kind": d["kind"]})
+    if decals:
+        out["decals"] = decals
+    show = raw.get("showcase")
+    if show is not None:
+        joints = show.get("joints") if isinstance(show, Mapping) else None
+        if not isinstance(joints, Mapping) or not all(isinstance(v, (int, float)) for v in joints.values()):
+            problems.append("look: showcase must be {joints: {joint name: degrees}}")
+        else:
+            out["showcase"] = {"joints": {str(k): float(v) for k, v in joints.items()}}
+    return out
 
 
 def _parse_bench(raw: Any, moves: Mapping[str, Any], problems: list[str]) -> dict[str, Any]:

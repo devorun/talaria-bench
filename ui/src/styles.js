@@ -155,6 +155,11 @@ export const STYLES = `
 .tb-viewer-tag { position: absolute; top: 10px; right: 10px; font-size: 10px; font-weight: 750; letter-spacing: .12em;
   padding: 3px 8px; border-radius: 6px; color: var(--tb-fg2); background: var(--tb-card-hi); border: 1px solid var(--tb-line);
   pointer-events: none; backdrop-filter: blur(6px); }
+.tb-viewer-tipped { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); pointer-events: none;
+  font-size: 11px; font-weight: 800; letter-spacing: .12em; padding: 4px 10px; border-radius: 7px; color: #fff;
+  background: color-mix(in srgb, var(--tb-red) 92%, #000); box-shadow: 0 6px 18px -8px var(--tb-red);
+  animation: tb-pop .25s ease-out; }
+@keyframes tb-pop { from { transform: translateX(-50%) scale(1.25); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
 .tb-viewer-label { position: absolute; left: 12px; top: 10px; display: flex; flex-direction: column; gap: 1px; pointer-events: none;
   font-size: 12.5px; font-weight: 640; }
 .tb-viewer-label small { font-weight: 500; font-size: 11.5px; color: var(--tb-fg3); }
@@ -258,6 +263,16 @@ export const STYLES = `
 .tb-check span { font-weight: 620; padding-right: 22px; }
 .tb-check small { color: var(--tb-fg3); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; }
 .tb-check.tb-active { border-color: color-mix(in srgb, var(--tb-accent) 55%, transparent); background: color-mix(in srgb, var(--tb-accent) 7%, transparent); }
+
+.tb-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--tb-card); border: 1px solid var(--tb-line); }
+.tb-seg-btn { all: unset; cursor: pointer; padding: 5px 10px; border-radius: 7px; font-size: 12px; color: var(--tb-fg2); }
+.tb-seg-btn:hover:not(:disabled) { color: var(--tb-fg); }
+.tb-seg-btn.tb-active { background: var(--tb-card-hi); color: var(--tb-fg); font-weight: 620; }
+.tb-seg-btn:disabled { opacity: .45; cursor: default; }
+.tb-seg-count { font-size: 10.5px; color: var(--tb-fg3); margin-left: 3px; font-variant-numeric: tabular-nums; }
+.tb-badge { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 6px; font-size: 11px; font-weight: 800;
+  letter-spacing: .04em; color: #fff; background: var(--tb-badge, var(--tb-accent)); }
+.tb-thumb .tb-badge { position: absolute; right: 10px; top: 10px; }
 
 /* Move check */
 .tb-verdict { display: grid; grid-template-columns: auto 1fr auto; gap: 22px; align-items: center; padding: 20px 24px;

@@ -13,6 +13,10 @@ voltage: 5.0
 base: fixed
 payload_part: hand
 
+# Appearance only: showcase pose with the elbow bent and the gripper open.
+look:
+  showcase: {joints: {turret: 25, upper_arm: 30, forearm: 70, wrist: 35, finger: 45}}
+
 parts:
   - name: base
     shape: cylinder

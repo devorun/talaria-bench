@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `humanoid16` (802 g, 16 servos, spec `a009b4e9f5fa`), 30 worlds per scene (seeds 0..29), 3 s.
+Robot `humanoid16` (802 g, 16 servos, spec `a009b4e9f5fa`), 30 worlds per scene (seeds 0..29), 10 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|
@@ -15,13 +15,13 @@ Robot `humanoid16` (802 g, 16 servos, spec `a009b4e9f5fa`), 30 worlds per scene 
 | Push test | GREEN | 93% | weakest tipping push: 0.2 (0.2) x weight | 0.05 (world 7) | tips at a nudge from the front (2) |
 | Slippery floor | n/a | - | - | - | the robot has no walk move |
 | Payload | n/a | - | - | - | the robot has no payload_part |
-| Move 'stand' | GREEN | 93% | max body tilt: 2.95 (0.86) deg | 45.16 (world 7) | tipped over (2) |
-| Move 'wave' | GREEN | 90% | max body tilt: 3.08 (1.55) deg | 43.92 (world 7) | tipped over (3) |
-| Move 'bow' | GREEN | 90% | max body tilt: 13.51 (9.24) deg | 45.82 (world 7) | tipped over (2), 'shin_l' touched the floor (1) |
-| Move 'dance_safe' | GREEN | 93% | max body tilt: 4.63 (3.13) deg | 43.84 (world 7) | tipped over (2) |
-| Move 'dance_risky' | RED | 7% | max body tilt: 56.93 (40.52) deg | 66.63 (world 1) | tipped over (27), 'shin_r' touched the floor (1) |
+| Move 'stand' | GREEN | 100% | max body tilt: 2.3 (0.47) deg | 7.88 (world 5028) | - |
+| Move 'wave' | GREEN | 100% | max body tilt: 2.73 (1.38) deg | 7.41 (world 5005) | - |
+| Move 'bow' | GREEN | 100% | max body tilt: 11.89 (7.92) deg | 19.35 (world 5005) | - |
+| Move 'dance_safe' | GREEN | 98% | max body tilt: 3.71 (2.38) deg | 44.64 (world 5033) | tipped over (1) |
+| Move 'dance_risky' | RED | 5% | max body tilt: 60.03 (53.23) deg | 70.41 (world 5000) | tipped over (56), 'forearm_l' touched the floor (1) |
 
-**Summary.** Walking scenes do not apply (the robot has no walk move). Survives a nudge from every side in 93% of worlds; a push of 0.3 x body weight from the front tips it (median). Move 'dance_risky' tips the robot in 93% of worlds. Move 'wave' tips the robot in 10% of worlds. Move 'bow' tips the robot in 10% of worlds. Move 'stand' tips the robot in 7% of worlds. Move 'dance_safe' tips the robot in 7% of worlds. The upperarm r servo is near its limit (peak 100% of stall, estimate) during the move 'dance_risky' test.
+**Summary.** Walking scenes do not apply (the robot has no walk move). Survives a nudge from every side in 93% of worlds; a push of 0.3 x body weight from the front tips it (median). Standing moves that never or almost never tip it: stand, wave, bow, dance_safe. Move 'dance_risky' tips the robot in 95% of 60 preflight worlds. The upperarm r servo is near its limit (peak 100% of stall, estimate) during the move 'dance_risky' test.
 
 **Push test** (tipping push in x body weight, median / p10; how far it slides when it does not tip, median):
 
@@ -38,14 +38,14 @@ Robot `humanoid16` (802 g, 16 servos, spec `a009b4e9f5fa`), 30 worlds per scene 
 |---|---|---|---|
 | foot_l | 100% | 0% | Push test |
 | foot_r | 100% | 0% | Push test |
-| forearm_l | 27% | 0% | Move 'dance_risky' |
-| forearm_r | 52% | 0% | Move 'wave' |
+| forearm_l | 34% | 0% | Move 'dance_risky' |
+| forearm_r | 42% | 0% | Move 'wave' |
 | hiproll_l | 100% | 0% | Move 'dance_risky' |
 | hiproll_r | 100% | 0% | Move 'dance_risky' |
-| hipyaw_l | 92% | 0% | Move 'dance_risky' |
+| hipyaw_l | 100% | 0% | Move 'dance_risky' |
 | hipyaw_r | 100% | 0% | Move 'dance_risky' |
-| shin_l | 100% | 0% | Move 'dance_risky' |
-| shin_r | 100% | 0% | Move 'dance_risky' |
+| shin_l | 100% | 0% | Move 'dance_safe' |
+| shin_r | 100% | 0% | Move 'dance_safe' |
 | shoulder_l | 100% | 0% | Move 'dance_risky' |
 | shoulder_r | 100% | 0% | Move 'dance_risky' |
 | thigh_l | 100% | 0% | Move 'dance_risky' |

@@ -1,11 +1,28 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Viewer3D, Timeline, usePlayer, frameAt, traceDuration } from '../viewer.jsx'
-import { Bar, Button, Chip, Empty, ErrorBox, Loading, Progress, STATUS, fmt, pct, useApi, useJob, useTrace } from '../ui.jsx'
+import { Bar, Button, Chip, Empty, ErrorBox, Loading, Progress, STATUS, human, pct, useApi, useJob, useTrace } from '../ui.jsx'
+import { tipTime } from '../viewer.jsx'
 
-function Tile({ card, active, onClick }) {
+function Tile({ card, active, onClick, quick }) {
   const st = STATUS[card.status] || STATUS['n/a']
   const m = card.metric || {}
   const scoped = card.applicable && card.status !== 'out_of_scope'
+  const isMove = card.id.startsWith('move:')
+  if (scoped && isMove) {
+    const falls = card.runs - card.passed
+    return (
+      <button type="button" className={`tb-tile tb-tile-${st.tone}${active ? ' tb-active' : ''}`} onClick={onClick}>
+        <div className="tb-tile-top">
+          <span className="tb-tile-title">{card.title}</span>
+          <span className={'tb-dot tb-fill-' + st.tone} />
+        </div>
+        <div className="tb-tile-big">{pct(falls / card.runs)}</div>
+        <div className="tb-tile-sub">tipped in {falls}/{card.runs} {quick ? 'quick ' : ''}preflight worlds</div>
+        <div className="tb-tile-metric">median {human(card.id, m.median)}</div>
+        <div className="tb-tile-worst">{m.worst && m.worst.reason ? `worst: ${m.worst.reason}` : 'never tipped'}</div>
+      </button>
+    )
+  }
   return (
     <button type="button" className={`tb-tile tb-tile-${st.tone}${active ? ' tb-active' : ''}`} onClick={onClick}
       disabled={!scoped}>
@@ -17,8 +34,8 @@ function Tile({ card, active, onClick }) {
         <>
           <div className="tb-tile-big">{pct(card.pass_rate)}</div>
           <div className="tb-tile-sub">pass · {card.runs} worlds</div>
-          <div className="tb-tile-metric">{m.name}: <b>{fmt(m.median, m.unit)}</b> {m.unit !== 'x weight' ? m.unit : '× weight'}</div>
-          <div className="tb-tile-worst">worst: {fmt(m.worst && m.worst.value, m.unit)}{m.worst && m.worst.reason ? ` · ${m.worst.reason}` : ''}</div>
+          <div className="tb-tile-metric">median: <b>{human(card.id, m.median, m.unit)}</b></div>
+          <div className="tb-tile-worst">worst: {m.worst && m.worst.value != null ? human(card.id, m.worst.value, m.unit) : (m.worst && m.worst.reason) || '–'}</div>
         </>
       ) : (
         <>
@@ -41,7 +58,8 @@ function Replays({ robot, card }) {
     if (loading || !d) return <div className="tb-viewer tb-viewer-wait" style={{ height: 320 }}><span className="tb-spinner" /> recording {title}…</div>
     const r = d.result || {}
     return (
-      <Viewer3D parts={d.trace.parts} frames={d.trace.frames} meta={d.meta} frameIndex={frameAt(d.trace, player.t)}
+      <Viewer3D parts={d.trace.parts} frames={d.trace.frames} meta={d.meta} look={d.look}
+        tipAt={tipTime(d.trace, r)} frameIndex={frameAt(d.trace, player.t)}
         time={player.t} height={320} label={`${title} · world ${d.seed}`}
         sublabel={(r.passed ? 'passed' : (r.reason || 'failed')) + (d.note ? ` · ${d.note}` : '')}
         tone={r.passed ? 'green' : 'red'} />
@@ -120,7 +138,8 @@ export function BenchPage({ robot }) {
               <div className="tb-row tb-gap-sm">
                 {['green', 'amber', 'red', 'out_of_scope', 'n/a'].filter((k) => counts[k]).map((k) => (
                   <Chip key={k} tone={STATUS[k].tone}>{counts[k]} {STATUS[k].label.toLowerCase()}</Chip>))}
-                <Chip>{report.settings.worlds} worlds/scene</Chip>
+                {report.settings.quick ? <Chip tone="amber">quick run</Chip> : null}
+                <Chip>{report.settings.worlds} worlds/scene · moves {report.settings.move_worlds || 60}</Chip>
                 <Chip>{report.origin}</Chip>
               </div>
             </div>
@@ -128,7 +147,8 @@ export function BenchPage({ robot }) {
             <p className="tb-muted tb-small">{report.label}</p>
           </div>
           <div className="tb-tiles">
-            {cards.map((c) => <Tile key={c.id} card={c} active={c.id === sel} onClick={() => setSel(c.id === sel ? null : c.id)} />)}
+            {cards.map((c) => <Tile key={c.id} card={c} active={c.id === sel} quick={report.settings.quick}
+              onClick={() => setSel(c.id === sel ? null : c.id)} />)}
           </div>
           {!active ? <p className="tb-hint">Click a scene tile to replay its median and worst world side by side.</p> : null}
           {active ? <Replays key={active.id} robot={robot} card={active} /> : null}

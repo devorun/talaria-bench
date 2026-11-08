@@ -97,6 +97,12 @@ def _write_progress(path: Optional[Path], state: dict) -> None:
     os.replace(tmp, path)
 
 
+# Official move worlds: the preflight's seeds (preflight.SEED_BASE) and world count (preflight.DEFAULT_WORLDS).
+MOVE_SEED_BASE = 5000
+MOVE_WORLDS = 60
+MOVE_QUICK_WORLDS = 30
+
+
 def run_benchmark(spec: Spec, scenes: Optional[list[str]] = None, worlds: int = DEFAULT_WORLDS, seed: int = 0,
                   quick: bool = False, progress: Optional[Callable[[int, int, str], None]] = None,
                   workers: Optional[int] = None, cache_dir: Optional[Path | str] = "default",
@@ -115,6 +121,13 @@ def run_benchmark(spec: Spec, scenes: Optional[list[str]] = None, worlds: int = 
     cache = default_cache_dir() if cache_dir == "default" else (Path(cache_dir) if cache_dir else None)
     pfile = Path(progress_file) if progress_file else None
     seeds = list(range(seed, seed + worlds))
+    # Standing moves are scored on the official preflight worlds (the same seeds and count as move_check),
+    # so the report card, the gallery and the preflight screen show one number per move. Quick runs use
+    # the first QUICK move worlds and are labelled quick.
+    move_seeds = list(range(MOVE_SEED_BASE + seed, MOVE_SEED_BASE + seed + (MOVE_QUICK_WORLDS if quick else MOVE_WORLDS)))
+
+    def seeds_for(sid: str) -> list[int]:
+        return move_seeds if sid.startswith("move:") else seeds
 
     jobs: dict[tuple[str, int], dict] = {}
     todo: list[tuple[str, int]] = []
@@ -124,7 +137,7 @@ def run_benchmark(spec: Spec, scenes: Optional[list[str]] = None, worlds: int = 
         if not ok:
             na[sid] = why
             continue
-        for s in seeds:
+        for s in seeds_for(sid):
             hit = _cache_get(cache, job_key(spec, sid, s))
             if hit is not None:
                 jobs[(sid, s)] = hit
@@ -164,7 +177,8 @@ def run_benchmark(spec: Spec, scenes: Optional[list[str]] = None, worlds: int = 
             finished(task, run_scene(spec, *task))
     t_jobs = time.perf_counter() - t_start
 
-    by_scene: dict[str, list[dict]] = {sid: [jobs[(sid, s)] for s in seeds] for sid in scene_ids if sid not in na}
+    by_scene: dict[str, list[dict]] = {sid: [jobs[(sid, s)] for s in seeds_for(sid)] for sid in scene_ids
+                                       if sid not in na}
     flat_median = None
     if "flat" in by_scene:
         flat_median = float(np.median([j["metric"] for j in by_scene["flat"]]))
@@ -183,6 +197,7 @@ def run_benchmark(spec: Spec, scenes: Optional[list[str]] = None, worlds: int = 
         "robot": {**spec.summary(), "hash": spec.hash(), "source": str(spec.source) if spec.source else None,
                   "limitations": list(spec.limitations), "world_ranges": _world_ranges(spec)},
         "settings": {"scenes": scene_ids, "worlds": worlds, "seed": seed, "quick": quick,
+                     "move_worlds": len(move_seeds), "move_seed": move_seeds[0],
                      "walk_move": walk_move(spec), "bench": dict(spec.bench), "scene_version": SCENE_VERSION},
         "not_applicable": na,
         "scenes": by_scene,

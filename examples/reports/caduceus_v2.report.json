@@ -3,7 +3,7 @@
  "version": 1,
  "simulation": true,
  "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
- "created": "2026-11-08T17:36:36+00:00",
+ "created": "2026-11-08T22:53:36+00:00",
  "robot": {
   "name": "caduceus_v2",
   "title": "Caduceus v2 (design variant)",
@@ -90,6 +90,8 @@
   "worlds": 30,
   "seed": 0,
   "quick": false,
+  "move_worlds": 60,
+  "move_seed": 5000,
   "walk_move": "walk",
   "bench": {
    "walk_move": "walk",
@@ -664,42 +666,42 @@
    "in_scope": true,
    "note": null,
    "conditions": "plays 'wave' standing; pass: no fall",
-   "runs": 30,
-   "passed": 30,
+   "runs": 60,
+   "passed": 60,
    "pass_rate": 1.0,
    "metric": {
     "name": "max body tilt",
     "unit": "deg",
-    "median": 0.725,
-    "p10": 0.455,
+    "median": 1.056,
+    "p10": 0.432,
     "worst": {
-     "value": 2.097,
-     "seed": 7,
+     "value": 2.162,
+     "seed": 5038,
      "reason": null
     },
-    "median_seed": 15
+    "median_seed": 5059
    },
    "failure_reasons": {},
    "falls": 0,
    "loads": {
     "left_arm": {
      "peak_pct_median": 0.9,
-     "peak_pct_max": 2.4,
+     "peak_pct_max": 2.9,
      "near_limit_time_pct_median": 0.0
     },
     "left_leg": {
-     "peak_pct_median": 10.4,
-     "peak_pct_max": 27.4,
+     "peak_pct_median": 11.0,
+     "peak_pct_max": 28.1,
      "near_limit_time_pct_median": 0.0
     },
     "right_arm": {
-     "peak_pct_median": 16.8,
-     "peak_pct_max": 21.5,
+     "peak_pct_median": 17.1,
+     "peak_pct_max": 27.4,
      "near_limit_time_pct_median": 0.0
     },
     "right_leg": {
-     "peak_pct_median": 11.5,
-     "peak_pct_max": 26.6,
+     "peak_pct_median": 11.9,
+     "peak_pct_max": 24.6,
      "near_limit_time_pct_median": 0.0
     }
    }
@@ -713,42 +715,42 @@
    "in_scope": true,
    "note": null,
    "conditions": "plays 'arms_up_both' standing; pass: no fall",
-   "runs": 30,
-   "passed": 30,
+   "runs": 60,
+   "passed": 60,
    "pass_rate": 1.0,
    "metric": {
     "name": "max body tilt",
     "unit": "deg",
-    "median": 2.098,
-    "p10": 1.361,
+    "median": 2.274,
+    "p10": 1.397,
     "worst": {
-     "value": 3.358,
-     "seed": 8,
+     "value": 3.984,
+     "seed": 5038,
      "reason": null
     },
-    "median_seed": 9
+    "median_seed": 5051
    },
    "failure_reasons": {},
    "falls": 0,
    "loads": {
     "left_arm": {
-     "peak_pct_median": 51.1,
-     "peak_pct_max": 69.9,
+     "peak_pct_median": 52.9,
+     "peak_pct_max": 100.0,
      "near_limit_time_pct_median": 0.0
     },
     "left_leg": {
-     "peak_pct_median": 28.1,
-     "peak_pct_max": 66.3,
+     "peak_pct_median": 32.7,
+     "peak_pct_max": 82.3,
      "near_limit_time_pct_median": 0.0
     },
     "right_arm": {
-     "peak_pct_median": 50.9,
-     "peak_pct_max": 73.8,
+     "peak_pct_median": 53.5,
+     "peak_pct_max": 71.1,
      "near_limit_time_pct_median": 0.0
     },
     "right_leg": {
-     "peak_pct_median": 40.3,
-     "peak_pct_max": 75.0,
+     "peak_pct_median": 31.8,
+     "peak_pct_max": 83.0,
      "near_limit_time_pct_median": 0.0
     }
    }
@@ -762,42 +764,42 @@
    "in_scope": true,
    "note": null,
    "conditions": "plays 'arms_up_alternating' standing; pass: no fall",
-   "runs": 30,
-   "passed": 30,
+   "runs": 60,
+   "passed": 60,
    "pass_rate": 1.0,
    "metric": {
     "name": "max body tilt",
     "unit": "deg",
-    "median": 1.003,
-    "p10": 0.585,
+    "median": 1.504,
+    "p10": 0.582,
     "worst": {
-     "value": 2.562,
-     "seed": 8,
+     "value": 2.809,
+     "seed": 5038,
      "reason": null
     },
-    "median_seed": 9
+    "median_seed": 5051
    },
    "failure_reasons": {},
    "falls": 0,
    "loads": {
     "left_arm": {
-     "peak_pct_median": 51.4,
-     "peak_pct_max": 68.6,
+     "peak_pct_median": 54.7,
+     "peak_pct_max": 72.4,
      "near_limit_time_pct_median": 0.0
     },
     "left_leg": {
-     "peak_pct_median": 21.4,
-     "peak_pct_max": 46.7,
+     "peak_pct_median": 19.6,
+     "peak_pct_max": 56.2,
      "near_limit_time_pct_median": 0.0
     },
     "right_arm": {
-     "peak_pct_median": 52.0,
-     "peak_pct_max": 70.9,
+     "peak_pct_median": 53.8,
+     "peak_pct_max": 78.1,
      "near_limit_time_pct_median": 0.0
     },
     "right_leg": {
-     "peak_pct_median": 23.0,
-     "peak_pct_max": 39.5,
+     "peak_pct_median": 23.2,
+     "peak_pct_max": 52.6,
      "near_limit_time_pct_median": 0.0
     }
    }
@@ -811,12 +813,12 @@
   }
  ],
  "timing": {
-  "jobs": 330,
-  "computed": 0,
-  "cached": 330,
+  "jobs": 420,
+  "computed": 180,
+  "cached": 240,
   "workers": 8,
-  "seconds_jobs": 0.14,
-  "seconds_total": 7.88
+  "seconds_jobs": 4.05,
+  "seconds_total": 11.49
  },
- "summary": "Survives a nudge from every side in 100% of worlds; a push of 0.3 x body weight from the front tips it (median). Standing moves that never or almost never tip it: wave, arms_up_both, arms_up_alternating. 7 walking scene(s) are outside this model's scope for this robot and are not scored: This rigid-body model does not simulate soft foam feet; the bench does not guess here."
+ "summary": "Survives a nudge from every side in 100% of worlds; a push of 0.3 x body weight from the front tips it (median). Standing moves that never or almost never tip it: wave, arms_up_both, arms_up_alternating. The left arm servo is near its limit (peak 100% of stall, estimate) during the move 'arms_up_both' test. 7 walking scene(s) are outside this model's scope for this robot and are not scored: This rigid-body model does not simulate soft foam feet; the bench does not guess here."
 }

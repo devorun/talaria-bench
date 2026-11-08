@@ -3,7 +3,7 @@
  "version": 1,
  "simulation": true,
  "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
- "created": "2026-11-08T17:36:58+00:00",
+ "created": "2026-11-08T22:53:59+00:00",
  "robot": {
   "name": "dog12",
   "title": "Robot dog (12 servos)",
@@ -92,6 +92,8 @@
   "worlds": 30,
   "seed": 0,
   "quick": false,
+  "move_worlds": 60,
+  "move_seed": 5000,
   "walk_move": "trot",
   "bench": {
    "walk_move": "trot",
@@ -986,72 +988,72 @@
    "in_scope": true,
    "note": null,
    "conditions": "plays 'stand' standing; pass: no fall",
-   "runs": 30,
-   "passed": 30,
+   "runs": 60,
+   "passed": 60,
    "pass_rate": 1.0,
    "metric": {
     "name": "max body tilt",
     "unit": "deg",
-    "median": 0.029,
+    "median": 0.026,
     "p10": 0.008,
     "worst": {
-     "value": 0.157,
-     "seed": 29,
+     "value": 0.131,
+     "seed": 5020,
      "reason": null
     },
-    "median_seed": 8
+    "median_seed": 5053
    },
    "failure_reasons": {},
    "falls": 0,
    "loads": {
     "hip_fl": {
-     "peak_pct_median": 14.1,
-     "peak_pct_max": 34.1,
+     "peak_pct_median": 14.7,
+     "peak_pct_max": 35.3,
      "near_limit_time_pct_median": 0.0
     },
     "hip_fr": {
-     "peak_pct_median": 16.2,
-     "peak_pct_max": 27.8,
+     "peak_pct_median": 14.3,
+     "peak_pct_max": 33.2,
      "near_limit_time_pct_median": 0.0
     },
     "hip_hl": {
-     "peak_pct_median": 8.6,
-     "peak_pct_max": 21.9,
+     "peak_pct_median": 7.3,
+     "peak_pct_max": 27.2,
      "near_limit_time_pct_median": 0.0
     },
     "hip_hr": {
-     "peak_pct_median": 6.2,
-     "peak_pct_max": 20.1,
+     "peak_pct_median": 7.1,
+     "peak_pct_max": 23.1,
      "near_limit_time_pct_median": 0.0
     },
     "shin_fl": {
-     "peak_pct_median": 28.4,
-     "peak_pct_max": 51.1,
+     "peak_pct_median": 28.9,
+     "peak_pct_max": 52.0,
      "near_limit_time_pct_median": 0.0
     },
     "shin_fr": {
-     "peak_pct_median": 29.4,
-     "peak_pct_max": 54.8,
+     "peak_pct_median": 28.5,
+     "peak_pct_max": 59.4,
      "near_limit_time_pct_median": 0.0
     },
     "shin_hl": {
-     "peak_pct_median": 20.9,
-     "peak_pct_max": 40.9,
+     "peak_pct_median": 18.4,
+     "peak_pct_max": 48.8,
      "near_limit_time_pct_median": 0.0
     },
     "shin_hr": {
-     "peak_pct_median": 16.9,
-     "peak_pct_max": 35.9,
+     "peak_pct_median": 17.6,
+     "peak_pct_max": 42.5,
      "near_limit_time_pct_median": 0.0
     },
     "thigh_fl": {
-     "peak_pct_median": 6.7,
-     "peak_pct_max": 15.0,
+     "peak_pct_median": 7.7,
+     "peak_pct_max": 20.6,
      "near_limit_time_pct_median": 0.0
     },
     "thigh_fr": {
-     "peak_pct_median": 6.6,
-     "peak_pct_max": 20.8,
+     "peak_pct_median": 8.3,
+     "peak_pct_max": 18.7,
      "near_limit_time_pct_median": 0.0
     },
     "thigh_hl": {
@@ -1060,8 +1062,8 @@
      "near_limit_time_pct_median": 0.0
     },
     "thigh_hr": {
-     "peak_pct_median": 5.7,
-     "peak_pct_max": 10.7,
+     "peak_pct_median": 5.5,
+     "peak_pct_max": 10.1,
      "near_limit_time_pct_median": 0.0
     }
    }
@@ -1075,81 +1077,81 @@
    "in_scope": true,
    "note": null,
    "conditions": "plays 'sit' standing; pass: no fall",
-   "runs": 30,
-   "passed": 30,
+   "runs": 60,
+   "passed": 60,
    "pass_rate": 1.0,
    "metric": {
     "name": "max body tilt",
     "unit": "deg",
-    "median": 26.229,
-    "p10": 25.082,
+    "median": 26.416,
+    "p10": 25.295,
     "worst": {
-     "value": 28.28,
-     "seed": 20,
+     "value": 28.805,
+     "seed": 5031,
      "reason": null
     },
-    "median_seed": 13
+    "median_seed": 5040
    },
    "failure_reasons": {},
    "falls": 0,
    "loads": {
     "hip_fl": {
-     "peak_pct_median": 15.0,
-     "peak_pct_max": 35.2,
+     "peak_pct_median": 15.1,
+     "peak_pct_max": 38.1,
      "near_limit_time_pct_median": 0.0
     },
     "hip_fr": {
-     "peak_pct_median": 16.9,
-     "peak_pct_max": 28.1,
+     "peak_pct_median": 14.9,
+     "peak_pct_max": 36.9,
      "near_limit_time_pct_median": 0.0
     },
     "hip_hl": {
-     "peak_pct_median": 15.8,
-     "peak_pct_max": 29.8,
+     "peak_pct_median": 16.2,
+     "peak_pct_max": 34.3,
      "near_limit_time_pct_median": 0.0
     },
     "hip_hr": {
-     "peak_pct_median": 15.3,
-     "peak_pct_max": 29.6,
+     "peak_pct_median": 16.9,
+     "peak_pct_max": 31.0,
      "near_limit_time_pct_median": 0.0
     },
     "shin_fl": {
-     "peak_pct_median": 29.9,
-     "peak_pct_max": 52.7,
+     "peak_pct_median": 30.6,
+     "peak_pct_max": 53.2,
      "near_limit_time_pct_median": 0.0
     },
     "shin_fr": {
-     "peak_pct_median": 30.5,
-     "peak_pct_max": 56.0,
+     "peak_pct_median": 30.0,
+     "peak_pct_max": 61.2,
      "near_limit_time_pct_median": 0.0
     },
     "shin_hl": {
-     "peak_pct_median": 37.8,
-     "peak_pct_max": 55.9,
+     "peak_pct_median": 34.3,
+     "peak_pct_max": 69.8,
      "near_limit_time_pct_median": 0.0
     },
     "shin_hr": {
-     "peak_pct_median": 35.1,
-     "peak_pct_max": 59.1,
+     "peak_pct_median": 34.4,
+     "peak_pct_max": 61.7,
      "near_limit_time_pct_median": 0.0
     },
     "thigh_fl": {
-     "peak_pct_median": 21.3,
-     "peak_pct_max": 35.9,
+     "peak_pct_median": 20.6,
+     "peak_pct_max": 45.6,
      "near_limit_time_pct_median": 0.0
     },
     "thigh_fr": {
-     "peak_pct_median": 23.3,
-     "peak_pct_max": 43.3,
+     "peak_pct_median": 19.5,
+     "peak_pct_max": 50.6,
      "near_limit_time_pct_median": 0.0
     },
     "thigh_hl": {
-     "peak_pct_median": 26.4,
-     "peak_pct_max": 47.9,
+     "peak_pct_median": 26.3,
+     "peak_pct_max": 48.7,
      "near_limit_time_pct_median": 0.0
     },
     "thigh_hr": {
-     "peak_pct_median": 24.3,
+     "peak_pct_median": 27.1,
      "peak_pct_max": 41.7,
      "near_limit_time_pct_median": 0.0
     }
@@ -1159,12 +1161,12 @@
  "servo_note": "Servo load is an estimate: peak torque as a share of the datasheet stall torque. Stall torque is not a safe continuous torque; a servo held near it overheats.",
  "limitations": [],
  "timing": {
-  "jobs": 300,
-  "computed": 0,
-  "cached": 300,
+  "jobs": 360,
+  "computed": 120,
+  "cached": 240,
   "workers": 8,
-  "seconds_jobs": 0.19,
-  "seconds_total": 11.99
+  "seconds_jobs": 2.49,
+  "seconds_total": 12.56
  },
  "summary": "On flat ground it covers the target distance in 97% of worlds (median 45.1 cm). Climbs the 5 deg ramp in 90% of worlds but slid back on the 10 deg ramp in 70% of worlds. Clears the bar 1 cm in 97% of worlds. Clears the bar 2 cm in 50% of worlds. Survives a nudge from every side in 100% of worlds; does not tip even at the largest push. Standing moves that never or almost never tip it: stand, sit. On a slippery floor its feet skate and it glides out of control in 73% of worlds. The thigh hr servo is near its limit (peak 100% of stall, estimate) during the ramp 5 deg test."
 }

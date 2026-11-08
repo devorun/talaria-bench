@@ -302,7 +302,7 @@ def test_virtual_end_to_end_check_play_status(rt, tools):
 def test_failing_check_explains_and_suggests(rt, tools):
     check = call(tools, "move_check", {"robot": "caduceus", "move": "arms_up_both", "quick": True})
     assert check["verdict"] == "fail" and not check["approved"]
-    assert check["stopped_early"] and check["worlds"] < 30 and check["tip"]["low"] > 0.10   # clear early
+    assert check["worlds"] == 30 and not check["official"] and check["quick"]   # never BLOCKED on fewer than 30
     assert check["tip_seeds"] and all(s >= 5000 for s in check["tip_seeds"])
     assert check["tip"]["falls"] > 0 and check["reasons"] and check["suggestions"]
     assert any("Slow it down" in s for s in check["suggestions"])
@@ -408,3 +408,16 @@ def test_slash_status_gallery_and_help(rt, tools):
     assert "Talaria Bench" in handle("status")
     assert "spider8" in handle("gallery")
     assert "/talaria" in handle("help") and "Usage" in handle("bogus")
+
+
+def test_full_check_is_the_official_number_the_report_shows(rt, tools):
+    """A full move_check runs the 60 fixed preflight worlds; the bench scores standing moves on the same
+    worlds, so the report card (and the gallery headline built from it) shows the same number."""
+    from talaria_bench.bench import run_benchmark
+
+    check = call(tools, "move_check", {"robot": "caduceus", "move": "arms_up_both"})
+    assert check["official"] and check["worlds"] == 60 and not check["stopped_early"]
+    res = run_benchmark(rt.robot("caduceus"), scenes=["move:arms_up_both"], cache_dir=None, traces=False, workers=1)
+    jobs = res["scenes"]["move:arms_up_both"]
+    assert len(jobs) == 60 and [j["seed"] for j in jobs] == list(range(5000, 5060))
+    assert sum(1 for j in jobs if j["fell"]) == check["tip"]["falls"]

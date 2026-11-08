@@ -169,12 +169,17 @@ def test_bench_job_and_compare_job(client):
     assert done["status"] == "done", done.get("log_tail")
     assert done["result"]["scenes"] and done["result"]["summary"]
     assert get(client, "/robots/arm6/report")[1]["report"]["origin"] == "this machine"
+    # a quick run shows on the report card (labelled) but never replaces the official move numbers
+    moves = {m["name"]: m["official"] for m in get(client, "/robots/arm6/moves")[1]["moves"]}
+    assert all(o["worlds"] == 60 and o["origin"] == "bundled example" and not o["quick"] for o in moves.values())
     code, cmp_job = post(client, "/compare", {"robot": "spider8", "quick": True, "scenes": ["move:stand"],
                                              "variants": [{"name": "heavy", "set": {"parts.body.mass": "+80"}}]})
     assert code == 200
     done = wait_job(client, cmp_job["job_id"])
     assert done["status"] == "done", done.get("log_tail")
     assert [v["name"] for v in done["result"]["variants"]] == ["base", "heavy"]
+    row = done["result"]["rows"][0]
+    assert {"base", "heavy"} <= set(row["outcomes"]) and all(len(p) == 2 for p in row["outcomes"]["base"])
     seed = done["result"]["reports"]["heavy"]["scenes"][0]["metric"]["median_seed"]
     base = client.post(PREFIX + "/trace", json={"robot": "spider8", "scene": "move:stand", "seed": seed}).json()
     heavy = client.post(PREFIX + "/trace", json={"robot": "spider8", "scene": "move:stand", "seed": seed,
@@ -188,3 +193,24 @@ def test_variant_presets(client):
     assert "high step" in names and all(v.get("set") or v.get("robot") for v in data["variants"])
     code, data = get(client, "/robots/caduceus/variants")
     assert data["variants"]
+
+
+def test_showcase_pose_stands_on_the_floor_and_carries_the_look(client):
+    code, data = get(client, "/robots/humanoid16")
+    lows = [p["pose"][2] for p in data["showcase"]["parts"]]
+    assert 0.0 < min(lows) < 0.03 and data["showcase"]["parts"] != data["render"]["parts"]
+    code, cad = get(client, "/robots/caduceus")
+    assert cad["look"]["material"] == "aluminum" and cad["look"]["decals"][0]["kind"] == "oled"
+    assert "calibrated against videos" in cad["role"]
+    tips = {m["name"]: m.get("official") for m in cad["moves"]}
+    assert tips["arms_up_both"]["worlds"] == 60 and tips["arms_up_both"]["falls"] > 0
+    v2 = next(r for r in get(client, "/robots")[1]["robots"] if r["name"] == "caduceus_v2")
+    assert v2["look"]["badge"] == "v2"
+
+
+def test_variant_trace_is_not_the_base_trace_when_only_the_walk_changes(client):
+    base = client.post(PREFIX + "/trace", json={"robot": "spider8", "scene": "obstacle_2cm", "seed": 0}).json()
+    high = client.post(PREFIX + "/trace", json={"robot": "spider8", "scene": "obstacle_2cm", "seed": 0,
+                                                "set": {"bench.walk_move": "walk_high"}}).json()
+    assert base["trace"]["frames"] != high["trace"]["frames"]
+    assert base["result"]["passed"] is False and high["result"]["passed"] is True

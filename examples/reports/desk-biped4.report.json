@@ -3,7 +3,7 @@
  "version": 1,
  "simulation": true,
  "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
- "created": "2026-11-08T17:36:42+00:00",
+ "created": "2026-11-08T22:53:43+00:00",
  "robot": {
   "name": "desk-biped4",
   "title": "Desk biped (4 servos)",
@@ -84,6 +84,8 @@
   "worlds": 30,
   "seed": 0,
   "quick": false,
+  "move_worlds": 60,
+  "move_seed": 5000,
   "walk_move": "walk",
   "bench": {
    "walk_move": "walk",
@@ -651,8 +653,8 @@
    "in_scope": true,
    "note": null,
    "conditions": "plays 'stand' standing; pass: no fall",
-   "runs": 30,
-   "passed": 30,
+   "runs": 60,
+   "passed": 60,
    "pass_rate": 1.0,
    "metric": {
     "name": "max body tilt",
@@ -660,23 +662,23 @@
     "median": 0.0,
     "p10": 0.0,
     "worst": {
-     "value": 0.003,
-     "seed": 13,
+     "value": 0.002,
+     "seed": 5038,
      "reason": null
     },
-    "median_seed": 9
+    "median_seed": 5025
    },
    "failure_reasons": {},
    "falls": 0,
    "loads": {
     "foot_l": {
-     "peak_pct_median": 4.6,
-     "peak_pct_max": 11.9,
+     "peak_pct_median": 6.0,
+     "peak_pct_max": 13.1,
      "near_limit_time_pct_median": 0.0
     },
     "foot_r": {
-     "peak_pct_median": 5.5,
-     "peak_pct_max": 11.7,
+     "peak_pct_median": 3.2,
+     "peak_pct_max": 13.0,
      "near_limit_time_pct_median": 0.0
     },
     "leg_l": {
@@ -686,7 +688,7 @@
     },
     "leg_r": {
      "peak_pct_median": 0.0,
-     "peak_pct_max": 0.1,
+     "peak_pct_max": 0.0,
      "near_limit_time_pct_median": 0.0
     }
    }
@@ -700,38 +702,38 @@
    "in_scope": true,
    "note": null,
    "conditions": "plays 'dance' standing; pass: no fall",
-   "runs": 30,
-   "passed": 30,
+   "runs": 60,
+   "passed": 60,
    "pass_rate": 1.0,
    "metric": {
     "name": "max body tilt",
     "unit": "deg",
-    "median": 3.524,
-    "p10": 2.983,
+    "median": 3.448,
+    "p10": 2.672,
     "worst": {
-     "value": 4.8,
-     "seed": 0,
+     "value": 4.835,
+     "seed": 5024,
      "reason": null
     },
-    "median_seed": 9
+    "median_seed": 5055
    },
    "failure_reasons": {},
    "falls": 0,
    "loads": {
     "foot_l": {
-     "peak_pct_median": 18.7,
-     "peak_pct_max": 32.6,
+     "peak_pct_median": 20.0,
+     "peak_pct_max": 30.6,
      "near_limit_time_pct_median": 0.0
     },
     "foot_r": {
      "peak_pct_median": 19.4,
-     "peak_pct_max": 34.4,
+     "peak_pct_max": 30.0,
      "near_limit_time_pct_median": 0.0
     },
     "leg_l": {
      "peak_pct_median": 100.0,
      "peak_pct_max": 100.0,
-     "near_limit_time_pct_median": 0.8
+     "near_limit_time_pct_median": 1.1
     },
     "leg_r": {
      "peak_pct_median": 100.0,
@@ -744,12 +746,12 @@
  "servo_note": "Servo load is an estimate: peak torque as a share of the datasheet stall torque. Stall torque is not a safe continuous torque; a servo held near it overheats.",
  "limitations": [],
  "timing": {
-  "jobs": 300,
-  "computed": 0,
-  "cached": 300,
+  "jobs": 360,
+  "computed": 120,
+  "cached": 240,
   "workers": 8,
-  "seconds_jobs": 0.15,
-  "seconds_total": 6.67
+  "seconds_jobs": 1.67,
+  "seconds_total": 7.27
  },
  "summary": "On flat ground it covers the target distance in 100% of worlds (median 18.88 cm). Climbs the 10 deg ramp in 57% of worlds but slid back on the 15 deg ramp in 47% of worlds. The bar 1 cm: stuck at the bar in most worlds (passes 0%). The bar 2 cm: stuck at the bar in most worlds (passes 0%). Survives a nudge from every side in 100% of worlds; a push of 0.75 x body weight from the front tips it (median). Standing moves that never or almost never tip it: stand, dance. Keeps at least half its flat speed on a slippery floor in 97% of worlds. The leg r servo is near its limit (peak 100% of stall, estimate) during the move 'dance' test."
 }

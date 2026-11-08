@@ -3,7 +3,7 @@
  "version": 1,
  "simulation": true,
  "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
- "created": "2026-11-08T17:37:10+00:00",
+ "created": "2026-11-08T22:54:18+00:00",
  "robot": {
   "name": "spider8",
   "title": "Spider (8 servos)",
@@ -86,6 +86,8 @@
   "worlds": 30,
   "seed": 0,
   "quick": false,
+  "move_worlds": 60,
+  "move_seed": 5000,
   "walk_move": "walk",
   "bench": {
    "walk_move": "walk",
@@ -810,27 +812,27 @@
    "in_scope": true,
    "note": null,
    "conditions": "plays 'stand' standing; pass: no fall",
-   "runs": 30,
-   "passed": 30,
+   "runs": 60,
+   "passed": 60,
    "pass_rate": 1.0,
    "metric": {
     "name": "max body tilt",
     "unit": "deg",
-    "median": 0.002,
+    "median": 0.003,
     "p10": 0.0,
     "worst": {
-     "value": 0.025,
-     "seed": 17,
+     "value": 0.021,
+     "seed": 5010,
      "reason": null
     },
-    "median_seed": 3
+    "median_seed": 5006
    },
    "failure_reasons": {},
    "falls": 0,
    "loads": {
     "hip_fl": {
      "peak_pct_median": 0.1,
-     "peak_pct_max": 0.5,
+     "peak_pct_max": 0.8,
      "near_limit_time_pct_median": 0.0
     },
     "hip_fr": {
@@ -839,33 +841,33 @@
      "near_limit_time_pct_median": 0.0
     },
     "hip_hl": {
-     "peak_pct_median": 0.2,
-     "peak_pct_max": 0.6,
-     "near_limit_time_pct_median": 0.0
-    },
-    "hip_hr": {
      "peak_pct_median": 0.1,
      "peak_pct_max": 0.5,
      "near_limit_time_pct_median": 0.0
     },
+    "hip_hr": {
+     "peak_pct_median": 0.1,
+     "peak_pct_max": 0.6,
+     "near_limit_time_pct_median": 0.0
+    },
     "knee_fl": {
-     "peak_pct_median": 1.2,
-     "peak_pct_max": 2.6,
+     "peak_pct_median": 0.9,
+     "peak_pct_max": 2.2,
      "near_limit_time_pct_median": 0.0
     },
     "knee_fr": {
-     "peak_pct_median": 1.2,
-     "peak_pct_max": 2.1,
+     "peak_pct_median": 1.0,
+     "peak_pct_max": 2.0,
      "near_limit_time_pct_median": 0.0
     },
     "knee_hl": {
-     "peak_pct_median": 1.1,
-     "peak_pct_max": 1.7,
+     "peak_pct_median": 1.0,
+     "peak_pct_max": 2.2,
      "near_limit_time_pct_median": 0.0
     },
     "knee_hr": {
-     "peak_pct_median": 1.2,
-     "peak_pct_max": 1.9,
+     "peak_pct_median": 1.1,
+     "peak_pct_max": 2.6,
      "near_limit_time_pct_median": 0.0
     }
    }
@@ -874,12 +876,12 @@
  "servo_note": "Servo load is an estimate: peak torque as a share of the datasheet stall torque. Stall torque is not a safe continuous torque; a servo held near it overheats.",
  "limitations": [],
  "timing": {
-  "jobs": 270,
-  "computed": 0,
-  "cached": 270,
+  "jobs": 300,
+  "computed": 60,
+  "cached": 240,
   "workers": 8,
-  "seconds_jobs": 0.14,
-  "seconds_total": 8.06
+  "seconds_jobs": 0.7,
+  "seconds_total": 8.32
  },
  "summary": "On flat ground it covers the target distance in 100% of worlds (median 23.34 cm). Climbs the 10 deg ramp in 73% of worlds but slid back on the 15 deg ramp in 97% of worlds. The bar 1 cm: stuck at the bar in most worlds (passes 23%). The bar 2 cm: stuck at the bar in most worlds (passes 0%). Survives a nudge from every side in 100% of worlds; does not tip even at the largest push. Standing moves that never or almost never tip it: stand. Keeps at least half its flat speed on a slippery floor in 100% of worlds. The knee fr servo is near its limit (peak 100% of stall, estimate) during the bar 1 cm test."
 }

@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `arm6` (758 g, 6 servos, spec `297eee32befb`), 30 worlds per scene (seeds 0..29), 2 s.
+Robot `arm6` (758 g, 6 servos, spec `297eee32befb`), 30 worlds per scene (seeds 0..29), 3 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|
@@ -15,9 +15,9 @@ Robot `arm6` (758 g, 6 servos, spec `297eee32befb`), 30 worlds per scene (seeds 
 | Push test | n/a | - | - | - | the base is fixed to the table |
 | Slippery floor | n/a | - | - | - | the robot has no walk move |
 | Payload | GREEN | 100% | max safe payload: 100 (95) g | 50 (world 1) | - |
-| Move 'home' | GREEN | 100% | max body tilt: 0 (0) deg | 0 (world 0) | - |
-| Move 'wave' | GREEN | 100% | max body tilt: 0 (0) deg | 0 (world 0) | - |
-| Move 'pick_and_place' | GREEN | 100% | max body tilt: 0 (0) deg | 0 (world 0) | - |
+| Move 'home' | GREEN | 100% | max body tilt: 0 (0) deg | 0 (world 5000) | - |
+| Move 'wave' | GREEN | 100% | max body tilt: 0 (0) deg | 0 (world 5000) | - |
+| Move 'pick_and_place' | GREEN | 100% | max body tilt: 0 (0) deg | 0 (world 5000) | - |
 
 **Summary.** Walking scenes do not apply (the robot has no walk move). Standing moves that never or almost never tip it: home, wave, pick_and_place. Max safe payload (simulation estimate): median 100 g (p10 95 g); at 200 g the upper arm reaches 100% of stall.
 
@@ -37,10 +37,10 @@ Robot `arm6` (758 g, 6 servos, spec `297eee32befb`), 30 worlds per scene (seeds 
 |---|---|---|---|
 | finger | 22% | 0% | Payload |
 | forearm | 33% | 0% | Payload |
-| hand | 37% | 0% | Move 'wave' |
+| hand | 32% | 0% | Move 'wave' |
 | turret | 30% | 0% | Payload |
 | upper_arm | 47% | 0% | Payload |
-| wrist | 48% | 0% | Move 'wave' |
+| wrist | 44% | 0% | Move 'wave' |
 
 _Servo load is an estimate: peak torque as a share of the datasheet stall torque. Stall torque is not a safe continuous torque; a servo held near it overheats._
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../platform.js'
-import { Viewer3D, Timeline, usePlayer, frameAt, traceDuration } from '../viewer.jsx'
+import { Viewer3D, Timeline, usePlayer, frameAt, tipTime, traceDuration } from '../viewer.jsx'
 import { Bar, Button, Chip, ErrorBox, useApi, useTrace } from '../ui.jsx'
 
 const VERDICT = {
@@ -49,7 +49,7 @@ function Result({ res, robot, move, speed }) {
         </div>
         <div className="tb-verdict-stat">
           <div className="tb-big">{(res.tip.rate * 100).toFixed(0)}%</div>
-          <div>tipped in {res.tip.falls}/{res.worlds} worlds</div>
+          <div>tipped in {res.tip.falls}/{res.worlds} {res.official ? '' : 'quick '}worlds</div>
           <div className="tb-small">95% interval {(res.tip.low * 100).toFixed(0)}–{(res.tip.high * 100).toFixed(0)}%</div>
         </div>
       </div>
@@ -57,8 +57,9 @@ function Result({ res, robot, move, speed }) {
         <div className="tb-card">
           <div className="tb-card-head"><h3>Tip chance</h3>
             <div className="tb-row tb-gap-sm">
-              {res.extended ? <Chip tone="accent">extended 30 → 60 worlds</Chip> : null}
-              {res.stopped_early ? <Chip tone="accent">stopped early: failure already clear</Chip> : null}
+              {res.official ? <Chip tone="accent" title="the same 60 fixed-seed worlds the report card and gallery use">official · 60 fixed worlds</Chip>
+                : <Chip tone="amber">quick · {res.worlds} worlds</Chip>}
+              {res.extended ? <Chip>clean at 30, extended to 60</Chip> : null}
             </div>
           </div>
           <Interval tip={res.tip} limit={0.1} />
@@ -71,7 +72,8 @@ function Result({ res, robot, move, speed }) {
         <div className="tb-card tb-card-flush">
           {tr ? (
             <>
-              <Viewer3D parts={tr.parts} frames={tr.frames} meta={trace.meta} frameIndex={frameAt(tr, player.t)} time={player.t}
+              <Viewer3D parts={tr.parts} frames={tr.frames} meta={trace.meta} look={trace.look}
+                tipAt={tipTime(tr, trace.result)} frameIndex={frameAt(tr, player.t)} time={player.t}
                 height={360} label={seed != null ? `a world where it tipped (${seed})` : 'nominal world'}
                 sublabel={trace.result.fell ? `tips at ${trace.result.fell_at_s?.toFixed(2)} s` : 'stays up'}
                 tone={trace.result.fell ? 'red' : 'green'} />
@@ -108,7 +110,7 @@ export function CheckPage({ robot, initialMove }) {
   const [moves] = useApi(robot ? `/robots/${robot}/moves` : null)
   const [move, setMove] = useState(initialMove || '')
   const [speed, setSpeed] = useState(1)
-  const [quick, setQuick] = useState(true)
+  const [quick, setQuick] = useState(false)
   const [busy, setBusy] = useState(false)
   const [res, setRes] = useState(null)
   useEffect(() => { setRes(null); setMove(initialMove || '') }, [robot, initialMove])
@@ -140,7 +142,7 @@ export function CheckPage({ robot, initialMove }) {
             <input type="range" min={0.25} max={1.5} step={0.05} value={speed}
               onChange={(e) => { setSpeed(parseFloat(e.target.value)); setRes(null) }} />
           </label>
-          <label className="tb-toggle"><input type="checkbox" checked={quick} onChange={(e) => setQuick(e.target.checked)} /> quick (30 worlds, extends to 60 when clean)</label>
+          <label className="tb-toggle"><input type="checkbox" checked={quick} onChange={(e) => setQuick(e.target.checked)} /> quick (30 worlds; clean moves extend to 60)</label>
           <Button kind="primary" busy={busy} disabled={!move} onClick={run}>Run preflight</Button>
         </div>
         {busy ? <p className="tb-muted"><span className="tb-spinner" /> simulating {move} in randomized worlds…</p> : null}

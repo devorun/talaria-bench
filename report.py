@@ -231,8 +231,10 @@ def summary(report: dict) -> str:
         risky = [c for c in moves if c["pass_rate"] < 0.95]
         if safe:
             out.append("Standing moves that never or almost never tip it: " + ", ".join(safe) + ".")
+        quick = " (quick)" if report.get("settings", {}).get("quick") else ""
         for c in sorted(risky, key=lambda c: c["pass_rate"]):
-            out.append(f"Move '{c['id'][5:]}' tips the robot in {100 - c['pass_rate'] * 100:.0f}% of worlds.")
+            out.append(f"Move '{c['id'][5:]}' tips the robot in {100 - c['pass_rate'] * 100:.0f}% of "
+                       f"{c['runs']} preflight worlds{quick}.")
     pay = cards.get("payload")
     if pay and pay.get("applicable"):
         m = pay["metric"]

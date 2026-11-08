@@ -129,10 +129,13 @@ def test_benchmark_cache_quick_and_progress(spider, tmp_path):
     first = bench.run_benchmark(spider, scenes=["move:stand"], quick=True, workers=1, cache_dir=tmp_path,
                                 progress=lambda d, t, s: seen.append((d, t)), progress_file=tmp_path / "p.json",
                                 traces=False)
-    assert first["settings"]["worlds"] == 10 and first["timing"]["computed"] == 10 and seen[-1] == (10, 10)
+    # standing moves run on the quick preflight worlds (30, seeds 5000+), not the 10 quick arena worlds
+    assert first["settings"]["worlds"] == 10 and first["settings"]["move_worlds"] == 30
+    assert first["timing"]["computed"] == 30 and seen[-1] == (30, 30)
+    assert [j["seed"] for j in first["scenes"]["move:stand"]] == list(range(5000, 5030))
     assert (tmp_path / "p.json").read_text().count('"finished": true') == 1
     again = bench.run_benchmark(spider, scenes=["move:stand"], quick=True, workers=1, cache_dir=tmp_path, traces=False)
-    assert again["timing"]["computed"] == 0 and again["timing"]["cached"] == 10
+    assert again["timing"]["computed"] == 0 and again["timing"]["cached"] == 30
     assert again["scenes"] == first["scenes"]
     assert bench.job_key(spider, "move:stand", 1) != bench.job_key(spider, "move:stand", 2)
 

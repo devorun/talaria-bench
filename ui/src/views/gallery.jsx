@@ -15,6 +15,7 @@ function Thumb({ robot }) {
     <div className="tb-thumb">
       {src ? <img src={src} alt={robot.title} /> : <div className="tb-thumb-ph">{(robot.family || 'robot').slice(0, 1).toUpperCase()}</div>}
       <span className="tb-thumb-tag">SIM</span>
+      {robot.look && robot.look.badge ? <span className="tb-badge" style={{ '--tb-badge': robot.look.accent }}>{robot.look.badge}</span> : null}
     </div>
   )
 }

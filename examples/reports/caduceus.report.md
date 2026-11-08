@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `caduceus` (437 g, 4 servos, spec `88cab10ab914`), 30 worlds per scene (seeds 0..29), 7 s.
+Robot `caduceus` (437 g, 4 servos, spec `88cab10ab914`), 30 worlds per scene (seeds 0..29), 11 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|
@@ -15,11 +15,11 @@ Robot `caduceus` (437 g, 4 servos, spec `88cab10ab914`), 30 worlds per scene (se
 | Push test | GREEN | 100% | weakest tipping push: 0.2 (0.2) x weight | 0.2 (world 0) | - |
 | Slippery floor | OUT OF MODEL SCOPE | - | - | - | not scored (see limitations) |
 | Payload | n/a | - | - | - | the robot has no payload_part |
-| Move 'wave' | GREEN | 100% | max body tilt: 6.27 (0.97) deg | 8.51 (world 7) | - |
-| Move 'arms_up_both' | AMBER | 70% | max body tilt: 8.52 (1.98) deg | 64.6 (world 1) | tipped over (9) |
-| Move 'arms_up_alternating' | GREEN | 100% | max body tilt: 6.67 (1) deg | 8.66 (world 15) | - |
+| Move 'wave' | GREEN | 100% | max body tilt: 6.84 (0.92) deg | 9.1 (world 5038) | - |
+| Move 'arms_up_both' | AMBER | 58% | max body tilt: 9.09 (3) deg | 65 (world 5001) | tipped over (25) |
+| Move 'arms_up_alternating' | GREEN | 100% | max body tilt: 7.08 (1.01) deg | 8.95 (world 5038) | - |
 
-**Summary.** Survives a nudge from every side in 100% of worlds; a push of 0.2 x body weight from the front tips it (median). Standing moves that never or almost never tip it: wave, arms_up_alternating. Move 'arms_up_both' tips the robot in 30% of worlds. The right leg servo is near its limit (peak 100% of stall, estimate) during the move 'arms_up_both' test. 7 walking scene(s) are outside this model's scope for this robot and are not scored: This rigid-body model does not simulate soft foam feet; the bench does not guess here.
+**Summary.** Survives a nudge from every side in 100% of worlds; a push of 0.2 x body weight from the front tips it (median). Standing moves that never or almost never tip it: wave, arms_up_alternating. Move 'arms_up_both' tips the robot in 42% of 60 preflight worlds. The right leg servo is near its limit (peak 100% of stall, estimate) during the move 'arms_up_both' test. 7 walking scene(s) are outside this model's scope for this robot and are not scored: This rigid-body model does not simulate soft foam feet; the bench does not guess here.
 
 **Push test** (tipping push in x body weight, median / p10; how far it slides when it does not tip, median):
 

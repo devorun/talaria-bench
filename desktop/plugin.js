@@ -162,6 +162,11 @@ var STYLES = `
 .tb-viewer-tag { position: absolute; top: 10px; right: 10px; font-size: 10px; font-weight: 750; letter-spacing: .12em;
   padding: 3px 8px; border-radius: 6px; color: var(--tb-fg2); background: var(--tb-card-hi); border: 1px solid var(--tb-line);
   pointer-events: none; backdrop-filter: blur(6px); }
+.tb-viewer-tipped { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); pointer-events: none;
+  font-size: 11px; font-weight: 800; letter-spacing: .12em; padding: 4px 10px; border-radius: 7px; color: #fff;
+  background: color-mix(in srgb, var(--tb-red) 92%, #000); box-shadow: 0 6px 18px -8px var(--tb-red);
+  animation: tb-pop .25s ease-out; }
+@keyframes tb-pop { from { transform: translateX(-50%) scale(1.25); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
 .tb-viewer-label { position: absolute; left: 12px; top: 10px; display: flex; flex-direction: column; gap: 1px; pointer-events: none;
   font-size: 12.5px; font-weight: 640; }
 .tb-viewer-label small { font-weight: 500; font-size: 11.5px; color: var(--tb-fg3); }
@@ -265,6 +270,16 @@ var STYLES = `
 .tb-check span { font-weight: 620; padding-right: 22px; }
 .tb-check small { color: var(--tb-fg3); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; }
 .tb-check.tb-active { border-color: color-mix(in srgb, var(--tb-accent) 55%, transparent); background: color-mix(in srgb, var(--tb-accent) 7%, transparent); }
+
+.tb-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--tb-card); border: 1px solid var(--tb-line); }
+.tb-seg-btn { all: unset; cursor: pointer; padding: 5px 10px; border-radius: 7px; font-size: 12px; color: var(--tb-fg2); }
+.tb-seg-btn:hover:not(:disabled) { color: var(--tb-fg); }
+.tb-seg-btn.tb-active { background: var(--tb-card-hi); color: var(--tb-fg); font-weight: 620; }
+.tb-seg-btn:disabled { opacity: .45; cursor: default; }
+.tb-seg-count { font-size: 10.5px; color: var(--tb-fg3); margin-left: 3px; font-variant-numeric: tabular-nums; }
+.tb-badge { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 6px; font-size: 11px; font-weight: 800;
+  letter-spacing: .04em; color: #fff; background: var(--tb-badge, var(--tb-accent)); }
+.tb-thumb .tb-badge { position: absolute; right: 10px; top: 10px; }
 
 /* Move check */
 .tb-verdict { display: grid; grid-template-columns: auto 1fr auto; gap: 22px; align-items: center; padding: 20px 24px;
@@ -468,6 +483,18 @@ function fmt(v, unit) {
   const s = Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2);
   return s.replace(/\.?0+$/, "") || "0";
 }
+function human(sceneId, v, unit) {
+  if (v == null) return "–";
+  const n = (x) => fmt(Math.abs(x), unit);
+  const id = sceneId || "";
+  if (id.startsWith("obstacle")) return v >= 0 ? `${n(v)} cm past the bar` : `stopped ${n(v)} cm before the bar`;
+  if (id.startsWith("ramp")) return v >= 0 ? `climbed ${n(v)} cm` : `slid ${n(v)} cm back down`;
+  if (id === "flat" || id === "slippery") return v >= 0 ? `${n(v)} cm forward` : `${n(v)} cm backwards`;
+  if (id === "push") return v >= 9 ? "no tip up to 1× weight" : `tips at ${fmt(v)}× weight`;
+  if (id === "payload") return v < 0 ? "no safe payload" : `${fmt(v)} g safe payload`;
+  if (id.startsWith("move:")) return `${fmt(v)}° body tilt`;
+  return `${fmt(v, unit)} ${unit || ""}`.trim();
+}
 function RobotPicker({ robots, value, onChange }) {
   return /* @__PURE__ */ jsx("select", { className: "tb-select", value: value || "", onChange: (e) => onChange(e.target.value), children: (robots || []).map((r) => /* @__PURE__ */ jsx("option", { value: r.name, children: r.title || r.name }, r.name)) });
 }
@@ -490,7 +517,8 @@ function Thumb({ robot }) {
   }, [robot.name, robot.has_thumb]);
   return /* @__PURE__ */ jsxs2("div", { className: "tb-thumb", children: [
     src ? /* @__PURE__ */ jsx2("img", { src, alt: robot.title }) : /* @__PURE__ */ jsx2("div", { className: "tb-thumb-ph", children: (robot.family || "robot").slice(0, 1).toUpperCase() }),
-    /* @__PURE__ */ jsx2("span", { className: "tb-thumb-tag", children: "SIM" })
+    /* @__PURE__ */ jsx2("span", { className: "tb-thumb-tag", children: "SIM" }),
+    robot.look && robot.look.badge ? /* @__PURE__ */ jsx2("span", { className: "tb-badge", style: { "--tb-badge": robot.look.accent }, children: robot.look.badge }) : null
   ] });
 }
 function Gallery({ robots, loading, open }) {
@@ -17350,7 +17378,7 @@ var WebGLRenderer = class {
     let _clippingEnabled = false;
     let _localClippingEnabled = false;
     const _currentProjectionMatrix = new Matrix4();
-    const _projScreenMatrix = new Matrix4();
+    const _projScreenMatrix2 = new Matrix4();
     const _vector3 = new Vector3();
     const _vector4 = new Vector4();
     const _emptyScene = { background: null, fog: null, environment: null, overrideMaterial: null, isScene: true };
@@ -17857,8 +17885,8 @@ var WebGLRenderer = class {
       currentRenderState = renderStates.get(scene, renderStateStack.length);
       currentRenderState.init(camera);
       renderStateStack.push(currentRenderState);
-      _projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-      _frustum.setFromProjectionMatrix(_projScreenMatrix);
+      _projScreenMatrix2.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      _frustum.setFromProjectionMatrix(_projScreenMatrix2);
       _localClippingEnabled = this.localClippingEnabled;
       _clippingEnabled = clipping.init(this.clippingPlanes, _localClippingEnabled);
       currentRenderList = renderLists.get(scene, renderListStack.length);
@@ -17944,7 +17972,7 @@ var WebGLRenderer = class {
         } else if (object.isSprite) {
           if (!object.frustumCulled || _frustum.intersectsSprite(object)) {
             if (sortObjects) {
-              _vector4.setFromMatrixPosition(object.matrixWorld).applyMatrix4(_projScreenMatrix);
+              _vector4.setFromMatrixPosition(object.matrixWorld).applyMatrix4(_projScreenMatrix2);
             }
             const geometry = objects.update(object);
             const material = object.material;
@@ -17964,7 +17992,7 @@ var WebGLRenderer = class {
                 if (geometry.boundingSphere === null) geometry.computeBoundingSphere();
                 _vector4.copy(geometry.boundingSphere.center);
               }
-              _vector4.applyMatrix4(object.matrixWorld).applyMatrix4(_projScreenMatrix);
+              _vector4.applyMatrix4(object.matrixWorld).applyMatrix4(_projScreenMatrix2);
             }
             if (Array.isArray(material)) {
               const groups = geometry.groups;
@@ -18805,6 +18833,410 @@ var Scene = class extends Object3D {
     return data;
   }
 };
+var InterleavedBuffer = class {
+  constructor(array, stride) {
+    this.isInterleavedBuffer = true;
+    this.array = array;
+    this.stride = stride;
+    this.count = array !== void 0 ? array.length / stride : 0;
+    this.usage = StaticDrawUsage;
+    this.updateRanges = [];
+    this.version = 0;
+    this.uuid = generateUUID();
+  }
+  onUploadCallback() {
+  }
+  set needsUpdate(value) {
+    if (value === true) this.version++;
+  }
+  setUsage(value) {
+    this.usage = value;
+    return this;
+  }
+  addUpdateRange(start, count) {
+    this.updateRanges.push({ start, count });
+  }
+  clearUpdateRanges() {
+    this.updateRanges.length = 0;
+  }
+  copy(source) {
+    this.array = new source.array.constructor(source.array);
+    this.count = source.count;
+    this.stride = source.stride;
+    this.usage = source.usage;
+    return this;
+  }
+  copyAt(index1, attribute, index2) {
+    index1 *= this.stride;
+    index2 *= attribute.stride;
+    for (let i = 0, l = this.stride; i < l; i++) {
+      this.array[index1 + i] = attribute.array[index2 + i];
+    }
+    return this;
+  }
+  set(value, offset = 0) {
+    this.array.set(value, offset);
+    return this;
+  }
+  clone(data) {
+    if (data.arrayBuffers === void 0) {
+      data.arrayBuffers = {};
+    }
+    if (this.array.buffer._uuid === void 0) {
+      this.array.buffer._uuid = generateUUID();
+    }
+    if (data.arrayBuffers[this.array.buffer._uuid] === void 0) {
+      data.arrayBuffers[this.array.buffer._uuid] = this.array.slice(0).buffer;
+    }
+    const array = new this.array.constructor(data.arrayBuffers[this.array.buffer._uuid]);
+    const ib = new this.constructor(array, this.stride);
+    ib.setUsage(this.usage);
+    return ib;
+  }
+  onUpload(callback) {
+    this.onUploadCallback = callback;
+    return this;
+  }
+  toJSON(data) {
+    if (data.arrayBuffers === void 0) {
+      data.arrayBuffers = {};
+    }
+    if (this.array.buffer._uuid === void 0) {
+      this.array.buffer._uuid = generateUUID();
+    }
+    if (data.arrayBuffers[this.array.buffer._uuid] === void 0) {
+      data.arrayBuffers[this.array.buffer._uuid] = Array.from(new Uint32Array(this.array.buffer));
+    }
+    return {
+      uuid: this.uuid,
+      buffer: this.array.buffer._uuid,
+      type: this.array.constructor.name,
+      stride: this.stride
+    };
+  }
+};
+var _vector$6 = /* @__PURE__ */ new Vector3();
+var InterleavedBufferAttribute = class _InterleavedBufferAttribute {
+  constructor(interleavedBuffer, itemSize, offset, normalized = false) {
+    this.isInterleavedBufferAttribute = true;
+    this.name = "";
+    this.data = interleavedBuffer;
+    this.itemSize = itemSize;
+    this.offset = offset;
+    this.normalized = normalized;
+  }
+  get count() {
+    return this.data.count;
+  }
+  get array() {
+    return this.data.array;
+  }
+  set needsUpdate(value) {
+    this.data.needsUpdate = value;
+  }
+  applyMatrix4(m) {
+    for (let i = 0, l = this.data.count; i < l; i++) {
+      _vector$6.fromBufferAttribute(this, i);
+      _vector$6.applyMatrix4(m);
+      this.setXYZ(i, _vector$6.x, _vector$6.y, _vector$6.z);
+    }
+    return this;
+  }
+  applyNormalMatrix(m) {
+    for (let i = 0, l = this.count; i < l; i++) {
+      _vector$6.fromBufferAttribute(this, i);
+      _vector$6.applyNormalMatrix(m);
+      this.setXYZ(i, _vector$6.x, _vector$6.y, _vector$6.z);
+    }
+    return this;
+  }
+  transformDirection(m) {
+    for (let i = 0, l = this.count; i < l; i++) {
+      _vector$6.fromBufferAttribute(this, i);
+      _vector$6.transformDirection(m);
+      this.setXYZ(i, _vector$6.x, _vector$6.y, _vector$6.z);
+    }
+    return this;
+  }
+  getComponent(index, component) {
+    let value = this.array[index * this.data.stride + this.offset + component];
+    if (this.normalized) value = denormalize(value, this.array);
+    return value;
+  }
+  setComponent(index, component, value) {
+    if (this.normalized) value = normalize(value, this.array);
+    this.data.array[index * this.data.stride + this.offset + component] = value;
+    return this;
+  }
+  setX(index, x) {
+    if (this.normalized) x = normalize(x, this.array);
+    this.data.array[index * this.data.stride + this.offset] = x;
+    return this;
+  }
+  setY(index, y) {
+    if (this.normalized) y = normalize(y, this.array);
+    this.data.array[index * this.data.stride + this.offset + 1] = y;
+    return this;
+  }
+  setZ(index, z) {
+    if (this.normalized) z = normalize(z, this.array);
+    this.data.array[index * this.data.stride + this.offset + 2] = z;
+    return this;
+  }
+  setW(index, w) {
+    if (this.normalized) w = normalize(w, this.array);
+    this.data.array[index * this.data.stride + this.offset + 3] = w;
+    return this;
+  }
+  getX(index) {
+    let x = this.data.array[index * this.data.stride + this.offset];
+    if (this.normalized) x = denormalize(x, this.array);
+    return x;
+  }
+  getY(index) {
+    let y = this.data.array[index * this.data.stride + this.offset + 1];
+    if (this.normalized) y = denormalize(y, this.array);
+    return y;
+  }
+  getZ(index) {
+    let z = this.data.array[index * this.data.stride + this.offset + 2];
+    if (this.normalized) z = denormalize(z, this.array);
+    return z;
+  }
+  getW(index) {
+    let w = this.data.array[index * this.data.stride + this.offset + 3];
+    if (this.normalized) w = denormalize(w, this.array);
+    return w;
+  }
+  setXY(index, x, y) {
+    index = index * this.data.stride + this.offset;
+    if (this.normalized) {
+      x = normalize(x, this.array);
+      y = normalize(y, this.array);
+    }
+    this.data.array[index + 0] = x;
+    this.data.array[index + 1] = y;
+    return this;
+  }
+  setXYZ(index, x, y, z) {
+    index = index * this.data.stride + this.offset;
+    if (this.normalized) {
+      x = normalize(x, this.array);
+      y = normalize(y, this.array);
+      z = normalize(z, this.array);
+    }
+    this.data.array[index + 0] = x;
+    this.data.array[index + 1] = y;
+    this.data.array[index + 2] = z;
+    return this;
+  }
+  setXYZW(index, x, y, z, w) {
+    index = index * this.data.stride + this.offset;
+    if (this.normalized) {
+      x = normalize(x, this.array);
+      y = normalize(y, this.array);
+      z = normalize(z, this.array);
+      w = normalize(w, this.array);
+    }
+    this.data.array[index + 0] = x;
+    this.data.array[index + 1] = y;
+    this.data.array[index + 2] = z;
+    this.data.array[index + 3] = w;
+    return this;
+  }
+  clone(data) {
+    if (data === void 0) {
+      console.log("THREE.InterleavedBufferAttribute.clone(): Cloning an interleaved buffer attribute will de-interleave buffer data.");
+      const array = [];
+      for (let i = 0; i < this.count; i++) {
+        const index = i * this.data.stride + this.offset;
+        for (let j = 0; j < this.itemSize; j++) {
+          array.push(this.data.array[index + j]);
+        }
+      }
+      return new BufferAttribute(new this.array.constructor(array), this.itemSize, this.normalized);
+    } else {
+      if (data.interleavedBuffers === void 0) {
+        data.interleavedBuffers = {};
+      }
+      if (data.interleavedBuffers[this.data.uuid] === void 0) {
+        data.interleavedBuffers[this.data.uuid] = this.data.clone(data);
+      }
+      return new _InterleavedBufferAttribute(data.interleavedBuffers[this.data.uuid], this.itemSize, this.offset, this.normalized);
+    }
+  }
+  toJSON(data) {
+    if (data === void 0) {
+      console.log("THREE.InterleavedBufferAttribute.toJSON(): Serializing an interleaved buffer attribute will de-interleave buffer data.");
+      const array = [];
+      for (let i = 0; i < this.count; i++) {
+        const index = i * this.data.stride + this.offset;
+        for (let j = 0; j < this.itemSize; j++) {
+          array.push(this.data.array[index + j]);
+        }
+      }
+      return {
+        itemSize: this.itemSize,
+        type: this.array.constructor.name,
+        array,
+        normalized: this.normalized
+      };
+    } else {
+      if (data.interleavedBuffers === void 0) {
+        data.interleavedBuffers = {};
+      }
+      if (data.interleavedBuffers[this.data.uuid] === void 0) {
+        data.interleavedBuffers[this.data.uuid] = this.data.toJSON(data);
+      }
+      return {
+        isInterleavedBufferAttribute: true,
+        itemSize: this.itemSize,
+        data: this.data.uuid,
+        offset: this.offset,
+        normalized: this.normalized
+      };
+    }
+  }
+};
+var SpriteMaterial = class extends Material {
+  constructor(parameters) {
+    super();
+    this.isSpriteMaterial = true;
+    this.type = "SpriteMaterial";
+    this.color = new Color(16777215);
+    this.map = null;
+    this.alphaMap = null;
+    this.rotation = 0;
+    this.sizeAttenuation = true;
+    this.transparent = true;
+    this.fog = true;
+    this.setValues(parameters);
+  }
+  copy(source) {
+    super.copy(source);
+    this.color.copy(source.color);
+    this.map = source.map;
+    this.alphaMap = source.alphaMap;
+    this.rotation = source.rotation;
+    this.sizeAttenuation = source.sizeAttenuation;
+    this.fog = source.fog;
+    return this;
+  }
+};
+var _geometry;
+var _intersectPoint = /* @__PURE__ */ new Vector3();
+var _worldScale = /* @__PURE__ */ new Vector3();
+var _mvPosition = /* @__PURE__ */ new Vector3();
+var _alignedPosition = /* @__PURE__ */ new Vector2();
+var _rotatedPosition = /* @__PURE__ */ new Vector2();
+var _viewWorldMatrix = /* @__PURE__ */ new Matrix4();
+var _vA = /* @__PURE__ */ new Vector3();
+var _vB = /* @__PURE__ */ new Vector3();
+var _vC = /* @__PURE__ */ new Vector3();
+var _uvA = /* @__PURE__ */ new Vector2();
+var _uvB = /* @__PURE__ */ new Vector2();
+var _uvC = /* @__PURE__ */ new Vector2();
+var Sprite = class extends Object3D {
+  constructor(material = new SpriteMaterial()) {
+    super();
+    this.isSprite = true;
+    this.type = "Sprite";
+    if (_geometry === void 0) {
+      _geometry = new BufferGeometry();
+      const float32Array = new Float32Array([
+        -0.5,
+        -0.5,
+        0,
+        0,
+        0,
+        0.5,
+        -0.5,
+        0,
+        1,
+        0,
+        0.5,
+        0.5,
+        0,
+        1,
+        1,
+        -0.5,
+        0.5,
+        0,
+        0,
+        1
+      ]);
+      const interleavedBuffer = new InterleavedBuffer(float32Array, 5);
+      _geometry.setIndex([0, 1, 2, 0, 2, 3]);
+      _geometry.setAttribute("position", new InterleavedBufferAttribute(interleavedBuffer, 3, 0, false));
+      _geometry.setAttribute("uv", new InterleavedBufferAttribute(interleavedBuffer, 2, 3, false));
+    }
+    this.geometry = _geometry;
+    this.material = material;
+    this.center = new Vector2(0.5, 0.5);
+  }
+  raycast(raycaster, intersects) {
+    if (raycaster.camera === null) {
+      console.error('THREE.Sprite: "Raycaster.camera" needs to be set in order to raycast against sprites.');
+    }
+    _worldScale.setFromMatrixScale(this.matrixWorld);
+    _viewWorldMatrix.copy(raycaster.camera.matrixWorld);
+    this.modelViewMatrix.multiplyMatrices(raycaster.camera.matrixWorldInverse, this.matrixWorld);
+    _mvPosition.setFromMatrixPosition(this.modelViewMatrix);
+    if (raycaster.camera.isPerspectiveCamera && this.material.sizeAttenuation === false) {
+      _worldScale.multiplyScalar(-_mvPosition.z);
+    }
+    const rotation = this.material.rotation;
+    let sin, cos;
+    if (rotation !== 0) {
+      cos = Math.cos(rotation);
+      sin = Math.sin(rotation);
+    }
+    const center = this.center;
+    transformVertex(_vA.set(-0.5, -0.5, 0), _mvPosition, center, _worldScale, sin, cos);
+    transformVertex(_vB.set(0.5, -0.5, 0), _mvPosition, center, _worldScale, sin, cos);
+    transformVertex(_vC.set(0.5, 0.5, 0), _mvPosition, center, _worldScale, sin, cos);
+    _uvA.set(0, 0);
+    _uvB.set(1, 0);
+    _uvC.set(1, 1);
+    let intersect = raycaster.ray.intersectTriangle(_vA, _vB, _vC, false, _intersectPoint);
+    if (intersect === null) {
+      transformVertex(_vB.set(-0.5, 0.5, 0), _mvPosition, center, _worldScale, sin, cos);
+      _uvB.set(0, 1);
+      intersect = raycaster.ray.intersectTriangle(_vA, _vC, _vB, false, _intersectPoint);
+      if (intersect === null) {
+        return;
+      }
+    }
+    const distance = raycaster.ray.origin.distanceTo(_intersectPoint);
+    if (distance < raycaster.near || distance > raycaster.far) return;
+    intersects.push({
+      distance,
+      point: _intersectPoint.clone(),
+      uv: Triangle.getInterpolation(_intersectPoint, _vA, _vB, _vC, _uvA, _uvB, _uvC, new Vector2()),
+      face: null,
+      object: this
+    });
+  }
+  copy(source, recursive) {
+    super.copy(source, recursive);
+    if (source.center !== void 0) this.center.copy(source.center);
+    this.material = source.material;
+    return this;
+  }
+};
+function transformVertex(vertexPosition, mvPosition, center, scale, sin, cos) {
+  _alignedPosition.subVectors(vertexPosition, center).addScalar(0.5).multiply(scale);
+  if (sin !== void 0) {
+    _rotatedPosition.x = cos * _alignedPosition.x - sin * _alignedPosition.y;
+    _rotatedPosition.y = sin * _alignedPosition.x + cos * _alignedPosition.y;
+  } else {
+    _rotatedPosition.copy(_alignedPosition);
+  }
+  vertexPosition.copy(mvPosition);
+  vertexPosition.x += _rotatedPosition.x;
+  vertexPosition.y += _rotatedPosition.y;
+  vertexPosition.applyMatrix4(_viewWorldMatrix);
+}
 var LineBasicMaterial = class extends Material {
   constructor(parameters) {
     super();
@@ -18961,30 +19393,11 @@ function checkIntersection(object, raycaster, ray, thresholdSq, a, b) {
     object
   };
 }
-var _start = /* @__PURE__ */ new Vector3();
-var _end = /* @__PURE__ */ new Vector3();
-var LineSegments = class extends Line {
-  constructor(geometry, material) {
-    super(geometry, material);
-    this.isLineSegments = true;
-    this.type = "LineSegments";
-  }
-  computeLineDistances() {
-    const geometry = this.geometry;
-    if (geometry.index === null) {
-      const positionAttribute = geometry.attributes.position;
-      const lineDistances = [];
-      for (let i = 0, l = positionAttribute.count; i < l; i += 2) {
-        _start.fromBufferAttribute(positionAttribute, i);
-        _end.fromBufferAttribute(positionAttribute, i + 1);
-        lineDistances[i] = i === 0 ? 0 : lineDistances[i - 1];
-        lineDistances[i + 1] = lineDistances[i] + _start.distanceTo(_end);
-      }
-      geometry.setAttribute("lineDistance", new Float32BufferAttribute(lineDistances, 1));
-    } else {
-      console.warn("THREE.LineSegments.computeLineDistances(): Computation only possible with non-indexed BufferGeometry.");
-    }
-    return this;
+var CanvasTexture = class extends Texture {
+  constructor(canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy) {
+    super(canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy);
+    this.isCanvasTexture = true;
+    this.needsUpdate = true;
   }
 };
 var Curve = class {
@@ -20300,92 +20713,6 @@ var CylinderGeometry = class _CylinderGeometry extends BufferGeometry {
     return new _CylinderGeometry(data.radiusTop, data.radiusBottom, data.height, data.radialSegments, data.heightSegments, data.openEnded, data.thetaStart, data.thetaLength);
   }
 };
-var _v0 = /* @__PURE__ */ new Vector3();
-var _v1$1 = /* @__PURE__ */ new Vector3();
-var _normal = /* @__PURE__ */ new Vector3();
-var _triangle = /* @__PURE__ */ new Triangle();
-var EdgesGeometry = class extends BufferGeometry {
-  constructor(geometry = null, thresholdAngle = 1) {
-    super();
-    this.type = "EdgesGeometry";
-    this.parameters = {
-      geometry,
-      thresholdAngle
-    };
-    if (geometry !== null) {
-      const precisionPoints = 4;
-      const precision = Math.pow(10, precisionPoints);
-      const thresholdDot = Math.cos(DEG2RAD * thresholdAngle);
-      const indexAttr = geometry.getIndex();
-      const positionAttr = geometry.getAttribute("position");
-      const indexCount = indexAttr ? indexAttr.count : positionAttr.count;
-      const indexArr = [0, 0, 0];
-      const vertKeys = ["a", "b", "c"];
-      const hashes = new Array(3);
-      const edgeData = {};
-      const vertices = [];
-      for (let i = 0; i < indexCount; i += 3) {
-        if (indexAttr) {
-          indexArr[0] = indexAttr.getX(i);
-          indexArr[1] = indexAttr.getX(i + 1);
-          indexArr[2] = indexAttr.getX(i + 2);
-        } else {
-          indexArr[0] = i;
-          indexArr[1] = i + 1;
-          indexArr[2] = i + 2;
-        }
-        const { a, b, c } = _triangle;
-        a.fromBufferAttribute(positionAttr, indexArr[0]);
-        b.fromBufferAttribute(positionAttr, indexArr[1]);
-        c.fromBufferAttribute(positionAttr, indexArr[2]);
-        _triangle.getNormal(_normal);
-        hashes[0] = `${Math.round(a.x * precision)},${Math.round(a.y * precision)},${Math.round(a.z * precision)}`;
-        hashes[1] = `${Math.round(b.x * precision)},${Math.round(b.y * precision)},${Math.round(b.z * precision)}`;
-        hashes[2] = `${Math.round(c.x * precision)},${Math.round(c.y * precision)},${Math.round(c.z * precision)}`;
-        if (hashes[0] === hashes[1] || hashes[1] === hashes[2] || hashes[2] === hashes[0]) {
-          continue;
-        }
-        for (let j = 0; j < 3; j++) {
-          const jNext = (j + 1) % 3;
-          const vecHash0 = hashes[j];
-          const vecHash1 = hashes[jNext];
-          const v0 = _triangle[vertKeys[j]];
-          const v1 = _triangle[vertKeys[jNext]];
-          const hash = `${vecHash0}_${vecHash1}`;
-          const reverseHash = `${vecHash1}_${vecHash0}`;
-          if (reverseHash in edgeData && edgeData[reverseHash]) {
-            if (_normal.dot(edgeData[reverseHash].normal) <= thresholdDot) {
-              vertices.push(v0.x, v0.y, v0.z);
-              vertices.push(v1.x, v1.y, v1.z);
-            }
-            edgeData[reverseHash] = null;
-          } else if (!(hash in edgeData)) {
-            edgeData[hash] = {
-              index0: indexArr[j],
-              index1: indexArr[jNext],
-              normal: _normal.clone()
-            };
-          }
-        }
-      }
-      for (const key in edgeData) {
-        if (edgeData[key]) {
-          const { index0, index1 } = edgeData[key];
-          _v0.fromBufferAttribute(positionAttr, index0);
-          _v1$1.fromBufferAttribute(positionAttr, index1);
-          vertices.push(_v0.x, _v0.y, _v0.z);
-          vertices.push(_v1$1.x, _v1$1.y, _v1$1.z);
-        }
-      }
-      this.setAttribute("position", new Float32BufferAttribute(vertices, 3));
-    }
-  }
-  copy(source) {
-    super.copy(source);
-    this.parameters = Object.assign({}, source.parameters);
-    return this;
-  }
-};
 var SphereGeometry = class _SphereGeometry extends BufferGeometry {
   constructor(radius = 1, widthSegments = 32, heightSegments = 16, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI) {
     super();
@@ -21438,6 +21765,104 @@ var LightShadow = class {
     object.camera = this.camera.toJSON(false).object;
     delete object.camera.matrix;
     return object;
+  }
+};
+var _projScreenMatrix = /* @__PURE__ */ new Matrix4();
+var _lightPositionWorld = /* @__PURE__ */ new Vector3();
+var _lookTarget = /* @__PURE__ */ new Vector3();
+var PointLightShadow = class extends LightShadow {
+  constructor() {
+    super(new PerspectiveCamera(90, 1, 0.5, 500));
+    this.isPointLightShadow = true;
+    this._frameExtents = new Vector2(4, 2);
+    this._viewportCount = 6;
+    this._viewports = [
+      // These viewports map a cube-map onto a 2D texture with the
+      // following orientation:
+      //
+      //  xzXZ
+      //   y Y
+      //
+      // X - Positive x direction
+      // x - Negative x direction
+      // Y - Positive y direction
+      // y - Negative y direction
+      // Z - Positive z direction
+      // z - Negative z direction
+      // positive X
+      new Vector4(2, 1, 1, 1),
+      // negative X
+      new Vector4(0, 1, 1, 1),
+      // positive Z
+      new Vector4(3, 1, 1, 1),
+      // negative Z
+      new Vector4(1, 1, 1, 1),
+      // positive Y
+      new Vector4(3, 0, 1, 1),
+      // negative Y
+      new Vector4(1, 0, 1, 1)
+    ];
+    this._cubeDirections = [
+      new Vector3(1, 0, 0),
+      new Vector3(-1, 0, 0),
+      new Vector3(0, 0, 1),
+      new Vector3(0, 0, -1),
+      new Vector3(0, 1, 0),
+      new Vector3(0, -1, 0)
+    ];
+    this._cubeUps = [
+      new Vector3(0, 1, 0),
+      new Vector3(0, 1, 0),
+      new Vector3(0, 1, 0),
+      new Vector3(0, 1, 0),
+      new Vector3(0, 0, 1),
+      new Vector3(0, 0, -1)
+    ];
+  }
+  updateMatrices(light, viewportIndex = 0) {
+    const camera = this.camera;
+    const shadowMatrix = this.matrix;
+    const far = light.distance || camera.far;
+    if (far !== camera.far) {
+      camera.far = far;
+      camera.updateProjectionMatrix();
+    }
+    _lightPositionWorld.setFromMatrixPosition(light.matrixWorld);
+    camera.position.copy(_lightPositionWorld);
+    _lookTarget.copy(camera.position);
+    _lookTarget.add(this._cubeDirections[viewportIndex]);
+    camera.up.copy(this._cubeUps[viewportIndex]);
+    camera.lookAt(_lookTarget);
+    camera.updateMatrixWorld();
+    shadowMatrix.makeTranslation(-_lightPositionWorld.x, -_lightPositionWorld.y, -_lightPositionWorld.z);
+    _projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    this._frustum.setFromProjectionMatrix(_projScreenMatrix);
+  }
+};
+var PointLight = class extends Light {
+  constructor(color, intensity, distance = 0, decay = 2) {
+    super(color, intensity);
+    this.isPointLight = true;
+    this.type = "PointLight";
+    this.distance = distance;
+    this.decay = decay;
+    this.shadow = new PointLightShadow();
+  }
+  get power() {
+    return this.intensity * 4 * Math.PI;
+  }
+  set power(power) {
+    this.intensity = power / (4 * Math.PI);
+  }
+  dispose() {
+    this.shadow.dispose();
+  }
+  copy(source, recursive) {
+    super.copy(source, recursive);
+    this.distance = source.distance;
+    this.decay = source.decay;
+    this.shadow = source.shadow.clone();
+    return this;
   }
 };
 var DirectionalLightShadow = class extends LightShadow {
@@ -22853,39 +23278,99 @@ var RoundedBoxGeometry = class extends BoxGeometry {
   }
 };
 
-// src/stage.js
-var THREE = {
-  ACESFilmicToneMapping,
-  ArrowHelper,
-  Box3,
-  BufferGeometry,
-  CapsuleGeometry,
-  CircleGeometry,
-  Color,
-  CylinderGeometry,
-  DirectionalLight,
-  EdgesGeometry,
-  Group,
-  HemisphereLight,
-  Line,
-  LineBasicMaterial,
-  LineDashedMaterial,
-  LineSegments,
-  Mesh,
-  MeshPhysicalMaterial,
-  MeshStandardMaterial,
-  PCFSoftShadowMap,
-  PerspectiveCamera,
-  PlaneGeometry,
-  Scene,
-  ShaderMaterial,
-  ShadowMaterial,
-  SphereGeometry,
-  SRGBColorSpace,
-  Vector3,
-  WebGLRenderer
+// node_modules/three/examples/jsm/environments/RoomEnvironment.js
+var RoomEnvironment = class extends Scene {
+  constructor() {
+    super();
+    const geometry = new BoxGeometry();
+    geometry.deleteAttribute("uv");
+    const roomMaterial = new MeshStandardMaterial({ side: BackSide });
+    const boxMaterial = new MeshStandardMaterial();
+    const mainLight = new PointLight(16777215, 900, 28, 2);
+    mainLight.position.set(0.418, 16.199, 0.3);
+    this.add(mainLight);
+    const room = new Mesh(geometry, roomMaterial);
+    room.position.set(-0.757, 13.219, 0.717);
+    room.scale.set(31.713, 28.305, 28.591);
+    this.add(room);
+    const box1 = new Mesh(geometry, boxMaterial);
+    box1.position.set(-10.906, 2.009, 1.846);
+    box1.rotation.set(0, -0.195, 0);
+    box1.scale.set(2.328, 7.905, 4.651);
+    this.add(box1);
+    const box2 = new Mesh(geometry, boxMaterial);
+    box2.position.set(-5.607, -0.754, -0.758);
+    box2.rotation.set(0, 0.994, 0);
+    box2.scale.set(1.97, 1.534, 3.955);
+    this.add(box2);
+    const box3 = new Mesh(geometry, boxMaterial);
+    box3.position.set(6.167, 0.857, 7.803);
+    box3.rotation.set(0, 0.561, 0);
+    box3.scale.set(3.927, 6.285, 3.687);
+    this.add(box3);
+    const box4 = new Mesh(geometry, boxMaterial);
+    box4.position.set(-2.017, 0.018, 6.124);
+    box4.rotation.set(0, 0.333, 0);
+    box4.scale.set(2.002, 4.566, 2.064);
+    this.add(box4);
+    const box5 = new Mesh(geometry, boxMaterial);
+    box5.position.set(2.291, -0.756, -2.621);
+    box5.rotation.set(0, -0.286, 0);
+    box5.scale.set(1.546, 1.552, 1.496);
+    this.add(box5);
+    const box6 = new Mesh(geometry, boxMaterial);
+    box6.position.set(-2.193, -0.369, -5.547);
+    box6.rotation.set(0, 0.516, 0);
+    box6.scale.set(3.875, 3.487, 2.986);
+    this.add(box6);
+    const light1 = new Mesh(geometry, createAreaLightMaterial(50));
+    light1.position.set(-16.116, 14.37, 8.208);
+    light1.scale.set(0.1, 2.428, 2.739);
+    this.add(light1);
+    const light2 = new Mesh(geometry, createAreaLightMaterial(50));
+    light2.position.set(-16.109, 18.021, -8.207);
+    light2.scale.set(0.1, 2.425, 2.751);
+    this.add(light2);
+    const light3 = new Mesh(geometry, createAreaLightMaterial(17));
+    light3.position.set(14.904, 12.198, -1.832);
+    light3.scale.set(0.15, 4.265, 6.331);
+    this.add(light3);
+    const light4 = new Mesh(geometry, createAreaLightMaterial(43));
+    light4.position.set(-0.462, 8.89, 14.52);
+    light4.scale.set(4.38, 5.441, 0.088);
+    this.add(light4);
+    const light5 = new Mesh(geometry, createAreaLightMaterial(20));
+    light5.position.set(3.235, 11.486, -12.541);
+    light5.scale.set(2.5, 2, 0.1);
+    this.add(light5);
+    const light6 = new Mesh(geometry, createAreaLightMaterial(100));
+    light6.position.set(0, 20, 0);
+    light6.scale.set(1, 0.1, 1);
+    this.add(light6);
+  }
+  dispose() {
+    const resources = /* @__PURE__ */ new Set();
+    this.traverse((object) => {
+      if (object.isMesh) {
+        resources.add(object.geometry);
+        resources.add(object.material);
+      }
+    });
+    for (const resource of resources) {
+      resource.dispose();
+    }
+  }
 };
-var UP = new THREE.Vector3(0, 1, 0);
+function createAreaLightMaterial(intensity) {
+  const material = new MeshBasicMaterial();
+  material.color.setScalar(intensity);
+  return material;
+}
+
+// src/stage.js
+var TIP_RED = new Color(16723232);
+var HAZARD_YELLOW = "#f5c518";
+var RAMP_TONE = "#d9a441";
 function luminance(css) {
   const m = /rgba?\(([^)]+)\)/.exec(css || "");
   if (!m) return 0.5;
@@ -22895,40 +23380,110 @@ function luminance(css) {
 function isDarkTheme(el) {
   return luminance(getComputedStyle(el).color) > 0.5;
 }
+function canvasTexture(w, h, draw) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  draw(c.getContext("2d"), w, h);
+  const t = new CanvasTexture(c);
+  t.colorSpace = SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+function rampTexture(dark) {
+  const t = canvasTexture(512, 128, (g, w, h) => {
+    g.fillStyle = dark ? "rgba(217,164,65,0.20)" : "rgba(190,135,40,0.22)";
+    g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 16; i++) {
+      g.fillStyle = i % 2 ? "rgba(217,164,65,0.42)" : "rgba(217,164,65,0.10)";
+      g.fillRect(i * w / 16, 0, w / 16, h);
+    }
+    g.strokeStyle = RAMP_TONE;
+    g.lineWidth = 6;
+    g.strokeRect(3, 3, w - 6, h - 6);
+  });
+  return t;
+}
+function textSprite(text, { color = "#ffffff", bg = "rgba(20,22,28,0.82)", height = 0.016 } = {}) {
+  const pad = 18;
+  const font = "600 64px system-ui, -apple-system, Segoe UI, sans-serif";
+  const probe = document.createElement("canvas").getContext("2d");
+  probe.font = font;
+  const w = Math.ceil(probe.measureText(text).width) + pad * 2;
+  const tex = canvasTexture(w, 96, (g, cw, ch) => {
+    g.fillStyle = bg;
+    const r = 22;
+    g.beginPath();
+    g.moveTo(r, 0);
+    g.arcTo(cw, 0, cw, ch, r);
+    g.arcTo(cw, ch, 0, ch, r);
+    g.arcTo(0, ch, 0, 0, r);
+    g.arcTo(0, 0, cw, 0, r);
+    g.fill();
+    g.font = font;
+    g.fillStyle = color;
+    g.textBaseline = "middle";
+    g.fillText(text, pad, ch / 2 + 3);
+  });
+  const sprite = new Sprite(new SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+  sprite.scale.set(height * w / 96, height, 1);
+  sprite.renderOrder = 10;
+  return sprite;
+}
+function oledTexture(accent) {
+  return canvasTexture(256, 128, (g, w, h) => {
+    g.fillStyle = "#020406";
+    g.fillRect(0, 0, w, h);
+    g.fillStyle = accent;
+    g.font = "700 30px ui-monospace, Menlo, monospace";
+    g.textBaseline = "top";
+    g.fillText("HERMES", 18, 16);
+    g.font = "500 20px ui-monospace, Menlo, monospace";
+    g.fillText("waving...", 18, 58);
+    g.fillRect(18, 96, 150, 6);
+    g.globalAlpha = 0.35;
+    g.fillRect(168, 96, 70, 6);
+  });
+}
 function partGeometry(shape, size) {
   if (shape === "box") {
     const [x, y, z] = size;
     const r = Math.min(x, y, z) * 0.22;
-    return new RoundedBoxGeometry(x, y, z, 4, r);
+    return new RoundedBoxGeometry(x, y, z, 5, r);
   }
   if (shape === "cylinder") {
-    const g = new THREE.CylinderGeometry(size[0], size[0], size[1], 40, 1);
+    const g = new CylinderGeometry(size[0], size[0], size[1], 48, 1);
     g.rotateX(Math.PI / 2);
     return g;
   }
   if (shape === "capsule") {
-    const g = new THREE.CapsuleGeometry(size[0], size[1] || size[0], 8, 24);
+    const g = new CapsuleGeometry(size[0], size[1] || size[0], 10, 28);
     g.rotateX(Math.PI / 2);
     return g;
   }
-  return new THREE.SphereGeometry(size[0], 32, 20);
+  return new SphereGeometry(size[0], 40, 24);
 }
 var Stage = class {
-  constructor(container, { interactive = true } = {}) {
+  constructor(container, { interactive = true, dark = null, preserve = false } = {}) {
     this.container = container;
-    this.dark = isDarkTheme(container);
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    this.dark = dark == null ? isDarkTheme(container) : dark;
+    this.renderer = new WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: preserve });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.shadowMap.type = PCFSoftShadowMap;
+    this.renderer.outputColorSpace = SRGBColorSpace;
+    this.renderer.toneMapping = ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = this.dark ? 1 : 0.92;
     this.renderer.setClearColor(0, 0);
     this.renderer.domElement.className = "tb-canvas";
     container.appendChild(this.renderer.domElement);
-    this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(32, 1, 0.01, 50);
+    this.scene = new Scene();
+    const pmrem = new PMREMGenerator(this.renderer);
+    this.envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+    this.scene.environment = this.envMap;
+    this.scene.environmentIntensity = this.dark ? 0.55 : 0.45;
+    this.camera = new PerspectiveCamera(32, 1, 0.01, 50);
     this.camera.position.set(0.6, 0.35, 0.6);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
@@ -22941,23 +23496,24 @@ var Stage = class {
       this.userMoved = true;
     });
     this._lights();
-    this.world = new THREE.Group();
+    this.world = new Group();
     this.world.rotation.x = -Math.PI / 2;
     this.scene.add(this.world);
-    this.tilt = new THREE.Group();
+    this.tilt = new Group();
     this.world.add(this.tilt);
-    this.floor = new THREE.Group();
+    this.floor = new Group();
     this.tilt.add(this.floor);
-    this.terrain = new THREE.Group();
+    this.terrain = new Group();
     this.tilt.add(this.terrain);
-    this.robot = new THREE.Group();
+    this.robot = new Group();
     this.tilt.add(this.robot);
     this._floor();
     this.meshes = [];
     this.meta = {};
+    this.look = {};
     this.follow = true;
     this.userMoved = false;
-    this.target = new THREE.Vector3();
+    this.tipping = false;
     this._resize = new ResizeObserver(() => this.resize());
     this._resize.observe(container);
     this.resize();
@@ -22971,11 +23527,11 @@ var Stage = class {
     loop();
   }
   _lights() {
-    const sky = this.dark ? 12175103 : 16777215;
-    const ground = this.dark ? 1711396 : 14275788;
-    this.hemi = new THREE.HemisphereLight(sky, ground, this.dark ? 1.1 : 1.35);
+    const sky = this.dark ? 13161215 : 16777215;
+    const ground = this.dark ? 1711396 : 12170411;
+    this.hemi = new HemisphereLight(sky, ground, this.dark ? 0.9 : 0.75);
     this.scene.add(this.hemi);
-    const key = new THREE.DirectionalLight(16777215, this.dark ? 2.2 : 2.6);
+    const key = new DirectionalLight(16777215, this.dark ? 2.2 : 2.3);
     key.position.set(1.2, 2.4, 1.6);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
@@ -22991,26 +23547,23 @@ var Stage = class {
     this.key = key;
     this.scene.add(key);
     this.scene.add(key.target);
-    const rim = new THREE.DirectionalLight(this.dark ? 9417983 : 16773596, this.dark ? 0.9 : 0.6);
-    rim.position.set(-1.6, 1.1, -1.4);
+    const rim = new DirectionalLight(this.dark ? 9417983 : 10335976, this.dark ? 1 : 1.1);
+    rim.position.set(-1.6, 1.2, -1.4);
     this.scene.add(rim);
   }
   _floor() {
-    const shadow = new THREE.Mesh(
-      new THREE.PlaneGeometry(8, 8),
-      new THREE.ShadowMaterial({ opacity: this.dark ? 0.45 : 0.22 })
-    );
+    const shadow = new Mesh(new PlaneGeometry(8, 8), new ShadowMaterial({ opacity: this.dark ? 0.5 : 0.34 }));
     shadow.receiveShadow = true;
     this.floor.add(shadow);
     const SPAN = 1.6;
-    const grid = new THREE.Mesh(new THREE.PlaneGeometry(SPAN, SPAN), new THREE.ShaderMaterial({
+    const grid = new Mesh(new PlaneGeometry(SPAN, SPAN), new ShaderMaterial({
       transparent: true,
       depthWrite: false,
       uniforms: {
-        uColor: { value: new THREE.Color(this.dark ? 16777215 : 2502716) },
-        uDisc: { value: this.dark ? 0.06 : 0.07 },
-        uMinor: { value: this.dark ? 0.12 : 0.13 },
-        uMajor: { value: this.dark ? 0.26 : 0.26 },
+        uColor: { value: new Color(this.dark ? 16777215 : 1910579) },
+        uDisc: { value: this.dark ? 0.07 : 0.17 },
+        uMinor: { value: this.dark ? 0.12 : 0.15 },
+        uMajor: { value: this.dark ? 0.26 : 0.3 },
         uSpan: { value: SPAN }
       },
       vertexShader: `
@@ -23030,7 +23583,7 @@ var Stage = class {
         void main() {
           float r = length(vPos) / (uSpan * 0.5);
           float fade = 1.0 - smoothstep(0.15, 1.0, r);
-          float a = uDisc * (1.0 - smoothstep(0.0, 0.75, r));
+          float a = uDisc * (1.0 - smoothstep(0.0, 0.8, r));
           a += uMinor * lines(vPos, 0.05) * fade;
           a = max(a, uMajor * lines(vPos, 0.2) * fade);
           if (a < 0.002) discard;
@@ -23040,12 +23593,12 @@ var Stage = class {
     grid.position.z = 6e-4;
     this.grid = grid;
     this.floor.add(grid);
-    this.slick = new THREE.Mesh(
-      new THREE.CircleGeometry(1.1, 64),
-      new THREE.MeshPhysicalMaterial({
+    this.slick = new Mesh(
+      new CircleGeometry(1.1, 64),
+      new MeshPhysicalMaterial({
         color: 6273023,
         transparent: true,
-        opacity: 0.16,
+        opacity: 0.18,
         roughness: 0.05,
         metalness: 0,
         clearcoat: 1,
@@ -23057,30 +23610,77 @@ var Stage = class {
     this.slick.visible = false;
     this.floor.add(this.slick);
   }
-  setRobot(parts) {
+  _material(p, look, decalParts) {
+    let color = new Color(p.color || "#9aa4b2");
+    if (look.accent && !decalParts.has(p.name)) color = color.lerp(new Color(look.accent), 0.78);
+    if (look.material === "aluminum") {
+      return new MeshPhysicalMaterial({
+        color,
+        metalness: 0.82,
+        roughness: 0.34,
+        clearcoat: 0.25,
+        clearcoatRoughness: 0.5,
+        envMapIntensity: 1.25
+      });
+    }
+    return new MeshPhysicalMaterial({
+      color,
+      roughness: 0.46,
+      metalness: 0.04,
+      clearcoat: 0.4,
+      clearcoatRoughness: 0.35,
+      sheen: 0.2
+    });
+  }
+  _decorate(mesh, part, kind, look) {
+    if (kind !== "oled" || part.shape !== "box") return;
+    const [sx, sy, sz] = part.size_m;
+    const pw = sy * 0.46;
+    const ph = sz * 0.36;
+    const panel = new Mesh(
+      new RoundedBoxGeometry(4e-3, pw, ph, 3, 15e-4),
+      new MeshStandardMaterial({ color: 1382429, roughness: 0.55, metalness: 0.2 })
+    );
+    panel.position.set(sx / 2 + 1e-3, 0, sz * 0.08);
+    panel.castShadow = true;
+    mesh.add(panel);
+    const glow = look.oled || "#58b4ff";
+    const screen = new Mesh(new PlaneGeometry(pw * 0.78, ph * 0.62), new MeshBasicMaterial({
+      map: oledTexture(glow),
+      toneMapped: false
+    }));
+    screen.quaternion.setFromRotationMatrix(new Matrix4().makeBasis(
+      new Vector3(0, 1, 0),
+      new Vector3(0, 0, 1),
+      new Vector3(1, 0, 0)
+    ));
+    screen.position.set(22e-4, 0, 0);
+    panel.add(screen);
+  }
+  setRobot(parts, look = {}) {
     for (const m of this.meshes) {
       this.robot.remove(m);
-      m.geometry.dispose();
-      m.material.dispose();
-    }
-    this.meshes = parts.map((p) => {
-      const color = new THREE.Color(p.color || "#9aa4b2");
-      const mat = new THREE.MeshPhysicalMaterial({
-        color,
-        roughness: 0.48,
-        metalness: 0.04,
-        clearcoat: 0.35,
-        clearcoatRoughness: 0.4,
-        sheen: 0.2
+      m.traverse((o) => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) {
+          if (o.material.map) o.material.map.dispose();
+          o.material.dispose();
+        }
       });
-      const mesh = new THREE.Mesh(partGeometry(p.shape, p.size_m), mat);
+    }
+    this.look = look || {};
+    const decals = new Map((this.look.decals || []).map((d) => [d.part, d.kind]));
+    this.meshes = parts.map((p) => {
+      const mesh = new Mesh(partGeometry(p.shape, p.size_m), this._material(p, this.look, decals));
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       mesh.name = p.name;
+      if (decals.has(p.name)) this._decorate(mesh, p, decals.get(p.name), this.look);
       this.robot.add(mesh);
       return mesh;
     });
     this.root = this.meshes[0];
+    this.tipping = false;
   }
   setPose(frame) {
     if (!frame) return;
@@ -23090,97 +23690,126 @@ var Stage = class {
       this.meshes[i].quaternion.set(qx, qy, qz, qw);
     }
     this._updatePayload(frame);
-    if (this.follow && this.root) this._track(false);
+    if (this.follow && this.root) this._track();
   }
-  setMeta(meta = {}) {
-    this.meta = meta;
+  // Red highlight on every part while ``on`` (the moment a run tips over).
+  setTip(on) {
+    if (on === this.tipping) return;
+    this.tipping = on;
+    for (const m of this.meshes) {
+      m.material.emissive = on ? TIP_RED : new Color(0);
+      m.material.emissiveIntensity = on ? 0.55 : 0;
+    }
+  }
+  _clearTerrain() {
     while (this.terrain.children.length) {
       const c = this.terrain.children.pop();
       c.traverse((o) => {
         if (o.geometry) o.geometry.dispose();
-        if (o.material) o.material.dispose();
+        if (o.material) {
+          if (o.material.map) o.material.map.dispose();
+          o.material.dispose();
+        }
       });
     }
-    const tilt = (meta.tilt_deg || 0) * Math.PI / 180;
-    this.tilt.rotation.y = -tilt;
-    this.slick.visible = meta.floor === "slippery";
     if (this.levelLine) {
       this.world.remove(this.levelLine);
       this.levelLine.geometry.dispose();
       this.levelLine.material.dispose();
       this.levelLine = null;
     }
+    if (this.label) {
+      this.scene.remove(this.label);
+      this.label.material.map.dispose();
+      this.label.material.dispose();
+      this.label = null;
+    }
+  }
+  setMeta(meta = {}) {
+    this.meta = meta;
+    this._clearTerrain();
+    const tilt = (meta.tilt_deg || 0) * Math.PI / 180;
+    this.tilt.rotation.y = -tilt;
+    this.slick.visible = meta.floor === "slippery";
     if (tilt) {
-      const ramp = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.5), new THREE.MeshStandardMaterial({
-        color: 14263361,
+      const ramp = new Mesh(new PlaneGeometry(1.2, 0.5), new MeshStandardMaterial({
+        map: rampTexture(this.dark),
         transparent: true,
-        opacity: this.dark ? 0.16 : 0.2,
-        roughness: 0.9,
+        roughness: 0.85,
         depthWrite: false
       }));
       ramp.position.set(0.3, 0, 4e-4);
       this.terrain.add(ramp);
-      const edge = new THREE.LineSegments(
-        new THREE.EdgesGeometry(ramp.geometry),
-        new THREE.LineBasicMaterial({ color: 14263361, transparent: true, opacity: 0.7 })
-      );
-      edge.position.copy(ramp.position);
-      this.terrain.add(edge);
-      const up = new THREE.ArrowHelper(
-        new THREE.Vector3(1, 0, 0),
-        new THREE.Vector3(-0.05, -0.2, 2e-3),
-        0.4,
-        14263361,
-        0.05,
-        0.03
-      );
+      const up = new ArrowHelper(new Vector3(1, 0, 0), new Vector3(-0.05, -0.2, 2e-3), 0.4, 14263361, 0.05, 0.03);
       this.terrain.add(up);
-      const level = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(-0.3, -0.25, 0),
-          new THREE.Vector3(0.9, -0.25, 0)
+      const level = new Line(
+        new BufferGeometry().setFromPoints([
+          new Vector3(-0.3, -0.25, 0),
+          new Vector3(0.9, -0.25, 0)
         ]),
-        new THREE.LineDashedMaterial({
+        new LineDashedMaterial({
           color: this.dark ? 16777215 : 2502716,
           dashSize: 0.02,
           gapSize: 0.015,
           transparent: true,
-          opacity: 0.45
+          opacity: 0.5
         })
       );
       level.computeLineDistances();
       this.levelLine = level;
       this.world.add(level);
+      this.labelAt = new Vector3(0.16, -0.13, 0.025);
+      this.label = textSprite(`${Math.round(meta.tilt_deg)}° ramp`, { color: "#ffd27a" });
+      this.scene.add(this.label);
     }
     for (const b of meta.boxes || []) {
       const [hx, hy, hz] = b.half;
-      const bar = new THREE.Mesh(
-        new RoundedBoxGeometry(hx * 2, Math.min(hy, 0.18) * 2, hz * 2, 3, Math.min(hx, hz) * 0.3),
-        new THREE.MeshStandardMaterial({ color: this.dark ? 13214826 : 12094026, roughness: 0.7 })
-      );
+      const width = Math.min(hy, 0.18) * 2;
+      const bar = new Group();
+      const seg = 0.03;
+      const n = Math.max(2, Math.round(width / seg));
+      const yellow = new MeshStandardMaterial({ color: HAZARD_YELLOW, roughness: 0.55 });
+      const black = new MeshStandardMaterial({ color: 1447964, roughness: 0.6 });
+      for (let i = 0; i < n; i++) {
+        const piece = new Mesh(
+          new RoundedBoxGeometry(hx * 2, width / n, hz * 2, 2, Math.min(hx, hz) * 0.18),
+          i % 2 ? black : yellow
+        );
+        piece.position.set(0, -width / 2 + (i + 0.5) * (width / n), 0);
+        piece.castShadow = piece.receiveShadow = true;
+        bar.add(piece);
+      }
       bar.position.set(...b.center);
-      bar.castShadow = bar.receiveShadow = true;
       this.terrain.add(bar);
+      this.labelAt = new Vector3(b.center[0] + 0.05, -0.16, hz * 2 + 0.012);
+      this.label = textSprite(`${Math.round(hz * 2 * 1e3) / 10} cm bar`, { color: HAZARD_YELLOW });
+      this.scene.add(this.label);
     }
     this.arrow = null;
     if (meta.push) {
       const v = meta.push.vector || [1, 0];
-      const dir = new THREE.Vector3(v[0], v[1], 0).normalize();
-      this.arrow = new THREE.ArrowHelper(dir, new THREE.Vector3(), 0.12, 16734799, 0.04, 0.025);
+      const dir = new Vector3(v[0], v[1], 0).normalize();
+      this.arrow = new ArrowHelper(dir, new Vector3(), 0.12, 16734799, 0.04, 0.025);
       this.arrow.visible = false;
       this.terrain.add(this.arrow);
     }
     this.payload = null;
     if (meta.payload && meta.payload.part) {
       const r = 8e-3 + Math.cbrt(Math.max(meta.payload.grams, 1)) * 22e-4;
-      this.payload = new THREE.Mesh(
-        new THREE.SphereGeometry(r, 24, 16),
-        new THREE.MeshStandardMaterial({ color: 8161174, roughness: 0.3, metalness: 0.6 })
+      this.payload = new Mesh(
+        new SphereGeometry(r, 24, 16),
+        new MeshStandardMaterial({ color: 8161174, roughness: 0.3, metalness: 0.6 })
       );
       this.payload.castShadow = true;
       this.payloadIndex = this.meshes.findIndex((m) => m.name === meta.payload.part);
       this.terrain.add(this.payload);
     }
+    this._placeLabel();
+  }
+  _placeLabel() {
+    if (!this.label || !this.labelAt) return;
+    this.scene.updateMatrixWorld(true);
+    this.label.position.copy(this.labelAt.clone().applyMatrix4(this.tilt.matrixWorld));
   }
   setTime(t) {
     if (!this.arrow || !this.meta.push || !this.root) return;
@@ -23188,9 +23817,8 @@ var Stage = class {
     const on = t >= p.at_s - 0.05 && t <= p.at_s + Math.max(p.duration_s, 0.5);
     this.arrow.visible = on;
     if (on) {
-      const dir = new THREE.Vector3(p.vector[0], p.vector[1], 0).normalize();
-      const at = this.root.position.clone().addScaledVector(dir, -0.16);
-      this.arrow.position.copy(at);
+      const dir = new Vector3(p.vector[0], p.vector[1], 0).normalize();
+      this.arrow.position.copy(this.root.position.clone().addScaledVector(dir, -0.16));
     }
   }
   _updatePayload(frame) {
@@ -23199,39 +23827,37 @@ var Stage = class {
     this.payload.position.set(x, y, z - 0.025);
   }
   _robotBox() {
-    const box = new THREE.Box3();
+    const box = new Box3();
     for (const m of this.meshes) box.expandByObject(m);
     return box;
   }
   // Aim the camera at the robot. ``fit`` also chooses the distance (first frame or "reset view").
-  frame(fit = true) {
+  frame(fit = true, { distance = 2.35, azimuth = [0.78, 0.5, 0.72] } = {}) {
     this.scene.updateMatrixWorld(true);
     const box = this._robotBox();
     if (box.isEmpty()) return;
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3()).length();
+    const center = box.getCenter(new Vector3());
+    const size = box.getSize(new Vector3()).length();
     this._size = size;
     center.y *= 0.85;
-    this.target.copy(center);
     this.controls.target.copy(center);
     if (fit) {
-      const dist = Math.max(size * 2.35, 0.3);
-      const dir = new THREE.Vector3(0.78, 0.5, 0.72).normalize();
+      const dist = Math.max(size * distance, 0.3);
+      const dir = new Vector3(...azimuth).normalize();
       this.camera.position.copy(center).addScaledVector(dir, dist);
       this.userMoved = false;
     }
     this._aimLight(center, size);
+    this._placeLabel();
     this.controls.update();
   }
   _track() {
     this.scene.updateMatrixWorld(true);
     const box = this._robotBox();
     if (box.isEmpty()) return;
-    const p = box.getCenter(new THREE.Vector3());
+    const p = box.getCenter(new Vector3());
     p.y = this.controls.target.y + (p.y - this.controls.target.y) * 0.3;
-    const delta = p.sub(this.controls.target);
-    delta.y *= 0.3;
-    const step = delta.multiplyScalar(0.12);
+    const step = p.sub(this.controls.target).multiplyScalar(0.12);
     this.controls.target.add(step);
     this.camera.position.add(step);
     this.grid.position.x = Math.round(this.root.position.x / 0.2) * 0.2;
@@ -23240,7 +23866,7 @@ var Stage = class {
   }
   _aimLight(center, size) {
     this.key.target.position.copy(center);
-    this.key.position.copy(center).add(new THREE.Vector3(1.2, 2.4, 1.6).normalize().multiplyScalar(2.2));
+    this.key.position.copy(center).add(new Vector3(1.2, 2.4, 1.6).normalize().multiplyScalar(2.2));
     const s = Math.max(size, 0.3);
     const cam = this.key.shadow.camera;
     cam.left = cam.bottom = -s;
@@ -23254,21 +23880,24 @@ var Stage = class {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   }
-  snapshot() {
-    return this.renderer.domElement.toDataURL("image/png");
+  renderNow() {
+    this.controls.update();
+    this.renderer.render(this.scene, this.camera);
   }
   dispose() {
     this._running = false;
     cancelAnimationFrame(this._raf);
     this._resize.disconnect();
     this.controls.dispose();
+    this._clearTerrain();
     this.scene.traverse((o) => {
       if (o.geometry) o.geometry.dispose();
       if (o.material) {
-        if (o.material.alphaMap) o.material.alphaMap.dispose();
+        if (o.material.map) o.material.map.dispose();
         o.material.dispose();
       }
     });
+    if (this.envMap) this.envMap.dispose();
     this.renderer.dispose();
     this.renderer.forceContextLoss();
     this.renderer.domElement.remove();
@@ -23277,11 +23906,22 @@ var Stage = class {
 
 // src/viewer.jsx
 import { jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
+function tipTime(trace, result) {
+  if (!trace || !result || !result.fell) return null;
+  if (result.fell_at_s != null) return result.fell_at_s;
+  for (let i = 0; i < trace.frames.length; i++) {
+    const [, , , , qx, qy] = trace.frames[i][0];
+    const upZ = 1 - 2 * (qx * qx + qy * qy);
+    if (upZ < Math.cos(50 * Math.PI / 180)) return i / trace.fps;
+  }
+  return (trace.frames.length - 1) / trace.fps;
+}
 function Viewer3D({
   parts,
   frames,
   pose,
   meta,
+  look,
   frameIndex = 0,
   time = 0,
   label,
@@ -23289,11 +23929,13 @@ function Viewer3D({
   tone,
   height = 340,
   interactive = true,
-  onStage
+  onStage,
+  tipAt = null
 }) {
   const box = useRef2(null);
   const stage = useRef2(null);
   const [error, setError] = useState3(null);
+  const tipped = tipAt != null && time >= tipAt;
   useEffect3(() => {
     try {
       stage.current = new Stage(box.current, { interactive });
@@ -23309,20 +23951,26 @@ function Viewer3D({
   useEffect3(() => {
     const s = stage.current;
     if (!s || !parts) return;
-    s.setRobot(parts);
+    s.setRobot(parts, look || {});
     s.setMeta(meta || {});
     s.setPose(frames ? frames[0] : pose);
     s.frame(true);
-  }, [parts, meta, frames, pose]);
+  }, [parts, meta, frames, pose, look]);
   useEffect3(() => {
     const s = stage.current;
     if (!s || !frames || !frames.length) return;
     s.setPose(frames[Math.min(frameIndex, frames.length - 1)]);
     s.setTime(time);
-  }, [frameIndex, time, frames]);
+    s.setTip(tipAt != null && time >= tipAt && time < tipAt + 0.8);
+  }, [frameIndex, time, frames, tipAt]);
   return /* @__PURE__ */ jsxs3("div", { className: "tb-viewer", style: { height }, children: [
     /* @__PURE__ */ jsx3("div", { className: "tb-viewer-canvas", ref: box }),
     /* @__PURE__ */ jsx3("div", { className: "tb-viewer-tag", children: "SIMULATION" }),
+    tipped ? /* @__PURE__ */ jsxs3("div", { className: "tb-viewer-tipped", children: [
+      "TIPPED · ",
+      tipAt.toFixed(2),
+      " s"
+    ] }) : null,
     label ? /* @__PURE__ */ jsxs3("div", { className: "tb-viewer-label" + (tone ? " tb-tone-" + tone : ""), children: [
       /* @__PURE__ */ jsx3("span", { children: label }),
       sublabel ? /* @__PURE__ */ jsx3("small", { children: sublabel }) : null
@@ -23557,7 +24205,7 @@ function RobotPage({ robot, go }) {
   const [trace, traceLoading] = useTrace(playing ? { robot, move: playing } : null);
   const tr = trace && trace.ok ? trace.trace : null;
   const player = usePlayer(traceDuration(tr));
-  const rest = useMemo(() => detail && detail.ok ? detail.render : null, [detail]);
+  const rest = useMemo(() => detail && detail.ok ? detail.showcase || detail.render : null, [detail]);
   const restPose = useMemo(() => rest ? rest.parts.map((p) => p.pose) : null, [rest]);
   if (!robot) return null;
   if (loading && !detail) return /* @__PURE__ */ jsx4(Loading, { what: "Loading robot" });
@@ -23566,7 +24214,10 @@ function RobotPage({ robot, go }) {
   return /* @__PURE__ */ jsxs4("div", { className: "tb-page", children: [
     /* @__PURE__ */ jsxs4("div", { className: "tb-hero", children: [
       /* @__PURE__ */ jsxs4("div", { children: [
-        /* @__PURE__ */ jsx4("h2", { children: detail.title }),
+        /* @__PURE__ */ jsxs4("h2", { title: `spec hash ${detail.spec_hash} (physics only)`, children: [
+          detail.title,
+          detail.look && detail.look.badge ? /* @__PURE__ */ jsx4("span", { className: "tb-badge", style: { "--tb-badge": detail.look.accent }, children: detail.look.badge }) : null
+        ] }),
         /* @__PURE__ */ jsx4("p", { children: detail.role || detail.description }),
         /* @__PURE__ */ jsxs4("div", { className: "tb-meta-row", children: [
           detail.family ? /* @__PURE__ */ jsx4(Chip, { children: detail.family }) : null,
@@ -23582,11 +24233,7 @@ function RobotPage({ robot, go }) {
             s.parts,
             " parts"
           ] }),
-          detail.base === "fixed" ? /* @__PURE__ */ jsx4(Chip, { children: "fixed base" }) : null,
-          /* @__PURE__ */ jsxs4(Chip, { title: "physics hash of the spec", children: [
-            "spec ",
-            detail.spec_hash
-          ] })
+          detail.base === "fixed" ? /* @__PURE__ */ jsx4(Chip, { children: "fixed base" }) : null
         ] })
       ] }),
       /* @__PURE__ */ jsxs4("div", { className: "tb-hero-actions", children: [
@@ -23604,10 +24251,12 @@ function RobotPage({ robot, go }) {
             frames: tr ? tr.frames : null,
             pose: tr ? null : restPose,
             meta: trace && trace.ok ? trace.meta : null,
+            look: detail.look,
+            tipAt: tr ? tipTime(tr, trace.result) : null,
             frameIndex: frameAt(tr, player.t),
             time: player.t,
-            label: playing ? `move: ${playing}` : "rest pose",
-            sublabel: tr ? trace.result.fell ? `tipped at ${trace.result.fell_at_s?.toFixed(2)} s` : "nominal world, stays up" : "home pose on the floor",
+            label: playing ? `move: ${playing}` : "showcase pose",
+            sublabel: tr ? trace.result.fell ? `tipped at ${trace.result.fell_at_s?.toFixed(2)} s` : "nominal world, stays up" : "standing on the floor",
             tone: tr ? trace.result.fell ? "red" : "green" : null,
             height: 420
           }
@@ -23632,8 +24281,22 @@ function RobotPage({ robot, go }) {
           /* @__PURE__ */ jsxs4("div", { children: [
             /* @__PURE__ */ jsxs4("div", { className: "tb-list-title", children: [
               m.name,
-              m.preflight && m.preflight.startsWith("pass") ? /* @__PURE__ */ jsx4(Chip, { tone: "green", children: "preflight pass" }) : null,
-              m.preflight && m.preflight.startsWith("fail") ? /* @__PURE__ */ jsx4(Chip, { tone: "red", children: "preflight fail" }) : null
+              m.official ? /* @__PURE__ */ jsxs4(
+                Chip,
+                {
+                  tone: m.official.high <= 0.1 ? "green" : m.official.falls ? "red" : "grey",
+                  title: `95% interval ${(m.official.low * 100).toFixed(0)}–${(m.official.high * 100).toFixed(0)}% · ${m.official.origin || ""}`,
+                  children: [
+                    "tips ",
+                    (m.official.rate * 100).toFixed(0),
+                    "% · ",
+                    m.official.worlds,
+                    " worlds",
+                    m.official.quick ? " · quick" : ""
+                  ]
+                }
+              ) : null,
+              m.preflight && m.preflight.startsWith("pass") ? /* @__PURE__ */ jsx4(Chip, { tone: "accent", children: "approved" }) : null
             ] }),
             /* @__PURE__ */ jsxs4("div", { className: "tb-muted", children: [
               m.description || "",
@@ -23665,10 +24328,35 @@ function RobotPage({ robot, go }) {
 // src/views/bench.jsx
 import { useEffect as useEffect5, useMemo as useMemo2, useState as useState5 } from "react";
 import { Fragment as Fragment2, jsx as jsx5, jsxs as jsxs5 } from "react/jsx-runtime";
-function Tile({ card, active, onClick }) {
+function Tile({ card, active, onClick, quick }) {
   const st = STATUS[card.status] || STATUS["n/a"];
   const m = card.metric || {};
   const scoped = card.applicable && card.status !== "out_of_scope";
+  const isMove = card.id.startsWith("move:");
+  if (scoped && isMove) {
+    const falls = card.runs - card.passed;
+    return /* @__PURE__ */ jsxs5("button", { type: "button", className: `tb-tile tb-tile-${st.tone}${active ? " tb-active" : ""}`, onClick, children: [
+      /* @__PURE__ */ jsxs5("div", { className: "tb-tile-top", children: [
+        /* @__PURE__ */ jsx5("span", { className: "tb-tile-title", children: card.title }),
+        /* @__PURE__ */ jsx5("span", { className: "tb-dot tb-fill-" + st.tone })
+      ] }),
+      /* @__PURE__ */ jsx5("div", { className: "tb-tile-big", children: pct(falls / card.runs) }),
+      /* @__PURE__ */ jsxs5("div", { className: "tb-tile-sub", children: [
+        "tipped in ",
+        falls,
+        "/",
+        card.runs,
+        " ",
+        quick ? "quick " : "",
+        "preflight worlds"
+      ] }),
+      /* @__PURE__ */ jsxs5("div", { className: "tb-tile-metric", children: [
+        "median ",
+        human(card.id, m.median)
+      ] }),
+      /* @__PURE__ */ jsx5("div", { className: "tb-tile-worst", children: m.worst && m.worst.reason ? `worst: ${m.worst.reason}` : "never tipped" })
+    ] });
+  }
   return /* @__PURE__ */ jsxs5(
     "button",
     {
@@ -23689,16 +24377,12 @@ function Tile({ card, active, onClick }) {
             " worlds"
           ] }),
           /* @__PURE__ */ jsxs5("div", { className: "tb-tile-metric", children: [
-            m.name,
-            ": ",
-            /* @__PURE__ */ jsx5("b", { children: fmt(m.median, m.unit) }),
-            " ",
-            m.unit !== "x weight" ? m.unit : "× weight"
+            "median: ",
+            /* @__PURE__ */ jsx5("b", { children: human(card.id, m.median, m.unit) })
           ] }),
           /* @__PURE__ */ jsxs5("div", { className: "tb-tile-worst", children: [
             "worst: ",
-            fmt(m.worst && m.worst.value, m.unit),
-            m.worst && m.worst.reason ? ` · ${m.worst.reason}` : ""
+            m.worst && m.worst.value != null ? human(card.id, m.worst.value, m.unit) : m.worst && m.worst.reason || "–"
           ] })
         ] }) : /* @__PURE__ */ jsxs5(Fragment2, { children: [
           /* @__PURE__ */ jsx5("div", { className: "tb-tile-scope", children: st.label }),
@@ -23729,6 +24413,8 @@ function Replays({ robot, card }) {
         parts: d.trace.parts,
         frames: d.trace.frames,
         meta: d.meta,
+        look: d.look,
+        tipAt: tipTime(d.trace, r),
         frameIndex: frameAt(d.trace, player.t),
         time: player.t,
         height: 320,
@@ -23819,9 +24505,11 @@ function BenchPage({ robot }) {
               " ",
               STATUS[k].label.toLowerCase()
             ] }, k)),
+            report.settings.quick ? /* @__PURE__ */ jsx5(Chip, { tone: "amber", children: "quick run" }) : null,
             /* @__PURE__ */ jsxs5(Chip, { children: [
               report.settings.worlds,
-              " worlds/scene"
+              " worlds/scene · moves ",
+              report.settings.move_worlds || 60
             ] }),
             /* @__PURE__ */ jsx5(Chip, { children: report.origin })
           ] })
@@ -23829,7 +24517,16 @@ function BenchPage({ robot }) {
         /* @__PURE__ */ jsx5("p", { className: "tb-lead", children: report.summary }),
         /* @__PURE__ */ jsx5("p", { className: "tb-muted tb-small", children: report.label })
       ] }),
-      /* @__PURE__ */ jsx5("div", { className: "tb-tiles", children: cards.map((c) => /* @__PURE__ */ jsx5(Tile, { card: c, active: c.id === sel, onClick: () => setSel(c.id === sel ? null : c.id) }, c.id)) }),
+      /* @__PURE__ */ jsx5("div", { className: "tb-tiles", children: cards.map((c) => /* @__PURE__ */ jsx5(
+        Tile,
+        {
+          card: c,
+          active: c.id === sel,
+          quick: report.settings.quick,
+          onClick: () => setSel(c.id === sel ? null : c.id)
+        },
+        c.id
+      )) }),
       !active ? /* @__PURE__ */ jsx5("p", { className: "tb-hint", children: "Click a scene tile to replay its median and worst world side by side." }) : null,
       active ? /* @__PURE__ */ jsx5(Replays, { robot, card: active }, active.id) : null,
       /* @__PURE__ */ jsxs5("div", { className: "tb-two", children: [
@@ -23877,11 +24574,31 @@ function Delta({ d }) {
     " pts"
   ] });
 }
+function worldChoices(row, names, result) {
+  const out = row.outcomes || {};
+  const passed = (n, seed) => {
+    const hit = (out[n] || []).find(([s]) => s === seed);
+    return hit ? hit[1] : null;
+  };
+  const differ = [];
+  const allFail = [];
+  for (const [seed] of out.base || []) {
+    const vals = names.map((n) => passed(n, seed));
+    if (vals.some((v) => v) && vals.some((v) => !v)) differ.push(seed);
+    else if (vals.every((v) => v === false)) allFail.push(seed);
+  }
+  differ.sort((a, b) => Number(passed("base", a)) - Number(passed("base", b)) || a - b);
+  const card = result.reports.base.scenes.find((c) => c.id === row.scene);
+  const median = card && card.metric ? [card.metric.median_seed] : [0];
+  return { differ, fail: allFail, median };
+}
+var MODES = [["differ", "Different outcome"], ["fail", "All fail"], ["median", "Median world"]];
 function Synced({ robot, jobId, row, names, result }) {
-  const seed = useMemo3(() => {
-    const card = result.reports.base.scenes.find((c) => c.id === row.scene);
-    return card && card.metric ? card.metric.median_seed : 0;
-  }, [row, result]);
+  const choices = useMemo3(() => worldChoices(row, names, result), [row, names, result]);
+  const [mode, setMode] = useState6(choices.differ.length ? "differ" : "median");
+  const [idx, setIdx] = useState6(0);
+  const list = choices[mode].length ? choices[mode] : choices.median;
+  const seed = list[Math.min(idx, list.length - 1)];
   const traces = names.map((n) => useTrace({ robot, scene: row.scene, seed, job_id: jobId, variant: n }));
   const ok = traces.map(([d]) => d && d.ok ? d : null);
   const player = usePlayer(traceDuration(...ok.map((d) => d && d.trace)));
@@ -23889,11 +24606,37 @@ function Synced({ robot, jobId, row, names, result }) {
     /* @__PURE__ */ jsxs6("div", { className: "tb-card-head", children: [
       /* @__PURE__ */ jsxs6("h3", { children: [
         row.title,
-        ": same world (",
+        ": world ",
         seed,
-        "), every design"
+        ", every design"
       ] }),
-      /* @__PURE__ */ jsx6("span", { className: "tb-muted", children: "one timeline drives all views" })
+      /* @__PURE__ */ jsxs6("div", { className: "tb-row tb-gap-sm tb-wrap", children: [
+        /* @__PURE__ */ jsx6("div", { className: "tb-seg", role: "tablist", children: MODES.map(([m, label]) => /* @__PURE__ */ jsxs6(
+          "button",
+          {
+            type: "button",
+            className: "tb-seg-btn" + (mode === m ? " tb-active" : ""),
+            disabled: !choices[m].length,
+            onClick: () => {
+              setMode(m);
+              setIdx(0);
+            },
+            children: [
+              label,
+              " ",
+              /* @__PURE__ */ jsx6("span", { className: "tb-seg-count", children: choices[m].length })
+            ]
+          },
+          m
+        )) }),
+        list.length > 1 ? /* @__PURE__ */ jsxs6(Button, { onClick: () => setIdx((idx + 1) % list.length), children: [
+          "Next world (",
+          Math.min(idx, list.length - 1) + 1,
+          "/",
+          list.length,
+          ")"
+        ] }) : null
+      ] })
     ] }),
     /* @__PURE__ */ jsx6("div", { className: "tb-grid-views tb-views-" + Math.min(names.length, 3), children: names.map((n, i) => {
       const d = ok[i];
@@ -23910,11 +24653,13 @@ function Synced({ robot, jobId, row, names, result }) {
           parts: d.trace.parts,
           frames: d.trace.frames,
           meta: d.meta,
+          look: d.look,
+          tipAt: tipTime(d.trace, r),
           frameIndex: frameAt(d.trace, player.t),
           time: player.t,
           height: 300,
           label: n,
-          sublabel: r.passed ? `passed · ${fmt(r.metric)}` : r.reason || "failed",
+          sublabel: r.passed ? `passed · ${human(row.scene, r.metric)}` : `${r.reason || "failed"} · ${human(row.scene, r.metric)}`,
           tone: r.passed ? "green" : "red"
         },
         n
@@ -24025,9 +24770,7 @@ function ComparePage({ robot }) {
                   /* @__PURE__ */ jsx6("b", { children: pct(c.pass_rate) }),
                   /* @__PURE__ */ jsxs6("span", { className: "tb-muted", children: [
                     " · ",
-                    fmt(c.median, c.unit),
-                    " ",
-                    c.unit
+                    human(r.scene, c.median, c.unit)
                   ] }),
                   " ",
                   /* @__PURE__ */ jsx6(Delta, { d: c.delta_pass })
@@ -24110,7 +24853,9 @@ function Result({ res, robot, move, speed }) {
           res.tip.falls,
           "/",
           res.worlds,
-          " worlds"
+          " ",
+          res.official ? "" : "quick ",
+          "worlds"
         ] }),
         /* @__PURE__ */ jsxs7("div", { className: "tb-small", children: [
           "95% interval ",
@@ -24126,8 +24871,12 @@ function Result({ res, robot, move, speed }) {
         /* @__PURE__ */ jsxs7("div", { className: "tb-card-head", children: [
           /* @__PURE__ */ jsx7("h3", { children: "Tip chance" }),
           /* @__PURE__ */ jsxs7("div", { className: "tb-row tb-gap-sm", children: [
-            res.extended ? /* @__PURE__ */ jsx7(Chip, { tone: "accent", children: "extended 30 → 60 worlds" }) : null,
-            res.stopped_early ? /* @__PURE__ */ jsx7(Chip, { tone: "accent", children: "stopped early: failure already clear" }) : null
+            res.official ? /* @__PURE__ */ jsx7(Chip, { tone: "accent", title: "the same 60 fixed-seed worlds the report card and gallery use", children: "official · 60 fixed worlds" }) : /* @__PURE__ */ jsxs7(Chip, { tone: "amber", children: [
+              "quick · ",
+              res.worlds,
+              " worlds"
+            ] }),
+            res.extended ? /* @__PURE__ */ jsx7(Chip, { children: "clean at 30, extended to 60" }) : null
           ] })
         ] }),
         /* @__PURE__ */ jsx7(Interval, { tip: res.tip, limit: 0.1 }),
@@ -24153,6 +24902,8 @@ function Result({ res, robot, move, speed }) {
             parts: tr.parts,
             frames: tr.frames,
             meta: trace.meta,
+            look: trace.look,
+            tipAt: tipTime(tr, trace.result),
             frameIndex: frameAt(tr, player.t),
             time: player.t,
             height: 360,
@@ -24203,7 +24954,7 @@ function CheckPage({ robot, initialMove }) {
   const [moves] = useApi(robot ? `/robots/${robot}/moves` : null);
   const [move, setMove] = useState7(initialMove || "");
   const [speed, setSpeed] = useState7(1);
-  const [quick, setQuick] = useState7(true);
+  const [quick, setQuick] = useState7(false);
   const [busy, setBusy] = useState7(false);
   const [res, setRes] = useState7(null);
   useEffect7(() => {
@@ -24255,7 +25006,7 @@ function CheckPage({ robot, initialMove }) {
         ] }),
         /* @__PURE__ */ jsxs7("label", { className: "tb-toggle", children: [
           /* @__PURE__ */ jsx7("input", { type: "checkbox", checked: quick, onChange: (e) => setQuick(e.target.checked) }),
-          " quick (30 worlds, extends to 60 when clean)"
+          " quick (30 worlds; clean moves extend to 60)"
         ] }),
         /* @__PURE__ */ jsx7(Button, { kind: "primary", busy, disabled: !move, onClick: run, children: "Run preflight" })
       ] }),

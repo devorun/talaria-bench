@@ -68,3 +68,4 @@ secrets.h
 
 # UI build tooling
 ui/node_modules/
+ui/render/

@@ -134,3 +134,18 @@ def test_fixed_part(mini_data):
     spec = parse_spec(mini_data)
     assert spec.part("foot").joint is None and spec.part("foot").pos == (0.0, 0.0, -4.0)
     assert [p.name for p in spec.parts] == ["body", "leg", "foot"]
+
+
+def test_look_is_appearance_only(mini_data):
+    from talaria_bench.spec import SpecError, parse_spec
+
+    plain = parse_spec(mini_data)
+    styled = parse_spec(dict(mini_data, look={"material": "aluminum", "accent": "#ff7a1a", "badge": "v2",
+                                              "decals": [{"part": "body", "kind": "oled"}],
+                                              "showcase": {"joints": {"leg": 20}}}))
+    assert styled.look["badge"] == "v2" and styled.look["showcase"]["joints"] == {"leg": 20.0}
+    assert styled.hash() == plain.hash()                      # never part of the physics hash
+    for bad in ({"material": "gold"}, {"accent": "orange"}, {"decals": [{"part": "nope", "kind": "oled"}]},
+                {"badge": "far too long"}, {"sparkle": True}):
+        with pytest.raises(SpecError):
+            parse_spec(dict(mini_data, look=bad))

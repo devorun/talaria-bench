@@ -30,7 +30,11 @@ def pick_robot(page: Page, name: str) -> None:
 
 
 def settle(page: Page, ms: int = 2500) -> None:
-    page.wait_for_function("() => !document.querySelector('.tb-root .tb-viewer-wait')", timeout=180_000)
+    """Wait until no 3D view is still recording (polls the DOM; the webapp's CSP forbids string evaluation)."""
+    for _ in range(360):
+        if page.locator(".tb-root .tb-viewer-wait").count() == 0:
+            break
+        page.wait_for_timeout(500)
     page.wait_for_timeout(ms)
 
 
@@ -39,6 +43,25 @@ def shot(page: Page, prefix: str, name: str, full: bool = False) -> None:
     path = OUT / f"{prefix}-{name}.png"
     page.screenshot(path=str(path), full_page=full)
     print("saved", path.relative_to(ROOT))
+
+
+def scrub(page: Page, seconds: float) -> None:
+    """Pause the last timeline and move it to ``seconds`` (a range input driven by React's input events)."""
+    page.locator(".tb-timeline .tb-icon-btn").last.click()
+    page.locator(".tb-timeline input[type=range]").last.evaluate(
+        """(el, v) => { const set = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), 'value').set;
+                        set.call(el, String(v)); el.dispatchEvent(new Event('input', { bubbles: true })) }""",
+        seconds)
+    page.wait_for_timeout(700)
+
+
+def tip_seconds(page: Page) -> float | None:
+    import re
+    for text in page.locator(".tb-viewer-label small").all_inner_texts():
+        m = re.search(r"tips at ([0-9.]+) s", text)
+        if m:
+            return float(m.group(1))
+    return None
 
 
 def run(page: Page, prefix: str) -> None:
@@ -68,6 +91,11 @@ def run(page: Page, prefix: str) -> None:
     page.locator(".tb-timeline").last.scroll_into_view_if_needed()
     page.wait_for_timeout(500)
     shot(page, prefix, "report-spider8-replay")
+    page.locator(".tb-tile", has_text="Bar 2 cm").click()
+    page.locator(".tb-root .tb-viewer canvas").nth(1).wait_for(timeout=180_000)
+    settle(page, 3500)
+    page.locator(".tb-timeline").last.scroll_into_view_if_needed()
+    shot(page, prefix, "report-spider8-bar")
 
     tab(page, "Compare")
     page.wait_for_selector(".tb-check", timeout=60_000)
@@ -95,8 +123,11 @@ def run(page: Page, prefix: str) -> None:
         page.get_by_role("button", name="Run preflight").click()
         page.wait_for_selector(".tb-verdict", timeout=300_000)
         settle(page, 3000)
+        t = tip_seconds(page)
+        if t is not None:
+            scrub(page, t + 0.25)                 # the red tip flash and the TIPPED tag
         page.get_by_role("button", name="Play on virtual robot").click()
-        page.wait_for_timeout(1200)
+        page.wait_for_timeout(900)
         page.locator(".tb-verdict").scroll_into_view_if_needed()
         shot(page, prefix, name)
 
@@ -108,9 +139,15 @@ def main() -> int:
             # Hermes Desktop's workspace served by the gateway (`hermes webapp`): the same renderer and the same
             # desktop/plugin.js as the Electron app. argv[2] is a one-use link from `hermes webapp --no-open`.
             browser = pw.chromium.launch(args=["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"])
-            page = browser.new_page(viewport={"width": 1440, "height": 960}, device_scale_factor=1)
+            dark = len(sys.argv) > 3 and sys.argv[3] == "dark"
+            page = browser.new_page(viewport={"width": 1440, "height": 960}, device_scale_factor=1,
+                                    color_scheme="dark" if dark else "light")
             page.on("console", lambda m: ERRORS.append(m.text) if m.type == "error" and "talaria" in m.text.lower() else None)
             page.on("pageerror", lambda e: ERRORS.append(str(e)))
+            # The workspace keeps its colour mode in this browser's storage (default "system"); pin it.
+            mode = "dark" if dark else "light"
+            page.add_init_script(f"""try {{ localStorage.setItem('hermes-desktop-mode-v1', '{mode}');
+                localStorage.setItem('hermes-desktop-profile-modes-v1', JSON.stringify({{ default: '{mode}' }})) }} catch (e) {{}}""")
             page.goto(sys.argv[2])
             page.wait_for_url("**/#/**", timeout=60_000)
             base = page.url.split("#")[0]
@@ -122,7 +159,7 @@ def main() -> int:
                 switch.click()
             page.wait_for_timeout(2500)
             page.goto(base + "#/talaria")
-            run(page, "desktop")
+            run(page, "desktop-dark" if dark else "desktop")
             browser.close()
         elif target == "desktop":
             browser = pw.chromium.connect_over_cdp(sys.argv[2] if len(sys.argv) > 2 else "http://127.0.0.1:9222")

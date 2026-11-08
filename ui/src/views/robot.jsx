@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, notify } from '../platform.js'
-import { Viewer3D, Timeline, usePlayer, frameAt, traceDuration } from '../viewer.jsx'
+import { Viewer3D, Timeline, usePlayer, frameAt, tipTime, traceDuration } from '../viewer.jsx'
 import { Button, Chip, ErrorBox, Loading, useApi, useTrace } from '../ui.jsx'
 
 function Photo({ robot }) {
@@ -91,7 +91,7 @@ export function RobotPage({ robot, go }) {
   const [trace, traceLoading] = useTrace(playing ? { robot, move: playing } : null)
   const tr = trace && trace.ok ? trace.trace : null
   const player = usePlayer(traceDuration(tr))
-  const rest = useMemo(() => detail && detail.ok ? detail.render : null, [detail])
+  const rest = useMemo(() => detail && detail.ok ? (detail.showcase || detail.render) : null, [detail])
   const restPose = useMemo(() => rest ? rest.parts.map((p) => p.pose) : null, [rest])
   if (!robot) return null
   if (loading && !detail) return <Loading what="Loading robot" />
@@ -101,7 +101,9 @@ export function RobotPage({ robot, go }) {
     <div className="tb-page">
       <div className="tb-hero">
         <div>
-          <h2>{detail.title}</h2>
+          <h2 title={`spec hash ${detail.spec_hash} (physics only)`}>{detail.title}
+            {detail.look && detail.look.badge ? <span className="tb-badge" style={{ '--tb-badge': detail.look.accent }}>{detail.look.badge}</span> : null}
+          </h2>
           <p>{detail.role || detail.description}</p>
           <div className="tb-meta-row">
             {detail.family ? <Chip>{detail.family}</Chip> : null}
@@ -109,7 +111,6 @@ export function RobotPage({ robot, go }) {
             <Chip>{Math.round(s.total_mass_g)} g</Chip>
             <Chip>{s.parts} parts</Chip>
             {detail.base === 'fixed' ? <Chip>fixed base</Chip> : null}
-            <Chip title="physics hash of the spec">spec {detail.spec_hash}</Chip>
           </div>
         </div>
         <div className="tb-hero-actions">
@@ -122,9 +123,10 @@ export function RobotPage({ robot, go }) {
       <div className={'tb-split' + (detail.has_photo ? '' : ' tb-split-single')}>
         <div className="tb-card tb-card-flush">
           <Viewer3D parts={tr ? tr.parts : rest.parts} frames={tr ? tr.frames : null} pose={tr ? null : restPose}
-            meta={trace && trace.ok ? trace.meta : null} frameIndex={frameAt(tr, player.t)} time={player.t}
-            label={playing ? `move: ${playing}` : 'rest pose'}
-            sublabel={tr ? (trace.result.fell ? `tipped at ${trace.result.fell_at_s?.toFixed(2)} s` : 'nominal world, stays up') : 'home pose on the floor'}
+            meta={trace && trace.ok ? trace.meta : null} look={detail.look} tipAt={tr ? tipTime(tr, trace.result) : null}
+            frameIndex={frameAt(tr, player.t)} time={player.t}
+            label={playing ? `move: ${playing}` : 'showcase pose'}
+            sublabel={tr ? (trace.result.fell ? `tipped at ${trace.result.fell_at_s?.toFixed(2)} s` : 'nominal world, stays up') : 'standing on the floor'}
             tone={tr ? (trace.result.fell ? 'red' : 'green') : null} height={420} />
           {tr ? <Timeline player={player} /> : null}
           {traceLoading ? <div className="tb-overlay-note"><span className="tb-spinner" /> simulating {playing}…</div> : null}
@@ -140,8 +142,12 @@ export function RobotPage({ robot, go }) {
               <div key={m.name} className={'tb-list-row' + (playing === m.name ? ' tb-active' : '')}>
                 <div>
                   <div className="tb-list-title">{m.name}
-                    {m.preflight && m.preflight.startsWith('pass') ? <Chip tone="green">preflight pass</Chip> : null}
-                    {m.preflight && m.preflight.startsWith('fail') ? <Chip tone="red">preflight fail</Chip> : null}
+                    {m.official ? (
+                      <Chip tone={m.official.high <= 0.1 ? 'green' : m.official.falls ? 'red' : 'grey'}
+                        title={`95% interval ${(m.official.low * 100).toFixed(0)}–${(m.official.high * 100).toFixed(0)}% · ${m.official.origin || ''}`}>
+                        tips {(m.official.rate * 100).toFixed(0)}% · {m.official.worlds} worlds{m.official.quick ? ' · quick' : ''}
+                      </Chip>) : null}
+                    {m.preflight && m.preflight.startsWith('pass') ? <Chip tone="accent">approved</Chip> : null}
                   </div>
                   <div className="tb-muted">{m.description || ''}{m.duration_s ? ` · ${m.duration_s.toFixed(1)} s` : ''}</div>
                 </div>

@@ -31,6 +31,14 @@ await build({
   external: ['react', 'react/jsx-runtime', '@hermes/plugin-sdk'],
 })
 
+// Dev-only: the gallery renderer used by scripts/render_gallery.py (gitignored, not shipped).
+await build({
+  ...common,
+  entryPoints: [path.join(here, 'src/gallery-render.js')],
+  outfile: path.join(here, 'render/render.js'),
+  format: 'iife',
+})
+
 await build({
   ...common,
   entryPoints: [path.join(here, 'src/dashboard.jsx')],

@@ -29,7 +29,7 @@ PHOTO_TYPES = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
 GALLERY_IMG = PLUGIN_ROOT / "docs" / "img" / "gallery"
 VARIANTS_DIR = PLUGIN_ROOT / "examples" / "variants"
 TRACE_DECIMALS = 3
-TRACE_VERSION = 1
+TRACE_VERSION = 2
 _NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
 EDITABLE = ("size", "mass", "servo")
 
@@ -78,12 +78,13 @@ class WebAPI:
         for r in data.get("robots", []):
             spec = self._spec(r["name"])
             out.append({**r, "role": spec.role or spec.description, "headline": self._headline(spec.name),
+                        "look": {k: v for k, v in spec.look.items() if k in ("badge", "accent", "material")},
                         "has_photo": self.photo_path(spec.name) is not None,
                         "has_thumb": (GALLERY_IMG / f"{spec.name}.png").is_file() and r["source"] == "bundled"})
         return {"ok": True, "robots": out}
 
     def _headline(self, name: str) -> Optional[str]:
-        rep = self.report(name, quiet=True)
+        rep = self.report(name, quiet=True, official=True)
         if not rep:
             return None
         sentences = [s.strip().rstrip(".") for s in rep.get("summary", "").split(". ") if s.strip()]
@@ -105,10 +106,10 @@ class WebAPI:
             parts.append(entry)
         return {"ok": True, "robot": spec.name, "title": spec.title, "description": spec.description,
                 "family": spec.family, "role": spec.role, "base": spec.base, "summary": spec.summary(),
-                "parts": parts, "joints": show.get("joints", []), "moves": _call(self.tools, "move_list",
-                                                                                   {"robot": spec.name})["moves"],
+                "parts": parts, "joints": show.get("joints", []), "moves": self.moves(spec.name)["moves"],
                 "limitations": spec.limitations, "spec_hash": spec.hash()[:16],
-                "has_photo": self.photo_path(spec.name) is not None, "render": self.render(spec),
+                "has_photo": self.photo_path(spec.name) is not None, "render": self.render(spec), "look": spec.look,
+                "showcase": self.render(spec, (spec.look.get("showcase") or {}).get("joints")),
                 "variants": self.variants(spec.name)["variants"], "servos": self._servo_names(),
                 "editable": bool(raw), "headline": _headline(spec.name)}
 
@@ -127,18 +128,34 @@ class WebAPI:
             return None
         return data if isinstance(data, dict) else None
 
-    def render(self, spec: Spec) -> dict[str, Any]:
-        """Rest pose for the 3D viewer: every part's shape, size, colour and world pose, and every joint's
-        world anchor and axis (metres, MuJoCo frame: z up, x forward)."""
+    def render(self, spec: Spec, joints: Optional[dict[str, float]] = None) -> dict[str, Any]:
+        """A static pose for the 3D viewer: every part's shape, size, colour and world pose, and every joint's
+        world anchor and axis (metres, MuJoCo frame: z up, x forward). ``joints`` (degrees, clamped to each
+        joint's range) poses the robot, e.g. the spec's look.showcase; a free-standing robot is then lowered or
+        raised so its lowest ground-contact part touches the floor."""
+        import math as _m
+
         import mujoco
         import numpy as np
 
-        from .builder import _set_home, base_model
+        from .builder import _set_home, base_model, lowest_z
 
         model, _, _ = base_model(spec)
         data = mujoco.MjData(model)
         _set_home(model, data, spec)
+        if joints:
+            limits = spec.joint_limits()
+            for name, deg in joints.items():
+                if name in limits:
+                    deg = min(max(float(deg), limits[name]["min"]), limits[name]["max"])
+                    data.qpos[model.jnt_qposadr[model.joint(name).id]] = _m.radians(deg)
         mujoco.mj_forward(model, data)
+        if joints and spec.base == "free":
+            feet = [model.geom(p.name).id for p in spec.parts if p.ground_contact]
+            if feet:
+                low = min(lowest_z(model, data, g) for g in feet)
+                data.qpos[model.jnt_qposadr[model.joint("root").id] + 2] -= low
+                mujoco.mj_forward(model, data)
         q = np.zeros(4)
         parts = []
         for p in spec.parts:
@@ -146,12 +163,12 @@ class WebAPI:
             mujoco.mju_mat2Quat(q, data.geom_xmat[gid])
             parts.append({"name": p.name, "shape": p.shape, "size_m": [s * 0.01 for s in p.size], "color": p.color,
                           "pose": [round(float(v), 4) for v in (*data.geom_xpos[gid], *q)]})
-        joints = []
+        joint_axes = []
         for p in spec.joint_parts:
             jid = model.joint(p.name).id
-            joints.append({"name": p.name, "anchor": [round(float(v), 4) for v in data.xanchor[jid]],
+            joint_axes.append({"name": p.name, "anchor": [round(float(v), 4) for v in data.xanchor[jid]],
                            "axis": [round(float(v), 4) for v in data.xaxis[jid]]})
-        return {"parts": parts, "joints": joints, "units": "m", "up": "z"}
+        return {"parts": parts, "joints": joint_axes, "units": "m", "up": "z", "look": spec.look}
 
     def photo_path(self, name: str) -> Optional[Path]:
         try:
@@ -219,8 +236,19 @@ class WebAPI:
 
     # Reports and jobs -----------------------------------------------------------------------------
 
-    def report(self, name: str, quiet: bool = False) -> Optional[dict[str, Any]]:
+    def report(self, name: str, quiet: bool = False, official: bool = False) -> Optional[dict[str, Any]]:
+        """The newest report from this machine, else the bundled one. ``official``: only a full run that
+        scored moves on the 60 preflight worlds (quick runs and older-format reports are skipped), which is
+        what headlines and move tip numbers use; the report card shows the newest run, labelled quick."""
         mine = sorted(self.rt.folder("reports").glob(f"{name}-bench-*.report.json"), key=lambda p: p.stat().st_mtime)
+        if official:
+            def full(p: Path) -> bool:
+                try:
+                    st = json.loads(p.read_text(encoding="utf-8")).get("settings") or {}
+                except (OSError, ValueError):
+                    return False
+                return not st.get("quick") and st.get("move_worlds") == preflight.DEFAULT_WORLDS
+            mine = [p for p in mine if full(p)]
         path = mine[-1] if mine else EXAMPLE_REPORTS / f"{name}.report.json"
         try:
             rep = json.loads(path.read_text(encoding="utf-8"))
@@ -282,8 +310,28 @@ class WebAPI:
 
     # Moves ----------------------------------------------------------------------------------------
 
+    def official_tips(self, name: str) -> dict[str, dict[str, Any]]:
+        """Tip numbers per move from the robot's latest report: its move scenes run on the preflight's own
+        worlds (60, fixed seeds; quick runs 30 and say so), so these equal a full move_check."""
+        rep = self.report(name, quiet=True, official=True) or {}
+        quick = bool((rep.get("settings") or {}).get("quick"))
+        out = {}
+        for c in rep.get("scenes", []):
+            if c.get("id", "").startswith("move:") and c.get("applicable") and c.get("runs"):
+                falls = c["runs"] - c["passed"]
+                lo, hi = preflight.wilson(falls, c["runs"])
+                out[c["id"][5:]] = {"falls": falls, "worlds": c["runs"], "rate": round(falls / c["runs"], 4),
+                                    "low": round(lo, 4), "high": round(hi, 4), "quick": quick,
+                                    "origin": rep.get("origin")}
+        return out
+
     def moves(self, name: str) -> dict[str, Any]:
-        return self._ok_or_raise(_call(self.tools, "move_list", {"robot": name}))
+        data = self._ok_or_raise(_call(self.tools, "move_list", {"robot": name}))
+        tips = self.official_tips(name)
+        for m in data["moves"]:
+            if m["name"] in tips:
+                m["official"] = tips[m["name"]]
+        return data
 
     def check(self, body: dict[str, Any]) -> dict[str, Any]:
         args = {k: body[k] for k in ("robot", "move", "frames", "loops", "easing", "speed", "quick") if k in body}
@@ -353,7 +401,10 @@ class WebAPI:
             what: Any = {"move": preflight.canonical_move(move), "speed": speed}
         else:
             what = {"scene": str(scene)}
-        key = hashlib.sha256(json.dumps({"v": TRACE_VERSION, "spec": spec.hash(), "what": what, "seed": seed,
+        # The physics hash leaves out moves and bench settings, but a scene replays the spec's walk move:
+        # a variant such as "high step" (bench.walk_move) must not reuse the base design's trace.
+        key = hashlib.sha256(json.dumps({"v": TRACE_VERSION, "spec": spec.hash(), "bench": spec.bench,
+                                         "moves": spec.moves, "what": what, "seed": seed,
                                          "scene_version": SCENE_VERSION, "model": MODEL_VERSION},
                                         sort_keys=True).encode()).hexdigest()[:32]
         cache = self.rt.folder("cache") / "traces" / f"{key}.json.gz"
@@ -378,7 +429,7 @@ class WebAPI:
                      else World.nominal())
             r = run_move(spec, move, world, None, record=True, speed=speed)
             return {"ok": True, "simulation": True, "robot": spec.name, "move": name, "seed": seed, "speed": speed,
-                    "trace": compact_trace(r.trace), "meta": {"floor": "flat"},
+                    "trace": compact_trace(r.trace), "meta": {"floor": "flat"}, "look": spec.look,
                     "result": {"fell": r.fell, "fell_at_s": r.fell_at_s, "fall_reason": r.fall_reason,
                                "max_tilt_deg": round(r.max_tilt_deg, 2)}}
         from .scenes import SCENES, get_scene, run_scene
@@ -391,10 +442,10 @@ class WebAPI:
         if not rec.get("trace"):
             raise ApiError(500, "the run produced no trace")
         return {"ok": True, "simulation": True, "robot": spec.name, "scene": scene, "seed": seed,
-                "trace": compact_trace(rec["trace"]), "note": rec.get("trace_note"),
+                "trace": compact_trace(rec["trace"]), "note": rec.get("trace_note"), "look": spec.look,
                 "meta": self.scene_meta(spec, get_scene(scene), rec),
                 "result": {"passed": rec.get("passed"), "fell": rec.get("fell"), "metric": rec.get("metric"),
-                           "reason": rec.get("reason")}}
+                           "reason": rec.get("reason"), "fell_at_s": (rec.get("metrics") or {}).get("fell_at_s")}}
 
     @staticmethod
     def scene_meta(spec: Spec, scene: Any, rec: dict[str, Any]) -> dict[str, Any]:

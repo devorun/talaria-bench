@@ -2,11 +2,25 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Stage } from './stage.js'
 
-export function Viewer3D({ parts, frames, pose, meta, frameIndex = 0, time = 0, label, sublabel, tone, height = 340,
-  interactive = true, onStage }) {
+// When a recorded run tips: the simulator's fall time if it gave one, else the first frame whose body
+// (the first part) is tilted more than 50 degrees from upright.
+export function tipTime(trace, result) {
+  if (!trace || !result || !result.fell) return null
+  if (result.fell_at_s != null) return result.fell_at_s
+  for (let i = 0; i < trace.frames.length; i++) {
+    const [, , , , qx, qy] = trace.frames[i][0]
+    const upZ = 1 - 2 * (qx * qx + qy * qy) // z of the body's up axis
+    if (upZ < Math.cos((50 * Math.PI) / 180)) return i / trace.fps
+  }
+  return (trace.frames.length - 1) / trace.fps
+}
+
+export function Viewer3D({ parts, frames, pose, meta, look, frameIndex = 0, time = 0, label, sublabel, tone, height = 340,
+  interactive = true, onStage, tipAt = null }) {
   const box = useRef(null)
   const stage = useRef(null)
   const [error, setError] = useState(null)
+  const tipped = tipAt != null && time >= tipAt
 
   useEffect(() => {
     try {
@@ -24,23 +38,25 @@ export function Viewer3D({ parts, frames, pose, meta, frameIndex = 0, time = 0, 
   useEffect(() => {
     const s = stage.current
     if (!s || !parts) return
-    s.setRobot(parts)
+    s.setRobot(parts, look || {})
     s.setMeta(meta || {})
     s.setPose(frames ? frames[0] : pose)
     s.frame(true)
-  }, [parts, meta, frames, pose])
+  }, [parts, meta, frames, pose, look])
 
   useEffect(() => {
     const s = stage.current
     if (!s || !frames || !frames.length) return
     s.setPose(frames[Math.min(frameIndex, frames.length - 1)])
     s.setTime(time)
-  }, [frameIndex, time, frames])
+    s.setTip(tipAt != null && time >= tipAt && time < tipAt + 0.8)
+  }, [frameIndex, time, frames, tipAt])
 
   return (
     <div className="tb-viewer" style={{ height }}>
       <div className="tb-viewer-canvas" ref={box} />
       <div className="tb-viewer-tag">SIMULATION</div>
+      {tipped ? <div className="tb-viewer-tipped">TIPPED · {tipAt.toFixed(2)} s</div> : null}
       {label ? (
         <div className={'tb-viewer-label' + (tone ? ' tb-tone-' + tone : '')}>
           <span>{label}</span>

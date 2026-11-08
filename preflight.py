@@ -29,6 +29,7 @@ from .worlds import World
 DEFAULT_WORLDS = 60
 QUICK_WORLDS = 30
 BATCH = 10
+MIN_DECIDE_WORLDS = 30          # never BLOCK on fewer worlds than this
 SEED_BASE = 5000
 MOVE_KEYS = ("frames", "loops", "easing", "repeat")
 
@@ -122,9 +123,11 @@ def check(spec: Spec, name: str, move: dict[str, Any], speed: float = 1.0, world
           adaptive: bool = True) -> dict[str, Any]:
     """Screen ``move`` in randomized worlds (flat ground). Returns a JSON-able result.
 
-    Adaptive (default): worlds run in batches of ``BATCH``; the check stops early once the tip chance is
-    clearly above ``max_tip_upper`` (the Wilson lower bound is past it), and a clean run that is too
-    short to bound the chance (e.g. quick mode, 0/30 leaves 11%) is extended to ``DEFAULT_WORLDS``."""
+    The official number for a move is the full check: exactly ``DEFAULT_WORLDS`` worlds from ``SEED_BASE``
+    (``adaptive=False``); the benchmark scores standing moves on the same worlds, so every screen shows one
+    number. Adaptive (quick): a clean run too short to bound the chance (0/30 leaves 11%) is extended to
+    ``DEFAULT_WORLDS``; a check with more worlds may stop early once the failure is clear, but never before
+    ``MIN_DECIDE_WORLDS`` worlds."""
     limits = spec.joint_limits()
     plan = check_move(move, limits, speed=speed)        # raises MoveError for unplayable moves
     seconds = 8.0 if plan["repeat"] else plan["duration_ms"] / 1000.0 + 1.0
@@ -136,7 +139,7 @@ def check(spec: Spec, name: str, move: dict[str, Any], speed: float = 1.0, world
             i = len(runs)
             runs.append(run_move(spec, move, World.random(seed + i, spec.joint_names, spec.world_ranges),
                                  seconds, speed=speed))
-            if (adaptive and len(runs) % BATCH == 0 and len(runs) < target
+            if (adaptive and len(runs) % BATCH == 0 and MIN_DECIDE_WORLDS <= len(runs) < target
                     and wilson(sum(r.fell for r in runs), len(runs))[0] > max_tip_upper):
                 stopped_early = True               # the failure is already clear
                 break
@@ -188,6 +191,7 @@ def check(spec: Spec, name: str, move: dict[str, Any], speed: float = 1.0, world
     result = {
         "robot": spec.name, "move": name, "speed": speed, "worlds": n, "verdict": verdict,
         "worlds_requested": int(worlds), "stopped_early": stopped_early, "extended": extended,
+        "official": n == DEFAULT_WORLDS and seed == SEED_BASE, "quick": bool(adaptive),
         "seed": seed, "tip_seeds": tip_seeds,
         "tip": {"falls": k, "rate": round(k / n, 4), "low": round(lo, 4), "high": round(hi, 4),
                 "fall_reasons": _count(r.fall_reason for r in falls), "fall_frame": None if fall_frame is None else fall_frame + 1},

@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `dog12` (1600 g, 12 servos, spec `433d3b55949e`), 30 worlds per scene (seeds 0..29), 12 s.
+Robot `dog12` (1600 g, 12 servos, spec `433d3b55949e`), 30 worlds per scene (seeds 0..29), 13 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|
@@ -15,8 +15,8 @@ Robot `dog12` (1600 g, 12 servos, spec `433d3b55949e`), 30 worlds per scene (see
 | Push test | GREEN | 100% | weakest tipping push: 1 (1) x weight | 1 (world 0) | - |
 | Slippery floor | RED | 20% | steady progress: 107 (40.8) cm | -29.85 (world 24) | uncontrolled sliding (22), sliding (1), spinning in place (1) |
 | Payload | n/a | - | - | - | the robot has no payload_part |
-| Move 'stand' | GREEN | 100% | max body tilt: 0.03 (0.01) deg | 0.16 (world 29) | - |
-| Move 'sit' | GREEN | 100% | max body tilt: 26.23 (25.08) deg | 28.28 (world 20) | - |
+| Move 'stand' | GREEN | 100% | max body tilt: 0.03 (0.01) deg | 0.13 (world 5020) | - |
+| Move 'sit' | GREEN | 100% | max body tilt: 26.42 (25.3) deg | 28.8 (world 5031) | - |
 
 **Summary.** On flat ground it covers the target distance in 97% of worlds (median 45.1 cm). Climbs the 5 deg ramp in 90% of worlds but slid back on the 10 deg ramp in 70% of worlds. Clears the bar 1 cm in 97% of worlds. Clears the bar 2 cm in 50% of worlds. Survives a nudge from every side in 100% of worlds; does not tip even at the largest push. Standing moves that never or almost never tip it: stand, sit. On a slippery floor its feet skate and it glides out of control in 73% of worlds. The thigh hr servo is near its limit (peak 100% of stall, estimate) during the ramp 5 deg test.
 

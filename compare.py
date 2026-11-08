@@ -141,16 +141,20 @@ def compare(spec: Spec, variants: list[dict[str, Any]], scenes: Optional[list[st
     for v in variants:
         runs.append((v["name"], build_variant(spec, v, base_dir), v))
     reports = {}
+    outcomes: dict[str, dict[str, list[list]]] = {}
     for name, s, _ in runs:
         res = run_benchmark(s, scenes=scenes, worlds=worlds, seed=seed, quick=quick, workers=workers,
                             cache_dir=cache_dir, traces=False,
                             progress=(lambda d, t, sc, name=name: progress(name, d, t, sc)) if progress else None)
         reports[name] = build_report(res)
+        outcomes[name] = {sid: [[j["seed"], bool(j.get("passed"))] for j in jobs] for sid, jobs in res["scenes"].items()}
     base = reports["base"]
     rows = []
     for card in base["scenes"]:
         sid = card["id"]
-        row = {"scene": sid, "title": card["title"], "cells": {}}
+        # Per-world pass/fail of every design (same seeds), so a viewer can open a world where they differ.
+        row = {"scene": sid, "title": card["title"], "cells": {},
+               "outcomes": {name: outcomes.get(name, {}).get(sid, []) for name in reports}}
         for name, rep in reports.items():
             c = next(c for c in rep["scenes"] if c["id"] == sid)
             cell = {"status": c["status"], "pass_rate": c.get("pass_rate"),

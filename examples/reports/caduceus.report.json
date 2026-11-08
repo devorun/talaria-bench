@@ -3,12 +3,12 @@
  "version": 1,
  "simulation": true,
  "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
- "created": "2026-11-08T17:36:27+00:00",
+ "created": "2026-11-08T22:53:24+00:00",
  "robot": {
   "name": "caduceus",
   "title": "Caduceus",
   "family": "biped",
-  "role": "Devran's real robot - the model is fitted to video; arm gestures are in the model's scope, walking is not.",
+  "role": "Devran's real robot, calibrated against videos of it. Best for arm gestures and motion preflight.",
   "base": "free",
   "parts": 5,
   "joints": [
@@ -90,6 +90,8 @@
   "worlds": 30,
   "seed": 0,
   "quick": false,
+  "move_worlds": 60,
+  "move_seed": 5000,
   "walk_move": "walk",
   "bench": {
    "walk_move": "walk",
@@ -660,42 +662,42 @@
    "in_scope": true,
    "note": null,
    "conditions": "plays 'wave' standing; pass: no fall",
-   "runs": 30,
-   "passed": 30,
+   "runs": 60,
+   "passed": 60,
    "pass_rate": 1.0,
    "metric": {
     "name": "max body tilt",
     "unit": "deg",
-    "median": 6.274,
-    "p10": 0.967,
+    "median": 6.838,
+    "p10": 0.919,
     "worst": {
-     "value": 8.511,
-     "seed": 7,
+     "value": 9.102,
+     "seed": 5038,
      "reason": null
     },
-    "median_seed": 10
+    "median_seed": 5042
    },
    "failure_reasons": {},
    "falls": 0,
    "loads": {
     "left_arm": {
-     "peak_pct_median": 3.3,
-     "peak_pct_max": 6.6,
+     "peak_pct_median": 3.4,
+     "peak_pct_max": 13.3,
      "near_limit_time_pct_median": 0.0
     },
     "left_leg": {
-     "peak_pct_median": 19.0,
-     "peak_pct_max": 44.0,
+     "peak_pct_median": 22.4,
+     "peak_pct_max": 40.8,
      "near_limit_time_pct_median": 0.0
     },
     "right_arm": {
-     "peak_pct_median": 17.7,
-     "peak_pct_max": 57.6,
+     "peak_pct_median": 17.6,
+     "peak_pct_max": 70.8,
      "near_limit_time_pct_median": 0.0
     },
     "right_leg": {
-     "peak_pct_median": 20.5,
-     "peak_pct_max": 46.6,
+     "peak_pct_median": 22.9,
+     "peak_pct_max": 57.0,
      "near_limit_time_pct_median": 0.0
     }
    }
@@ -709,43 +711,43 @@
    "in_scope": true,
    "note": null,
    "conditions": "plays 'arms_up_both' standing; pass: no fall",
-   "runs": 30,
-   "passed": 21,
-   "pass_rate": 0.7,
+   "runs": 60,
+   "passed": 35,
+   "pass_rate": 0.583,
    "metric": {
     "name": "max body tilt",
     "unit": "deg",
-    "median": 8.524,
-    "p10": 1.978,
+    "median": 9.089,
+    "p10": 3.002,
     "worst": {
-     "value": 64.596,
-     "seed": 1,
+     "value": 64.998,
+     "seed": 5001,
      "reason": "tipped over"
     },
-    "median_seed": 28
+    "median_seed": 5056
    },
    "failure_reasons": {
-    "tipped over": 9
+    "tipped over": 25
    },
-   "falls": 9,
+   "falls": 25,
    "loads": {
     "left_arm": {
-     "peak_pct_median": 54.3,
+     "peak_pct_median": 59.3,
      "peak_pct_max": 100.0,
      "near_limit_time_pct_median": 0.0
     },
     "left_leg": {
-     "peak_pct_median": 38.6,
+     "peak_pct_median": 50.4,
      "peak_pct_max": 100.0,
      "near_limit_time_pct_median": 0.0
     },
     "right_arm": {
-     "peak_pct_median": 57.2,
+     "peak_pct_median": 59.7,
      "peak_pct_max": 100.0,
      "near_limit_time_pct_median": 0.0
     },
     "right_leg": {
-     "peak_pct_median": 44.2,
+     "peak_pct_median": 51.2,
      "peak_pct_max": 100.0,
      "near_limit_time_pct_median": 0.0
     }
@@ -760,42 +762,42 @@
    "in_scope": true,
    "note": null,
    "conditions": "plays 'arms_up_alternating' standing; pass: no fall",
-   "runs": 30,
-   "passed": 30,
+   "runs": 60,
+   "passed": 60,
    "pass_rate": 1.0,
    "metric": {
     "name": "max body tilt",
     "unit": "deg",
-    "median": 6.671,
-    "p10": 0.999,
+    "median": 7.084,
+    "p10": 1.012,
     "worst": {
-     "value": 8.657,
-     "seed": 15,
+     "value": 8.946,
+     "seed": 5038,
      "reason": null
     },
-    "median_seed": 10
+    "median_seed": 5052
    },
    "failure_reasons": {},
    "falls": 0,
    "loads": {
     "left_arm": {
-     "peak_pct_median": 55.8,
+     "peak_pct_median": 57.8,
      "peak_pct_max": 100.0,
      "near_limit_time_pct_median": 0.0
     },
     "left_leg": {
-     "peak_pct_median": 24.3,
-     "peak_pct_max": 66.7,
+     "peak_pct_median": 26.5,
+     "peak_pct_max": 47.2,
      "near_limit_time_pct_median": 0.0
     },
     "right_arm": {
-     "peak_pct_median": 55.4,
-     "peak_pct_max": 79.8,
+     "peak_pct_median": 57.4,
+     "peak_pct_max": 77.9,
      "near_limit_time_pct_median": 0.0
     },
     "right_leg": {
-     "peak_pct_median": 24.6,
-     "peak_pct_max": 53.3,
+     "peak_pct_median": 26.3,
+     "peak_pct_max": 67.6,
      "near_limit_time_pct_median": 0.0
     }
    }
@@ -809,12 +811,12 @@
   }
  ],
  "timing": {
-  "jobs": 330,
-  "computed": 0,
-  "cached": 330,
+  "jobs": 420,
+  "computed": 180,
+  "cached": 240,
   "workers": 8,
-  "seconds_jobs": 0.15,
-  "seconds_total": 7.37
+  "seconds_jobs": 3.93,
+  "seconds_total": 10.74
  },
- "summary": "Survives a nudge from every side in 100% of worlds; a push of 0.2 x body weight from the front tips it (median). Standing moves that never or almost never tip it: wave, arms_up_alternating. Move 'arms_up_both' tips the robot in 30% of worlds. The right leg servo is near its limit (peak 100% of stall, estimate) during the move 'arms_up_both' test. 7 walking scene(s) are outside this model's scope for this robot and are not scored: This rigid-body model does not simulate soft foam feet; the bench does not guess here."
+ "summary": "Survives a nudge from every side in 100% of worlds; a push of 0.2 x body weight from the front tips it (median). Standing moves that never or almost never tip it: wave, arms_up_alternating. Move 'arms_up_both' tips the robot in 42% of 60 preflight worlds. The right leg servo is near its limit (peak 100% of stall, estimate) during the move 'arms_up_both' test. 7 walking scene(s) are outside this model's scope for this robot and are not scored: This rigid-body model does not simulate soft foam feet; the bench does not guess here."
 }

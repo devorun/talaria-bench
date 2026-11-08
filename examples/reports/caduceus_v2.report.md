@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `caduceus_v2` (437 g, 4 servos, spec `b87fbcae7048`), 30 worlds per scene (seeds 0..29), 8 s.
+Robot `caduceus_v2` (437 g, 4 servos, spec `b87fbcae7048`), 30 worlds per scene (seeds 0..29), 11 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|
@@ -15,11 +15,11 @@ Robot `caduceus_v2` (437 g, 4 servos, spec `b87fbcae7048`), 30 worlds per scene 
 | Push test | GREEN | 100% | weakest tipping push: 0.3 (0.3) x weight | 0.3 (world 0) | - |
 | Slippery floor | OUT OF MODEL SCOPE | - | - | - | not scored (see limitations) |
 | Payload | n/a | - | - | - | the robot has no payload_part |
-| Move 'wave' | GREEN | 100% | max body tilt: 0.72 (0.46) deg | 2.1 (world 7) | - |
-| Move 'arms_up_both' | GREEN | 100% | max body tilt: 2.1 (1.36) deg | 3.36 (world 8) | - |
-| Move 'arms_up_alternating' | GREEN | 100% | max body tilt: 1 (0.58) deg | 2.56 (world 8) | - |
+| Move 'wave' | GREEN | 100% | max body tilt: 1.06 (0.43) deg | 2.16 (world 5038) | - |
+| Move 'arms_up_both' | GREEN | 100% | max body tilt: 2.27 (1.4) deg | 3.98 (world 5038) | - |
+| Move 'arms_up_alternating' | GREEN | 100% | max body tilt: 1.5 (0.58) deg | 2.81 (world 5038) | - |
 
-**Summary.** Survives a nudge from every side in 100% of worlds; a push of 0.3 x body weight from the front tips it (median). Standing moves that never or almost never tip it: wave, arms_up_both, arms_up_alternating. 7 walking scene(s) are outside this model's scope for this robot and are not scored: This rigid-body model does not simulate soft foam feet; the bench does not guess here.
+**Summary.** Survives a nudge from every side in 100% of worlds; a push of 0.3 x body weight from the front tips it (median). Standing moves that never or almost never tip it: wave, arms_up_both, arms_up_alternating. The left arm servo is near its limit (peak 100% of stall, estimate) during the move 'arms_up_both' test. 7 walking scene(s) are outside this model's scope for this robot and are not scored: This rigid-body model does not simulate soft foam feet; the bench does not guess here.
 
 **Push test** (tipping push in x body weight, median / p10; how far it slides when it does not tip, median):
 
@@ -36,10 +36,10 @@ Mid-walk nudge: OUT OF MODEL SCOPE for this robot (not scored).
 
 | Joint | Peak (% of stall) | Time near limit (median %) | In scene |
 |---|---|---|---|
-| left_arm | 70% | 0% | Move 'arms_up_both' |
-| left_leg | 66% | 0% | Move 'arms_up_both' |
-| right_arm | 74% | 0% | Move 'arms_up_both' |
-| right_leg | 75% | 0% | Move 'arms_up_both' |
+| left_arm | 100% | 0% | Move 'arms_up_both' |
+| left_leg | 82% | 0% | Move 'arms_up_both' |
+| right_arm | 78% | 0% | Move 'arms_up_alternating' |
+| right_leg | 83% | 0% | Move 'arms_up_both' |
 
 _Servo load is an estimate: peak torque as a share of the datasheet stall torque. Stall torque is not a safe continuous torque; a servo held near it overheats._
 

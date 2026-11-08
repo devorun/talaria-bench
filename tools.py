@@ -169,8 +169,9 @@ class TalariaTools:
 
     def move_check(self, args: dict[str, Any]) -> dict[str, Any]:
         spec, name, move, speed = requested_move(self.rt, "robot_play", args)
-        worlds = preflight.QUICK_WORLDS if args.get("quick") else int(min(500, max(30, self.rt.number("check_worlds"))))
-        result = preflight.check(spec, name, move, speed=speed, worlds=worlds)
+        quick = bool(args.get("quick"))
+        worlds = preflight.QUICK_WORLDS if quick else int(min(500, max(60, self.rt.number("check_worlds"))))
+        result = preflight.check(spec, name, move, speed=speed, worlds=worlds, adaptive=quick)
         key = preflight.approval_key(spec, move, speed)
         rec = preflight.record(key, spec, name, move, speed, result)
         preflight.ApprovalStore(self.rt.folder("approvals")).save(rec)

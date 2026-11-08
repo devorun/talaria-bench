@@ -140,6 +140,20 @@ export function fmt(v, unit) {
   return s.replace(/\.?0+$/, '') || '0'
 }
 
+// A scene's main metric in plain words; negative distances say what actually happened.
+export function human(sceneId, v, unit) {
+  if (v == null) return '–'
+  const n = (x) => fmt(Math.abs(x), unit)
+  const id = sceneId || ''
+  if (id.startsWith('obstacle')) return v >= 0 ? `${n(v)} cm past the bar` : `stopped ${n(v)} cm before the bar`
+  if (id.startsWith('ramp')) return v >= 0 ? `climbed ${n(v)} cm` : `slid ${n(v)} cm back down`
+  if (id === 'flat' || id === 'slippery') return v >= 0 ? `${n(v)} cm forward` : `${n(v)} cm backwards`
+  if (id === 'push') return v >= 9 ? 'no tip up to 1× weight' : `tips at ${fmt(v)}× weight`
+  if (id === 'payload') return v < 0 ? 'no safe payload' : `${fmt(v)} g safe payload`
+  if (id.startsWith('move:')) return `${fmt(v)}° body tilt`
+  return `${fmt(v, unit)} ${unit || ''}`.trim()
+}
+
 export function RobotPicker({ robots, value, onChange }) {
   return (
     <select className="tb-select" value={value || ''} onChange={(e) => onChange(e.target.value)}>

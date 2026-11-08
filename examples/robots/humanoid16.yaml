@@ -14,6 +14,10 @@ description: >-
   Small servo humanoid, about 33 cm tall and 0.8 kg: 10 leg servos and 6 arm servos, battery low in the torso.
 voltage: 6.0                       # 2S LiPo through a 6 V BEC (common for small humanoids)
 
+# Appearance only: a light mid-step showcase pose.
+look:
+  showcase: {joints: {shoulder_r: 35, forearm_r: 55, shoulder_l: -20, upperarm_l: 20, thigh_l: 18, shin_l: -30, foot_l: 12, thigh_r: -8}}
+
 parts:
   - name: torso
     shape: box

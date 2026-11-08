@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Viewer3D, Timeline, usePlayer, frameAt, traceDuration } from '../viewer.jsx'
-import { Button, Chip, ErrorBox, Progress, STATUS, fmt, pct, useApi, useJob, useTrace } from '../ui.jsx'
+import { Viewer3D, Timeline, usePlayer, frameAt, tipTime, traceDuration } from '../viewer.jsx'
+import { Button, Chip, ErrorBox, Progress, STATUS, human, pct, useApi, useJob, useTrace } from '../ui.jsx'
 
 function parseCustom(text) {
   // "name: path=value, path=value" per line
@@ -25,19 +25,54 @@ function Delta({ d }) {
   return <span className={'tb-delta ' + (pts > 0 ? 'tb-up' : 'tb-down')}>{pts > 0 ? '+' : ''}{pts} pts</span>
 }
 
+// Worlds where the designs disagree (base failing first), worlds where every design fails, and the median.
+function worldChoices(row, names, result) {
+  const out = row.outcomes || {}
+  const passed = (n, seed) => {
+    const hit = (out[n] || []).find(([s]) => s === seed)
+    return hit ? hit[1] : null
+  }
+  const differ = []
+  const allFail = []
+  for (const [seed] of out.base || []) {
+    const vals = names.map((n) => passed(n, seed))
+    if (vals.some((v) => v) && vals.some((v) => !v)) differ.push(seed)
+    else if (vals.every((v) => v === false)) allFail.push(seed)
+  }
+  differ.sort((a, b) => Number(passed('base', a)) - Number(passed('base', b)) || a - b)
+  const card = result.reports.base.scenes.find((c) => c.id === row.scene)
+  const median = card && card.metric ? [card.metric.median_seed] : [0]
+  return { differ, fail: allFail, median }
+}
+
+const MODES = [['differ', 'Different outcome'], ['fail', 'All fail'], ['median', 'Median world']]
+
 function Synced({ robot, jobId, row, names, result }) {
-  const seed = useMemo(() => {
-    const card = result.reports.base.scenes.find((c) => c.id === row.scene)
-    return card && card.metric ? card.metric.median_seed : 0
-  }, [row, result])
+  const choices = useMemo(() => worldChoices(row, names, result), [row, names, result])
+  const [mode, setMode] = useState(choices.differ.length ? 'differ' : 'median')
+  const [idx, setIdx] = useState(0)
+  const list = choices[mode].length ? choices[mode] : choices.median
+  const seed = list[Math.min(idx, list.length - 1)]
   const traces = names.map((n) => useTrace({ robot, scene: row.scene, seed, job_id: jobId, variant: n }))
   const ok = traces.map(([d]) => (d && d.ok ? d : null))
   const player = usePlayer(traceDuration(...ok.map((d) => d && d.trace)))
   return (
     <div className="tb-card">
       <div className="tb-card-head">
-        <h3>{row.title}: same world ({seed}), every design</h3>
-        <span className="tb-muted">one timeline drives all views</span>
+        <h3>{row.title}: world {seed}, every design</h3>
+        <div className="tb-row tb-gap-sm tb-wrap">
+          <div className="tb-seg" role="tablist">
+            {MODES.map(([m, label]) => (
+              <button key={m} type="button" className={'tb-seg-btn' + (mode === m ? ' tb-active' : '')}
+                disabled={!choices[m].length} onClick={() => { setMode(m); setIdx(0) }}>
+                {label} <span className="tb-seg-count">{choices[m].length}</span>
+              </button>
+            ))}
+          </div>
+          {list.length > 1 ? (
+            <Button onClick={() => setIdx((idx + 1) % list.length)}>Next world ({Math.min(idx, list.length - 1) + 1}/{list.length})</Button>
+          ) : null}
+        </div>
       </div>
       <div className={'tb-grid-views tb-views-' + Math.min(names.length, 3)}>
         {names.map((n, i) => {
@@ -45,9 +80,10 @@ function Synced({ robot, jobId, row, names, result }) {
           if (!d) return <div key={n} className="tb-viewer tb-viewer-wait" style={{ height: 300 }}><span className="tb-spinner" /> {n}…</div>
           const r = d.result || {}
           return (
-            <Viewer3D key={n} parts={d.trace.parts} frames={d.trace.frames} meta={d.meta}
-              frameIndex={frameAt(d.trace, player.t)} time={player.t} height={300} label={n}
-              sublabel={r.passed ? `passed · ${fmt(r.metric)}` : (r.reason || 'failed')} tone={r.passed ? 'green' : 'red'} />
+            <Viewer3D key={n} parts={d.trace.parts} frames={d.trace.frames} meta={d.meta} look={d.look}
+              tipAt={tipTime(d.trace, r)} frameIndex={frameAt(d.trace, player.t)} time={player.t} height={300}
+              label={n} sublabel={r.passed ? `passed · ${human(row.scene, r.metric)}` : `${r.reason || 'failed'} · ${human(row.scene, r.metric)}`}
+              tone={r.passed ? 'green' : 'red'} />
           )
         })}
       </div>
@@ -122,7 +158,7 @@ export function ComparePage({ robot }) {
                       return (
                         <td key={n}>
                           <span className={'tb-dot tb-fill-' + st.tone} /> <b>{pct(c.pass_rate)}</b>
-                          <span className="tb-muted"> · {fmt(c.median, c.unit)} {c.unit}</span> <Delta d={c.delta_pass} />
+                          <span className="tb-muted"> · {human(r.scene, c.median, c.unit)}</span> <Delta d={c.delta_pass} />
                         </td>
                       )
                     })}

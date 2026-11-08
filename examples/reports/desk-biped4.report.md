@@ -15,8 +15,8 @@ Robot `desk-biped4` (166 g, 4 servos, spec `59d3d9d765e3`), 30 worlds per scene 
 | Push test | GREEN | 100% | weakest tipping push: 0.75 (0.75) x weight | 0.5 (world 7) | - |
 | Slippery floor | GREEN | 97% | steady progress: 16.48 (13.14) cm | 8.67 (world 11) | sliding (1) |
 | Payload | n/a | - | - | - | the robot has no payload_part |
-| Move 'stand' | GREEN | 100% | max body tilt: 0 (0) deg | 0 (world 13) | - |
-| Move 'dance' | GREEN | 100% | max body tilt: 3.52 (2.98) deg | 4.8 (world 0) | - |
+| Move 'stand' | GREEN | 100% | max body tilt: 0 (0) deg | 0 (world 5038) | - |
+| Move 'dance' | GREEN | 100% | max body tilt: 3.45 (2.67) deg | 4.83 (world 5024) | - |
 
 **Summary.** On flat ground it covers the target distance in 100% of worlds (median 18.88 cm). Climbs the 10 deg ramp in 57% of worlds but slid back on the 15 deg ramp in 47% of worlds. The bar 1 cm: stuck at the bar in most worlds (passes 0%). The bar 2 cm: stuck at the bar in most worlds (passes 0%). Survives a nudge from every side in 100% of worlds; a push of 0.75 x body weight from the front tips it (median). Standing moves that never or almost never tip it: stand, dance. Keeps at least half its flat speed on a slippery floor in 97% of worlds. The leg r servo is near its limit (peak 100% of stall, estimate) during the move 'dance' test.
 

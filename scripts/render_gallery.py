@@ -1,141 +1,112 @@
-"""Render every gallery robot standing (home pose, 3/4 view, light background) with MuJoCo offscreen
-(EGL), plus a combined sheet. Dev tool for the README and the gallery thumbnails; needs Pillow.
+"""Render every gallery robot with the app's own three.js stage (rounded parts, materials, soft shadows, the
+same lights) in its showcase pose (spec look.showcase), at 2x device pixels, through headless Chromium.
+Writes docs/img/gallery/<robot>.png (labelled), docs/img/gallery/thumbs/<robot>.png (for the app's gallery
+cards) and the combined sheet docs/img/gallery.png. Dev tool: needs Playwright + Pillow and a UI build.
 
-    MUJOCO_GL=egl python talaria-bench/scripts/render_gallery.py
+    (cd talaria-bench/ui && npm run build)
+    python talaria-bench/scripts/render_gallery.py
 """
 
 from __future__ import annotations
 
+import json
 import math
-import os
 import sys
+import tempfile
 from pathlib import Path
 
-os.environ.setdefault("MUJOCO_GL", "egl")
-
-import mujoco  # noqa: E402
-import numpy as np  # noqa: E402
-from PIL import Image, ImageDraw, ImageFilter, ImageFont  # noqa: E402
+from PIL import Image
+from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from devcli import load_package  # noqa: E402
 
 load_package()
-from talaria_bench.builder import _set_home, base_model  # noqa: E402
+from talaria_bench.runtime import EXAMPLES, Runtime  # noqa: E402
 from talaria_bench.spec import load_spec  # noqa: E402
+from talaria_bench.webapi import WebAPI  # noqa: E402
 
 OUT = ROOT / "docs" / "img" / "gallery"
 THUMBS = OUT / "thumbs"
-W, H, SS = 800, 600, 2                        # output size, supersampling
-BG_TOP, BG_BOTTOM = (247, 248, 250), (226, 230, 236)
-FLOOR = (0.90, 0.91, 0.93, 1.0)
+BUNDLE = ROOT / "ui" / "render" / "render.js"
+SCALE = 2
+
+PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
+html, body { margin: 0; background: transparent; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+#frame { position: relative; overflow: hidden; color: #1f2937;
+  background: radial-gradient(120% 90% at 50% 18%, #fbfbfc 0%, #eceef2 55%, #dfe3e9 100%); }
+#stage { position: absolute; inset: 0; }
+#stage canvas { width: 100% !important; height: 100% !important; display: block; }
+#info { position: absolute; left: 22px; bottom: 18px; }
+#name { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; display: flex; gap: 8px; align-items: center; }
+#sub { font-size: 12.5px; color: #6b7280; margin-top: 3px; }
+#badge { display: none; align-items: center; padding: 1px 8px; border-radius: 6px; font-size: 12px; font-weight: 800; color: #fff; }
+#sim { position: absolute; right: 16px; top: 14px; font-size: 10.5px; font-weight: 750; letter-spacing: .12em;
+  padding: 3px 8px; border-radius: 6px; color: #4b5563; background: rgba(255,255,255,.85); border: 1px solid #d5d9e0; }
+</style></head><body>
+<div id="frame"><div id="stage"></div>
+<div id="sim">SIMULATION</div>
+<div id="info"><div id="name"></div><div id="sub"></div></div>
+</div>
+<script>BUNDLE</script>
+<script>
+  // the badge sits next to the name
+  const n = document.getElementById('name'); const b = document.createElement('span'); b.id = 'badge'; n.after(b);
+  document.getElementById('info').insertBefore(b, document.getElementById('sub'));
+</script>
+</body></html>"""
 
 
-def font(size: int):
-    for name in ("DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"):
-        try:
-            return ImageFont.truetype(name, size)
-        except OSError:
-            continue
-    return ImageFont.load_default(size=size)
-
-
-def background() -> Image.Image:
-    grad = np.linspace(0, 1, H * SS)[:, None]
-    top, bottom = np.array(BG_TOP, float), np.array(BG_BOTTOM, float)
-    rows = (top * (1 - grad) + bottom * grad).astype(np.uint8)
-    return Image.fromarray(np.repeat(rows[:, None, :], W * SS, axis=1))
-
-
-def render(spec) -> Image.Image:
-    model, _, _ = base_model(spec)
-    model = mujoco.MjModel.from_xml_string(base_model(spec)[2])      # a private copy we may restyle
-    model.vis.global_.offwidth, model.vis.global_.offheight = W * SS, H * SS
-    model.vis.headlight.ambient[:] = 0.42
-    model.vis.headlight.diffuse[:] = 0.5
-    model.vis.headlight.specular[:] = 0.12
-    model.vis.quality.shadowsize = 8192
-    model.vis.map.znear = 0.002
-    floor = model.geom("floor").id
-    model.geom_rgba[floor] = FLOOR
-    data = mujoco.MjData(model)
-    _set_home(model, data, spec)
-    mujoco.mj_forward(model, data)
-
-    ids = [model.geom(p.name).id for p in spec.parts]
-    pts = np.array([data.geom_xpos[i] for i in ids])
-    radius = max(float(np.max(model.geom_rbound[ids])), 0.01)
-    lo, hi = pts.min(0) - radius * 0.6, pts.max(0) + radius * 0.6
-    center = (lo + hi) / 2
-    extent = float(np.linalg.norm(hi - lo))
-
-    cam = mujoco.MjvCamera()
-    cam.type = mujoco.mjtCamera.mjCAMERA_FREE
-    cam.lookat[:] = center
-    cam.distance = max(extent * 1.55, 0.25)
-    cam.azimuth = 140.0                         # from the front right (the robot faces +x)
-    cam.elevation = -20.0
-    opt = mujoco.MjvOption()
-    renderer = mujoco.Renderer(model, H * SS, W * SS)
-    renderer.update_scene(data, camera=cam, scene_option=opt)
-    scene = renderer.scene
-    scene.flags[mujoco.mjtRndFlag.mjRND_SHADOW] = True
-    scene.flags[mujoco.mjtRndFlag.mjRND_SKYBOX] = False
-    rgb = renderer.render().copy()
-    renderer.enable_depth_rendering()
-    renderer.update_scene(data, camera=cam, scene_option=opt)
-    depth = renderer.render().copy()
-    renderer.close()
-
-    # Fade the floor out with distance from the robot and put the robot on a soft gradient.
-    img = Image.fromarray(rgb)
-    sky = depth >= depth.max() * 0.999
-    far = np.clip((depth - cam.distance * 0.9) / (cam.distance * 0.7), 0, 1)
-    alpha = np.where(sky, 0.0, 1.0 - far ** 1.2)
-    mask = Image.fromarray((alpha * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(SS * 2))
-    out = background()
-    out.paste(img, (0, 0), mask)
-    return out.resize((W, H), Image.LANCZOS)
-
-
-def label(img: Image.Image, title: str, sub: str) -> Image.Image:
-    d = ImageDraw.Draw(img)
-    d.text((22, H - 58), title, font=font(24), fill=(36, 41, 51))
-    d.text((22, H - 28), sub, font=font(13), fill=(110, 117, 128))
-    tag = "SIMULATION"
-    f = font(11)
-    tw = d.textlength(tag, font=f)
-    d.rounded_rectangle((W - tw - 34, 16, W - 16, 38), radius=6, fill=(255, 255, 255), outline=(210, 214, 220))
-    d.text((W - tw - 25, 20), tag, font=f, fill=(85, 92, 104))
-    return img
-
-
-def main() -> int:
-    OUT.mkdir(parents=True, exist_ok=True)
-    THUMBS.mkdir(parents=True, exist_ok=True)
-    tiles = []
-    for path in sorted((ROOT / "examples" / "robots").glob("*.yaml")):
+def robots() -> list[dict]:
+    api = WebAPI(Runtime(overrides={"data_dir": tempfile.mkdtemp()}))
+    out = []
+    for path in sorted(EXAMPLES.glob("*.yaml")):
         if ".calibration" in path.name:
             continue
         spec = load_spec(path)
-        plain = render(spec)
-        # The UI's gallery cards print the name and the SIM tag themselves: unlabelled, smaller thumbnails.
-        plain.resize((W // 2, H // 2), Image.LANCZOS).save(THUMBS / f"{spec.name}.png", optimize=True)
-        img = label(plain.copy(), spec.title or spec.name,
-                    f"{spec.name} · {len(spec.joint_parts)} servos · {round(spec.total_mass_g)} g")
-        img.save(OUT / f"{spec.name}.png", optimize=True)
-        tiles.append(img)
-        print("rendered", spec.name)
-    cols = 4
+        pose = api.render(spec, (spec.look.get("showcase") or {}).get("joints"))
+        out.append({"name": spec.name, "title": spec.title or spec.name, "look": spec.look, "parts": pose["parts"],
+                    "sub": f"{spec.name} · {len(spec.joint_parts)} servos · {round(spec.total_mass_g)} g"})
+    return out
+
+
+def main() -> int:
+    if not BUNDLE.is_file():
+        raise SystemExit("build the UI first: cd ui && npm run build")
+    OUT.mkdir(parents=True, exist_ok=True)
+    THUMBS.mkdir(parents=True, exist_ok=True)
+    html = Path(tempfile.mkdtemp()) / "render.html"
+    html.write_text(PAGE.replace("BUNDLE", BUNDLE.read_text(encoding="utf-8")), encoding="utf-8")
+    data = robots()
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(args=["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"])
+        for kind, (w, h), folder, label in (("image", (800, 600), OUT, True), ("thumb", (480, 360), THUMBS, False)):
+            page = browser.new_page(viewport={"width": w, "height": h}, device_scale_factor=SCALE)
+            errors = []
+            page.on("pageerror", lambda e: errors.append(str(e)))
+            page.goto(html.as_uri())
+            page.evaluate(f"document.getElementById('frame').style.cssText += ';width:{w}px;height:{h}px'")
+            for robot in data:
+                page.evaluate("([d, l]) => window.renderRobot(d, { label: l })", [robot, label])
+                page.wait_for_timeout(400)
+                page.locator("#frame").screenshot(path=str(folder / f"{robot['name']}.png"))
+                print(kind, robot["name"], f"{w * SCALE}x{h * SCALE}")
+            if errors:
+                raise SystemExit(f"render errors: {errors[:3]}")
+            page.close()
+        browser.close()
+    tiles = [Image.open(OUT / f"{r['name']}.png") for r in data]
+    cols, gap = 4, 24
+    tw, th = tiles[0].width // 2, tiles[0].height // 2
     rows = math.ceil(len(tiles) / cols)
-    gap = 16
-    sheet = Image.new("RGB", (cols * W // 2 + (cols + 1) * gap, rows * H // 2 + (rows + 1) * gap), (255, 255, 255))
+    sheet = Image.new("RGB", (cols * tw + (cols + 1) * gap, rows * th + (rows + 1) * gap), (255, 255, 255))
     for i, t in enumerate(tiles):
         r, c = divmod(i, cols)
-        sheet.paste(t.resize((W // 2, H // 2), Image.LANCZOS), (gap + c * (W // 2 + gap), gap + r * (H // 2 + gap)))
+        sheet.paste(t.convert("RGB").resize((tw, th), Image.LANCZOS), (gap + c * (tw + gap), gap + r * (th + gap)))
     sheet.save(OUT.parent / "gallery.png", optimize=True)
-    print("sheet", OUT.parent / "gallery.png")
+    print("sheet", (OUT.parent / "gallery.png").relative_to(ROOT), sheet.size)
+    json.dumps(len(data))
     return 0
 
 

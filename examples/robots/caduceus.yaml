@@ -13,13 +13,19 @@ talaria: 1
 name: caduceus
 title: Caduceus
 family: biped
-role: Devran's real robot - the model is fitted to video; arm gestures are in the model's scope, walking is not.
+role: Devran's real robot, calibrated against videos of it. Best for arm gestures and motion preflight.
 description: >-
   Foam-board biped: two long outer arms and two short legs in the middle, all four feet on the
   floor. Powered through a 2-3 m wall cable. Arm gestures are modelled well; walking is not.
 photo: caduceus_front.jpg
 voltage: 5.0                       # 5 V supply through the cable (the cable sag is in torque_scale below)
 controller: {sda: 4, scl: 5, pca9685_addr: 64, hostname: caduceus}   # the original Caduceus board wiring
+
+# Appearance only (viewer and gallery renders; not physics): aluminium tape over foam, the OLED face,
+# standing straight in the gallery.
+look:
+  material: aluminum
+  decals: [{part: head, kind: oled}]
 
 limitations:
   - scope: locomotion
