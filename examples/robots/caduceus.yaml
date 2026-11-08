@@ -1,0 +1,111 @@
+# Caduceus: Devran's foam-board biped (ESP32 + PCA9685 + 4 x MG90S).
+# Real robot: https://github.com/devorun/caduceus-robot
+#
+# Body parts are 5 mm foam board boxes covered with aluminium tape. Numbers marked "guess" are not
+# measured yet. This spec is NOT calibrated: step 3 tunes the uncertain numbers against the videos.
+talaria: 1
+name: caduceus
+title: Caduceus
+description: >-
+  Foam-board biped that stands on two long outer arms, with two short legs in the middle.
+  Powered through a 2-3 m wall cable.
+photo: caduceus_front.jpg
+voltage: 5.0                       # guess: 5 V supply through the cable
+
+parts:
+  - name: head
+    shape: box
+    size: [6, 16.5, 9]             # width 16.5 measured; depth 6 and height 9 are guesses (photo suggests 9-10)
+    mass: 290                      # guess: total ~0.40 kg (>= 350 g per Devran), electronics + servos in the head
+    material: foam
+    color: "#c9ced6"
+
+  - name: left_arm
+    parent: head
+    shape: box
+    size: [5.5, 5.5, 23.5]         # 23.5 tall x 5.5 wide measured; depth 5.5 is a guess (square section)
+    mass: 30                       # guess
+    material: foam
+    ground_contact: true
+    joint:
+      axis: pitch
+      anchor: [0, 11.2, 1.0]       # beside the head (8.25 + 2.75 + 0.2 gap); pivot height is a guess
+      offset: [0, 0, -9.25]        # 2.5 cm of arm above the pivot, 21 cm below
+      range: [-72, 72]             # 900-2500 us around CENTER 1700 at 11.1 us/deg
+      servo: MG90S
+      hardware: {channel: 0, center_us: 1700, us_per_deg: 11.1, direction: -1}
+
+  - name: left_leg
+    parent: head
+    shape: box
+    size: [5, 6, 16]               # 16 tall x 6 wide measured; depth 5 is a guess
+    mass: 25                       # guess
+    material: foam
+    ground_contact: true
+    joint:
+      axis: pitch
+      anchor: [0, 3.75, -3.2]      # 1.5 cm gap between the legs; pivot height is a guess
+      offset: [0, 0, -8]           # leg bottoms end ~8 mm above the arm bottoms (guess; spike: 3-15 mm)
+      range: [-45, 45]             # guess
+      servo: MG90S
+      hardware: {channel: 1, center_us: 1700, us_per_deg: 11.1, direction: -1}
+
+  - name: right_leg
+    parent: head
+    shape: box
+    size: [5, 6, 16]
+    mass: 25
+    material: foam
+    ground_contact: true
+    joint:
+      axis: pitch
+      anchor: [0, -3.75, -3.2]
+      offset: [0, 0, -8]
+      range: [-45, 45]
+      servo: MG90S
+      hardware: {channel: 2, center_us: 1700, us_per_deg: 11.1, direction: 1}
+
+  - name: right_arm
+    parent: head
+    shape: box
+    size: [5.5, 5.5, 23.5]
+    mass: 30
+    material: foam
+    ground_contact: true
+    joint:
+      axis: pitch
+      anchor: [0, -11.2, 1.0]
+      offset: [0, 0, -9.25]
+      range: [-72, 72]
+      servo: MG90S
+      hardware: {channel: 3, center_us: 1700, us_per_deg: 11.1, direction: 1}
+
+# The wall cable tugs and drags the robot. 0.2 N is a guess for 2-3 m of cable on a wooden floor.
+tether: {part: head, max_force_n: 0.2}
+
+moves:
+  # Original firmware handleWave: right arm to CENTER+800 us (~72 deg) at 2 us/ms (~400 ms),
+  # hold 3 s, then back to center at 8 us per 25 ms (~2.5 s).
+  wave:
+    description: Raise the right arm forward, hold it, lower it slowly (original firmware wave).
+    loops: 1
+    frames:
+      - {ms: 400, hold: 3000, joints: {right_arm: 72}}
+      - {ms: 2500, joints: {right_arm: 0}}
+
+  # Original firmware handleWalk with n = 2 (the "come here" video): smoothMove 2 us every 3 ms
+  # (~60 deg/s), STEP_SIZE 150 us (~13.5 deg), 200 ms pause after each phase, then back to center.
+  # Positive angles swing a limb forward on both sides (the firmware mirrors the left channels).
+  walk:
+    description: Two steps forward with the original firmware gait.
+    loops: 1
+    frames:
+      - {ms: 225, hold: 200, joints: {left_arm: 13.5, right_arm: 13.5, left_leg: 0, right_leg: 0}}
+      - {ms: 225, hold: 200, joints: {left_leg: -13.5, right_leg: -13.5}}
+      - {ms: 450, hold: 200, joints: {left_arm: -13.5, right_arm: -13.5}}
+      - {ms: 450, hold: 200, joints: {left_leg: 13.5, right_leg: 13.5}}
+      - {ms: 450, hold: 200, joints: {left_arm: 13.5, right_arm: 13.5, left_leg: 0, right_leg: 0}}
+      - {ms: 225, hold: 200, joints: {left_leg: -13.5, right_leg: -13.5}}
+      - {ms: 450, hold: 200, joints: {left_arm: -13.5, right_arm: -13.5}}
+      - {ms: 450, hold: 200, joints: {left_leg: 13.5, right_leg: 13.5}}
+      - {ms: 225, joints: {left_arm: 0, right_arm: 0, left_leg: 0, right_leg: 0}}

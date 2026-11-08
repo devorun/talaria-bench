@@ -1,0 +1,285 @@
+"""Run one move on one robot in one world, headless, and measure what happened.
+
+``run_move(spec, move, world, seconds, record=False) -> Result``. Every number this produces comes
+from simulation; servo loads are estimates against datasheet stall torque (see servos.py).
+
+Timeline: the servos boot at home + the world's calibration offsets (offsets are there from t=0,
+never applied mid-run), the robot settles for ``SETTLE_S``, then the move plays. Commands are delayed
+by the world's latency and rate-limited at each servo's no-load speed, like a real hobby servo.
+
+Fall rules (CLAUDE.md): a part with ``ground_contact: false`` touches the floor, or the root tilts more
+than ``FALL_TILT_DEG`` from upright. Distance counts only steady progress: progress in the second half
+of the run x 2, capped by the total, so a one-time lurch earns nothing.
+"""
+
+from __future__ import annotations
+
+import math
+from dataclasses import asdict, dataclass, field
+from typing import Any, Optional
+
+import numpy as np
+
+from .builder import TIMESTEP, make_model
+from .motion import trajectory
+from .spec import Spec
+from .worlds import World
+
+CTRL_DT = 0.01            # servo command period, s
+SETTLE_S = 0.5
+FALL_TILT_DEG = 60.0
+SATURATED = 0.98          # |torque| / limit at or above this counts as saturated
+TRACE_FPS = 30
+
+
+@dataclass
+class JointLoad:
+    peak_torque_nm: float
+    available_nm: float
+    peak_ratio: float           # peak |torque| / available (1.0 = stalled at the limit)
+    saturated_frac: float       # fraction of control steps at the limit
+    peak_speed_dps: float       # fastest the servo joint actually turned, deg/s
+
+
+@dataclass
+class Result:
+    move: str
+    seconds: float
+    forward_m: float            # along the heading the robot had after settling
+    lateral_m: float            # + = to the robot's left
+    yaw_deg: float              # + = turned left (continuous, can exceed 180)
+    steady_m: float             # steady forward progress (0 when the robot fell)
+    max_tilt_deg: float
+    fell: bool
+    fell_at_s: Optional[float]
+    fall_reason: Optional[str]
+    joints: dict[str, JointLoad]
+    self_collisions: int        # contact onsets between two parts
+    self_collision_pairs: list[list[str]]
+    world: dict[str, Any]
+    warnings: list[str] = field(default_factory=list)
+    trace: Optional[dict[str, Any]] = None
+
+    @property
+    def max_load_ratio(self) -> float:
+        return max((j.peak_ratio for j in self.joints.values()), default=0.0)
+
+    def to_dict(self, trace: bool = False) -> dict[str, Any]:
+        out = asdict(self)
+        if not trace:
+            out.pop("trace", None)
+        return out
+
+
+def _yaw(quat: np.ndarray) -> float:
+    w, x, y, z = quat
+    return math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
+
+
+def _wrap(a: float) -> float:
+    return (a + math.pi) % (2 * math.pi) - math.pi
+
+
+def steady_progress(progress: list[float]) -> float:
+    """Progress in the second half x 2, capped by the total: a one-time lurch earns nothing."""
+    if not progress:
+        return 0.0
+    total = progress[-1]
+    late = progress[-1] - progress[len(progress) // 2]
+    return min(total, 2.0 * late)
+
+
+def resolve_move(spec: Spec, move: Any) -> tuple[str, dict[str, Any]]:
+    if move is None:
+        return "hold", {"frames": [{"ms": 20, "joints": {p.name: p.joint.home for p in spec.joint_parts}}]}
+    if isinstance(move, str):
+        if move not in spec.moves:
+            raise KeyError(f"{spec.name} has no move {move!r} (moves: {', '.join(sorted(spec.moves)) or 'none'})")
+        return move, spec.moves[move]
+    return "custom", move
+
+
+def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, seconds: Optional[float] = None,
+             record: bool = False, repeat: Optional[bool] = None) -> Result:
+    """Simulate ``move`` (a spec move name, a move dict, or None to hold the home pose)."""
+    import mujoco
+
+    world = world or World.nominal()
+    move_name, move_dict = resolve_move(spec, move)
+    limits = spec.joint_limits()
+    if seconds is None:
+        from .motion import check_move
+
+        plan = check_move(move_dict, limits)
+        rep = plan["repeat"] if repeat is None else repeat
+        seconds = 8.0 if rep else plan["duration_ms"] / 1000.0 + 1.0
+    names, rows = trajectory(move_dict, limits, seconds, CTRL_DT, repeat=repeat)
+    traj = np.asarray(rows, dtype=float).reshape(len(rows), len(names))
+
+    m, info = make_model(spec, world)
+    d = mujoco.MjData(m)
+    parts = spec.parts
+    floor = m.geom("floor").id
+    geom_part = {m.geom(p.name).id: p for p in parts}
+    root_id = m.body(spec.root.name).id
+    qadr = np.array([m.jnt_qposadr[m.joint(n).id] for n in names], dtype=int)
+    lo = np.array([limits[n]["min"] for n in names])
+    hi = np.array([limits[n]["max"] for n in names])
+    offsets = np.array([world.offsets_deg.get(n, 0.0) for n in names])
+    speed = np.array([spec.part(n).joint.servo.speed_dps(spec.voltage) for n in names])
+    act = np.array([m.actuator(n).id for n in names], dtype=int)
+    limit_nm = np.abs(m.actuator_forcerange[act, 1])
+    vadr = np.array([m.jnt_dofadr[m.joint(n).id] for n in names], dtype=int)
+
+    home = np.array([limits[n]["home"] for n in names])
+    sent = np.clip(home + offsets, lo, hi)
+    d.qpos[qadr] = np.radians(sent)
+    d.ctrl[act] = np.radians(sent)
+    if spec.tether and world.tether_scale > 0:
+        f = world.tether_scale * spec.tether["max_force_n"]
+        a = math.radians(world.tether_dir_deg)
+        d.xfrc_applied[m.body(spec.tether["part"]).id, :3] = (f * math.cos(a), f * math.sin(a), 0.0)
+    mujoco.mj_forward(m, d)
+
+    g = np.array(world.gravity())
+    up = -g / np.linalg.norm(g)
+    sub = max(1, int(round(CTRL_DT / TIMESTEP)))
+    fell, fell_at, reason = False, None, None
+    max_tilt = 0.0
+
+    def check(now: Optional[float]) -> tuple[Optional[str], set]:
+        touching: set[tuple[str, str]] = set()
+        why = None
+        for i in range(d.ncon):
+            g1, g2 = int(d.contact.geom[i, 0]), int(d.contact.geom[i, 1])
+            if g1 == floor or g2 == floor:
+                part = geom_part.get(g2 if g1 == floor else g1)
+                if part is not None and not part.ground_contact and why is None:
+                    why = f"part '{part.name}' touched the floor"
+            elif g1 in geom_part and g2 in geom_part:
+                touching.add(tuple(sorted((geom_part[g1].name, geom_part[g2].name))))
+        return why, touching
+
+    def tilt_deg() -> float:
+        z_axis = d.xmat[root_id].reshape(3, 3)[:, 2]
+        return math.degrees(math.acos(max(-1.0, min(1.0, float(np.dot(z_axis, up))))))
+
+    for _ in range(int(round(SETTLE_S / CTRL_DT))):
+        mujoco.mj_step(m, d, nstep=sub)
+        why, _ = check(None)
+        tilt = tilt_deg()
+        if why or tilt > FALL_TILT_DEG:
+            fell, fell_at = True, 0.0
+            reason = (why or f"root tilted {tilt:.0f} deg") + " while settling (it cannot stand)"
+            break
+
+    x0, y0 = float(d.xpos[root_id, 0]), float(d.xpos[root_id, 1])
+    yaw0 = _yaw(d.xquat[root_id])
+    hx, hy = math.cos(yaw0), math.sin(yaw0)
+    yaw_acc, yaw_prev = 0.0, yaw0
+    progress = []
+    peak = np.zeros(len(names))
+    peak_speed = np.zeros(len(names))
+    saturated = np.zeros(len(names))
+    steps_done = 0
+    lat_steps = int(round(world.latency_s / CTRL_DT))
+    max_step = speed * CTRL_DT
+    touching_prev: set = set()
+    collisions = 0
+    pairs: set = set()
+
+    trace = None
+    if record:
+        geom_ids = [m.geom(p.name).id for p in parts]
+        trace = {"fps": TRACE_FPS, "units": "m", "dt": round(1.0 / TRACE_FPS, 6),
+                 "parts": [{"name": p.name, "shape": p.shape, "size_m": [s * 0.01 for s in p.size],
+                            "color": p.color} for p in parts], "frames": []}
+        next_frame = 0.0
+
+        def snap() -> None:
+            q = np.zeros(4)
+            frame = []
+            for gid in geom_ids:
+                mujoco.mju_mat2Quat(q, d.geom_xmat[gid])
+                frame.append([round(float(v), 5) for v in (*d.geom_xpos[gid], *q)])
+            trace["frames"].append(frame)
+
+    if not fell:
+        for i in range(len(traj)):
+            now = i * CTRL_DT
+            if record and now + 1e-9 >= next_frame:
+                snap()
+                next_frame += 1.0 / TRACE_FPS
+            cmd = np.clip(traj[max(0, i - lat_steps)] + offsets, lo, hi)
+            sent = sent + np.clip(cmd - sent, -max_step, max_step)
+            d.ctrl[act] = np.radians(sent)
+            mujoco.mj_step(m, d, nstep=sub)
+            steps_done += 1
+
+            force = np.abs(d.actuator_force[act])
+            peak = np.maximum(peak, force)
+            saturated += force >= SATURATED * limit_nm
+            peak_speed = np.maximum(peak_speed, np.abs(d.qvel[vadr]))
+            p = d.xpos[root_id]
+            progress.append((p[0] - x0) * hx + (p[1] - y0) * hy)
+            yaw_now = _yaw(d.xquat[root_id])
+            yaw_acc += _wrap(yaw_now - yaw_prev)
+            yaw_prev = yaw_now
+
+            why, touching = check(now)
+            new = touching - touching_prev
+            collisions += len(new)
+            pairs |= touching
+            touching_prev = touching
+            tilt = tilt_deg()
+            max_tilt = max(max_tilt, tilt)
+            if not fell and (why or tilt > FALL_TILT_DEG):
+                fell, fell_at = True, round(now + CTRL_DT, 3)
+                reason = why or f"root tilted more than {FALL_TILT_DEG:.0f} deg"
+                if not record:
+                    break
+        if record:
+            snap()
+
+    p = d.xpos[root_id]
+    forward = (p[0] - x0) * hx + (p[1] - y0) * hy
+    lateral = -(p[0] - x0) * hy + (p[1] - y0) * hx
+    steady = 0.0 if fell else steady_progress(progress)
+    n = max(steps_done, 1)
+    loads = {name: JointLoad(peak_torque_nm=round(float(peak[k]), 5), available_nm=round(float(limit_nm[k]), 5),
+                             peak_ratio=round(float(peak[k] / limit_nm[k]), 4),
+                             saturated_frac=round(float(saturated[k] / n), 4),
+                             peak_speed_dps=round(math.degrees(float(peak_speed[k])), 2)) for k, name in enumerate(names)}
+    return Result(move=move_name, seconds=float(seconds), forward_m=round(float(forward), 5),
+                  lateral_m=round(float(lateral), 5), yaw_deg=round(math.degrees(yaw_acc), 3),
+                  steady_m=round(float(steady), 5), max_tilt_deg=round(max_tilt, 3), fell=fell, fell_at_s=fell_at,
+                  fall_reason=reason, joints=loads, self_collisions=collisions,
+                  self_collision_pairs=[list(pr) for pr in sorted(pairs)], world=world.to_dict(),
+                  warnings=list(info.warnings), trace=trace)
+
+
+def run_worlds(spec: Spec, move: Any, seconds: Optional[float], seeds: list[int],
+               repeat: Optional[bool] = None) -> list[Result]:
+    """The same move in one random world per seed (worlds drawn from the spec's ranges)."""
+    return [run_move(spec, move, World.random(s, spec.joint_names, spec.world_ranges), seconds, repeat=repeat)
+            for s in seeds]
+
+
+def summarize(results: list[Result]) -> dict[str, Any]:
+    steady = np.array([r.steady_m for r in results])
+    falls = [r for r in results if r.fell]
+    reasons: dict[str, int] = {}
+    for r in falls:
+        reasons[r.fall_reason] = reasons.get(r.fall_reason, 0) + 1
+    return {
+        "runs": len(results),
+        "falls": len(falls),
+        "no_fall_rate": round(1 - len(falls) / max(len(results), 1), 3),
+        "steady_cm_median": round(float(np.median(steady)) * 100, 2),
+        "steady_cm_p10": round(float(np.percentile(steady, 10)) * 100, 2),
+        "forward_cm_median": round(float(np.median([r.forward_m for r in results])) * 100, 2),
+        "yaw_deg_median": round(float(np.median([r.yaw_deg for r in results])), 2),
+        "max_tilt_deg_median": round(float(np.median([r.max_tilt_deg for r in results])), 2),
+        "max_load_ratio": round(max(r.max_load_ratio for r in results), 3),
+        "fall_reasons": reasons,
+    }

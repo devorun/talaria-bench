@@ -1,0 +1,119 @@
+# spider8: a typical 8-servo hobby quadruped. 4 hip servos turn the legs forward/back (yaw),
+# 4 knee servos lift the feet (roll). SG90 servos, 3D-printed PLA, rubber foot caps, ~250 g.
+# A made-up but representative design, not a specific kit.
+talaria: 1
+name: spider8
+title: Spider (8 servos)
+description: >-
+  Four-legged 8-servo PLA crawler: a 10 x 10 cm body with a hip and a knee servo per leg.
+voltage: 5.0
+
+parts:
+  - name: body
+    shape: box
+    size: [10, 10, 3]
+    mass: 142                      # PLA frame + ESP32 + PCA9685 + 4 hip servos + small battery
+    material: pla
+    color: "#3d7bd9"
+
+  # Hips sit at the body corners; each coxa sticks out sideways and carries the knee servo.
+  # Left legs reach +y, right legs -y. Yaw +: the coxa turns counter-clockwise (seen from above).
+  - name: hip_fl
+    parent: body
+    shape: box
+    size: [2.5, 5, 2]
+    mass: 15                       # bracket + knee servo
+    material: pla
+    joint: {axis: yaw, anchor: [4.5, 5, 0], offset: [0, 2.5, 0], range: [-80, 80], home: -35, servo: SG90}
+  - name: hip_fr
+    parent: body
+    shape: box
+    size: [2.5, 5, 2]
+    mass: 15
+    material: pla
+    joint: {axis: yaw, anchor: [4.5, -5, 0], offset: [0, -2.5, 0], range: [-80, 80], home: 35, servo: SG90}
+  - name: hip_hl
+    parent: body
+    shape: box
+    size: [2.5, 5, 2]
+    mass: 15
+    material: pla
+    joint: {axis: yaw, anchor: [-4.5, 5, 0], offset: [0, 2.5, 0], range: [-80, 80], home: 35, servo: SG90}
+  - name: hip_hr
+    parent: body
+    shape: box
+    size: [2.5, 5, 2]
+    mass: 15
+    material: pla
+    joint: {axis: yaw, anchor: [-4.5, -5, 0], offset: [0, -2.5, 0], range: [-80, 80], home: -35, servo: SG90}
+
+  # Knees at the outer end of each coxa; the shin hangs straight down at 0 deg.
+  # Roll +: the foot swings toward +y (outward on the left, inward on the right).
+  - name: knee_fl
+    parent: hip_fl
+    shape: box
+    size: [1.5, 1.5, 7]
+    mass: 10
+    material: pla
+    ground_contact: true
+    joint: {axis: roll, anchor: [0, 2.5, 0], offset: [0, 0, -3.5], range: [-70, 70], servo: SG90}
+  - name: knee_fr
+    parent: hip_fr
+    shape: box
+    size: [1.5, 1.5, 7]
+    mass: 10
+    material: pla
+    ground_contact: true
+    joint: {axis: roll, anchor: [0, -2.5, 0], offset: [0, 0, -3.5], range: [-70, 70], servo: SG90}
+  - name: knee_hl
+    parent: hip_hl
+    shape: box
+    size: [1.5, 1.5, 7]
+    mass: 10
+    material: pla
+    ground_contact: true
+    joint: {axis: roll, anchor: [0, 2.5, 0], offset: [0, 0, -3.5], range: [-70, 70], servo: SG90}
+  - name: knee_hr
+    parent: hip_hr
+    shape: box
+    size: [1.5, 1.5, 7]
+    mass: 10
+    material: pla
+    ground_contact: true
+    joint: {axis: roll, anchor: [0, -2.5, 0], offset: [0, 0, -3.5], range: [-70, 70], servo: SG90}
+
+  # Rubber caps on the shin tips (fixed parts).
+  - {name: foot_fl, parent: knee_fl, shape: sphere, size: [0.7], mass: 2, material: rubber, ground_contact: true, pos: [0, 0, -3.5]}
+  - {name: foot_fr, parent: knee_fr, shape: sphere, size: [0.7], mass: 2, material: rubber, ground_contact: true, pos: [0, 0, -3.5]}
+  - {name: foot_hl, parent: knee_hl, shape: sphere, size: [0.7], mass: 2, material: rubber, ground_contact: true, pos: [0, 0, -3.5]}
+  - {name: foot_hr, parent: knee_hr, shape: sphere, size: [0.7], mass: 2, material: rubber, ground_contact: true, pos: [0, 0, -3.5]}
+
+moves:
+  stand:
+    description: Home stance, all knees straight down.
+    loops: 1
+    frames:
+      - {ms: 500, joints: {hip_fl: -35, hip_fr: 35, hip_hl: 35, hip_hr: -35, knee_fl: 0, knee_fr: 0, knee_hl: 0, knee_hr: 0}}
+
+  # Hand-written creep gait: one foot in the air at a time, in the order hind-left, front-left,
+  # hind-right, front-right. Each beat lifts the swinging foot outward (knee 30 deg), swings it
+  # 25 deg forward of home, and puts it down, while the three standing feet push back by 2/3 of
+  # the stride. 4 beats x 440 ms = 1.76 s per cycle. Hip angle = home + forward sign x 25 x u,
+  # u from -1 (back) to +1 (front); forward is a negative hip angle on the left, positive on the right.
+  walk:
+    description: Creep forward, one foot at a time (repeats until stopped).
+    loops: 1
+    repeat: true
+    frames:
+      - {ms: 120, joints: {hip_fl: -22.5, hip_fr: 55.83, hip_hl: 60, hip_hr: -30.83, knee_fl: 0, knee_fr: 0, knee_hl: 30, knee_hr: 0}}
+      - {ms: 200, joints: {hip_fl: -14.17, hip_fr: 47.5, hip_hl: 10, hip_hr: -39.17, knee_fl: 0, knee_fr: 0, knee_hl: 30, knee_hr: 0}}
+      - {ms: 120, joints: {hip_fl: -10, hip_fr: 43.33, hip_hl: 10, hip_hr: -43.33, knee_fl: 0, knee_fr: 0, knee_hl: 0, knee_hr: 0}}
+      - {ms: 120, joints: {hip_fl: -10, hip_fr: 39.17, hip_hl: 14.17, hip_hr: -47.5, knee_fl: 30, knee_fr: 0, knee_hl: 0, knee_hr: 0}}
+      - {ms: 200, joints: {hip_fl: -60, hip_fr: 30.83, hip_hl: 22.5, hip_hr: -55.83, knee_fl: 30, knee_fr: 0, knee_hl: 0, knee_hr: 0}}
+      - {ms: 120, joints: {hip_fl: -60, hip_fr: 26.67, hip_hl: 26.67, hip_hr: -60, knee_fl: 0, knee_fr: 0, knee_hl: 0, knee_hr: 0}}
+      - {ms: 120, joints: {hip_fl: -55.83, hip_fr: 22.5, hip_hl: 30.83, hip_hr: -60, knee_fl: 0, knee_fr: 0, knee_hl: 0, knee_hr: -30}}
+      - {ms: 200, joints: {hip_fl: -47.5, hip_fr: 14.17, hip_hl: 39.17, hip_hr: -10, knee_fl: 0, knee_fr: 0, knee_hl: 0, knee_hr: -30}}
+      - {ms: 120, joints: {hip_fl: -43.33, hip_fr: 10, hip_hl: 43.33, hip_hr: -10, knee_fl: 0, knee_fr: 0, knee_hl: 0, knee_hr: 0}}
+      - {ms: 120, joints: {hip_fl: -39.17, hip_fr: 10, hip_hl: 47.5, hip_hr: -14.17, knee_fl: 0, knee_fr: -30, knee_hl: 0, knee_hr: 0}}
+      - {ms: 200, joints: {hip_fl: -30.83, hip_fr: 60, hip_hl: 55.83, hip_hr: -22.5, knee_fl: 0, knee_fr: -30, knee_hl: 0, knee_hr: 0}}
+      - {ms: 120, joints: {hip_fl: -26.67, hip_fr: 60, hip_hl: 60, hip_hr: -26.67, knee_fl: 0, knee_fr: 0, knee_hl: 0, knee_hr: 0}}

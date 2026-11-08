@@ -1,0 +1,15 @@
+name: talaria-bench
+version: 0.1.0
+manifest_version: 2
+description: >-
+  A physics test bench for DIY servo robots. Describe your robot (parts, sizes, masses, hobby servos)
+  and test it in MuJoCo across many randomized worlds before it moves. No GPU, no CAD.
+author: Devran (devorun)
+homepage: https://github.com/devorun/talaria-bench
+license: MIT
+requires_hermes: ">=0.22.0"
+tags: [robotics, simulation, mujoco, servo, hardware]
+python_dependencies:
+  - mujoco>=4.0,<5
+  - numpy>=1.26,<3
+  - pyyaml>=6.0,<7
