@@ -1,6 +1,73 @@
 # Calibrating Caduceus against video (8 Nov 2026)
 
-Every number on this page comes from simulation. The real robot was only observed on video.
+Every number on this page comes from simulation. The real robot was only observed on video and
+measured by hand. Calibration 3b (with real measurements) is first; 3a (video only) follows.
+
+## 3b: with real measurements (result: targets NOT met, caduceus.yaml values kept from 3a)
+
+New facts (Devran, 8 Nov):
+* All four feet touch the floor at rest: a card fits under none of them. The leg gap is 0 to -2 mm
+  and the foam crushes.
+* The leg joints have a deliberate large free play (3-10 deg) that ends against the head. The arm
+  play is small.
+* The electronics sit on top of the head, so the head's centre of mass is 2-4 cm high.
+* The firmware walk `/ileri?n=2` (confirmed: `handleWalk`, the move modelled here) moves the robot
+  about 6 cm forward in 2 cycles. The arms lift, swing forward, land in front and drag the body.
+* Some videos are sped up, so the firmware speed still comes from the I2C code analysis
+  (3.0-4.5 ms per step).
+
+The source videos are now in `reference/videos/` (the 1 fps frame sheets are in
+`reference/video-frames/*_1fps.jpg`). They confirm four feet on the floor at rest, and a level
+head top edge through the whole wave in both clips (no visible roll).
+
+New model features: per-part `com` (centre of mass offset) and per-joint backlash up to 20 deg.
+The play hinge's limit is the mechanical stop (the head).
+
+Targets: wave as before (no fall, roll < 5, pitch < 10, abs(yaw) < 5 deg, arm rises >= 2 cm);
+walk no fall and **3-9 cm forward in 2 cycles**; walk yaw is reported only.
+(`examples/robots/caduceus.calibration.yaml`, 400 sets, every other range as in 3a.)
+
+| run (400 sets) | accepted | wave alone | walk alone | walk without a fall | closest set |
+|---|---|---|---|---|---|
+| 3b as measured (leg play 3-10 deg total) | 0 | 39% | 0% | 3/400 | wave ok; walk falls |
+| legs mounted opposite to the firmware names (both) | 0 | 39% | 0% | 41/400 (max +2.6 cm) | wave ok; walk +2.6 cm, no fall |
+| right leg only opposite | 0 | 39% | 1/400 | - | wave ok; walk +0.8 cm |
+| leg play read as 3-10 deg each way (6-20 total) | 0 | 15% | 0% | 5/400 (max +5.6 cm) | wave ok; walk falls |
+
+In 397 of 400 sets the walk tips over backwards, and always in the same way. In phase 1 the arms
+swing forward but stay loaded, so the body leans about 8 deg forward instead of the arms lifting.
+In phase 2 the loaded legs swing back with their feet stuck by friction, so the body rotates
+backwards. The arms then leave the floor, and the robot balances on the 4-6 cm deep leg soles with
+its centre of mass about 23 cm high. Past about 6 deg it falls.
+
+The current `caduceus.yaml` (3a) against the 3b targets, in 100 worlds: wave 39% (60 falls); walk
+0%, with forward median +0.25 cm where 3-9 cm is needed.
+
+**What is probably missing.** The real robot does what the rigid model cannot: with all four feet
+down, its arms lift and swing forward, and the loaded legs swing back without tipping it.
+Candidates:
+1. **Foam feet are not rigid boxes.** They crush, and their edges roll. That lets a loaded leg
+   pivot under the body instead of levering it backwards, and lets the load move to the legs when
+   an arm swings.
+2. **Load sharing.** If the crushed leg foam carries most of the weight, the arms are almost
+   unloaded and lift as described. The soft-contact model spreads the load more evenly.
+3. **Leg play.** A side view of the walk would show whether the legs swing through their play
+   without driving the body. Devran's "3-10 deg" may be per side, or larger.
+4. **Leg direction.** If the leg servos turn opposite to the firmware names, the model falls far
+   less (41/400 without a fall) but still comes short of 3 cm. A one-servo nudge test settles this.
+
+A side-view clip of `/ileri?n=2` would decide between these. Until then the 3a fit stays the
+shipped model, and its walk forward distance (~0 cm vs ~6 cm real) is a known error.
+
+**caduceus_v2** (`examples/robots/caduceus_v2.yaml`) is a design variant for step 4's design
+comparison, not a real robot. Changes: legs level with the arms, 1.5 deg play on every joint,
+electronics low inside the head (centre of mass 2 cm down). Results in 100 worlds with the 3b
+targets:
+* wave passes 92% (4 falls, pitch median 4.7 deg);
+* the original firmware walk falls in 100% (backwards, phase 2): this gait needs the arms to carry
+  the robot, and level legs make it tip.
+
+## 3a: video only (superseded by 3b's measurements, values still shipped)
 
 ## Summary
 
@@ -42,7 +109,7 @@ wave target was split into roll < 5 deg, pitch < 10 deg and |yaw| < 5 deg, inste
 "tilt < 5 deg". The two clips have different backgrounds, so they were recorded on different
 occasions.
 
-## Targets (`examples/robots/caduceus.calibration.yaml`)
+## Targets (`examples/robots/caduceus.calibration-3a.yaml`)
 
 | move | requirement |
 |---|---|
@@ -83,15 +150,15 @@ Parameters and plausible ranges (stage 1):
 | servo offsets | +-3 deg each | |
 | torque scale, stiffness scale, latency, floor tilt | 0.8-1.1, 0.6-1.2, 0-40 ms, 0-1.5 deg | |
 
-Stage 2 (`caduceus.calibration-stage2.yaml`) samples again inside the region stage 1 found:
+Stage 2 (`caduceus.calibration-3a-stage2.yaml`) samples again inside the region stage 1 found:
 leg gap +1..+3 mm and overhead 3.5-4.5 ms. Every other parameter keeps its full range.
 
 Reproduce (from `talaria-work/`):
 
 ```
-python talaria-bench/devcli.py calibrate examples/robots/caduceus.calibration.yaml --out stage1.json
-python talaria-bench/devcli.py calibrate examples/robots/caduceus.calibration-stage2.yaml --out stage2.json
-python talaria-bench/devcli.py validate examples/robots/caduceus.calibration.yaml --worlds 100 --param step_overhead_ms=3.95
+python talaria-bench/devcli.py calibrate examples/robots/caduceus.calibration-3a.yaml --out stage1.json
+python talaria-bench/devcli.py calibrate examples/robots/caduceus.calibration-3a-stage2.yaml --out stage2.json
+python talaria-bench/devcli.py validate examples/robots/caduceus.calibration-3a.yaml --worlds 100 --param step_overhead_ms=3.95
 ```
 
 ## Results

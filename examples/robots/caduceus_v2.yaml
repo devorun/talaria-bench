@@ -1,0 +1,135 @@
+# Caduceus v2: a DESIGN VARIANT for comparison, not a real robot and not a model of one.
+# It answers "what would the fixed design do?" next to caduceus.yaml (the real robot, fitted to video).
+# Changes from caduceus.yaml, nothing else:
+#   * legs exactly level with the arms (gap 0 instead of +2 mm);
+#   * small joint play on all four servos (1.5 deg; the real legs have a deliberate 3-10 deg play);
+#   * electronics inside the head and low: head centre of mass 2 cm below its box centre
+#     (the real robot carries them on top).
+talaria: 1
+name: caduceus_v2
+title: Caduceus v2 (design variant)
+description: >-
+  Design variant of Caduceus for comparison: legs level with the arms, tight joints, electronics low
+  inside the head. Same size, masses, servos, moves and cable as caduceus.yaml.
+voltage: 5.0                       # 5 V supply through the cable (the cable sag is in torque_scale below)
+
+parts:
+  - name: head
+    shape: box
+    size: [6, 16.5, 9]             # width 16.5 measured; depth 6 and height 9 still to measure
+    mass: 325                      # same as caduceus.yaml
+    com: [0, 0, -2]                # v2: electronics inside the head, low
+    material: foam
+    color: "#c9ced6"
+
+  - name: left_arm
+    parent: head
+    shape: box
+    size: [5.2, 5.5, 23.5]         # 23.5 tall x 5.5 wide measured; depth 5.2 calibrated (4.3-5.9)
+    mass: 30                       # calibrated (20-38 g)
+    material: foam
+    ground_contact: true
+    joint:
+      axis: pitch
+      anchor: [0, 11.2, 1.0]       # beside the head (8.25 + 2.75 + 0.2 gap)
+      offset: [0, 0, -9.0]         # calibrated: 2.75 cm of arm above the pivot (1.7-3.8), 20.75 cm below
+      range: [-72, 72]             # 900-2500 us around CENTER 1700 at 11.1 us/deg
+      servo: {model: MG90S, backlash_deg: 1.5}   # v2: tight joints
+      hardware: {channel: 0, center_us: 1700, us_per_deg: 11.1, direction: -1}
+
+  - name: left_leg
+    parent: head
+    shape: box
+    size: [5.2, 6, 16]             # 16 tall x 6 wide measured; depth 5.2 calibrated (4.4-5.8)
+    mass: 26                       # calibrated (17-36 g)
+    material: foam
+    ground_contact: true
+    joint:
+      axis: pitch
+      anchor: [0, 3.75, -3.75]     # v2: leg bottoms exactly level with the arm bottoms
+      offset: [0, 0, -8]
+      range: [-45, 45]             # still a guess
+      servo: {model: MG90S, backlash_deg: 1.5}
+      hardware: {channel: 1, center_us: 1700, us_per_deg: 11.1, direction: -1}
+
+  - name: right_leg
+    parent: head
+    shape: box
+    size: [5.2, 6, 16]
+    mass: 26
+    material: foam
+    ground_contact: true
+    joint:
+      axis: pitch
+      anchor: [0, -3.75, -3.75]
+      offset: [0, 0, -8]
+      range: [-45, 45]
+      servo: {model: MG90S, backlash_deg: 1.5}
+      hardware: {channel: 2, center_us: 1700, us_per_deg: 11.1, direction: 1}
+
+  - name: right_arm
+    parent: head
+    shape: box
+    size: [5.2, 5.5, 23.5]
+    mass: 30
+    material: foam
+    ground_contact: true
+    joint:
+      axis: pitch
+      anchor: [0, -11.2, 1.0]
+      offset: [0, 0, -9.0]
+      range: [-72, 72]
+      servo: {model: MG90S, backlash_deg: 1.5}
+      hardware: {channel: 3, center_us: 1700, us_per_deg: 11.1, direction: 1}
+
+# Calibrated foam contact (aluminium-taped foam board): time constant 0.023 s (0.013-0.044),
+# stiffening over 3.8 mm (1.4-6.5 mm).
+materials:
+  foam: {solref: [0.023, 1.0], solimp: [0.70, 0.95, 0.0038]}
+
+# The wall cable plugs into the back/top of the head. Calibrated pull: small (accepted sets 0-0.09 N).
+tether: {part: head, max_force_n: 0.09, at: [-1.4, 0, 2.9]}
+
+# Per-world randomization: the accepted region of the calibration (p10-p90 of accepted sets), not wider.
+worlds:
+  friction: [0.33, 0.63]
+  mass_scale: [0.85, 1.15]
+  torque_scale: [0.82, 1.06]
+  kp_scale: [0.67, 1.10]
+  latency_s: [0.005, 0.034]
+  offset_deg: [-2.5, 2.5]
+  floor_tilt_deg: [0.1, 1.2]
+  tether_scale: [0.0, 1.0]
+  tether_dir_deg: [113, 255]
+
+moves:
+  # Original firmware handleWave: right arm to CENTER+800 us (~72 deg) with smoothMove(wait 1 ms,
+  # step 2 us), delay(3000), back with smoothMove(wait 25 ms, step 8 us). Each smoothMove step also
+  # writes 4 PCA9685 channels over 100 kHz I2C (~1 ms per channel with the Adafruit library), so the
+  # real step time is wait + ~3.95 ms (calibrated 3.6-4.5): up ~2.0 s, down ~2.9 s, constant speed.
+  wave:
+    description: Raise the right arm forward, hold it, lower it slowly (original firmware wave).
+    easing: linear
+    loops: 1
+    frames:
+      - {ms: 1980, hold: 3000, joints: {right_arm: 72}}
+      - {ms: 2895, joints: {right_arm: 0}}
+
+  # Original firmware handleWalk with n = 2 (the "come here" video): smoothMove(wait 3 ms, step 2 us)
+  # = 3 + 3.95 ms per 2 us (~26 deg/s), STEP_SIZE 150 us (~13.5 deg), delay(200) after each phase,
+  # then back to center. Positive angles swing a limb forward on both sides (the firmware mirrors the
+  # left channels). Every joint moves at the same constant speed, so a smaller move ends early.
+  walk:
+    description: Two steps forward with the original firmware gait.
+    easing: linear
+    loops: 1
+    frames:
+      - {ms: 521, hold: 200, joints: {left_arm: 13.5, right_arm: 13.5, left_leg: 0, right_leg: 0}}
+      - {ms: 521, hold: 200, joints: {left_leg: -13.5, right_leg: -13.5}}
+      - {ms: 1043, hold: 200, joints: {left_arm: -13.5, right_arm: -13.5}}
+      - {ms: 1043, hold: 200, joints: {left_leg: 13.5, right_leg: 13.5}}
+      - {ms: 1043, hold: 200, joints: {left_arm: 13.5, right_arm: 13.5, left_leg: 0, right_leg: 0}}
+      - {ms: 521, hold: 200, joints: {left_leg: -13.5, right_leg: -13.5}}
+      - {ms: 1043, hold: 200, joints: {left_arm: -13.5, right_arm: -13.5}}
+      - {ms: 1043, hold: 200, joints: {left_leg: 13.5, right_leg: 13.5}}
+      - {ms: 521, joints: {left_arm: 0, right_arm: 0, left_leg: 0, right_leg: 0}}

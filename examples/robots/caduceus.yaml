@@ -3,8 +3,14 @@
 #
 # Body parts are 5 mm foam board boxes covered with aluminium tape. Measured: head width 16.5 cm,
 # arms 23.5 x 5.5 cm, legs 16 x 6 cm. Values marked "calibrated" were set against videos on
-# 8 Nov 2026 (caduceus.calibration.yaml, docs/calibration-caduceus.md): the median of the parameter
+# 8 Nov 2026 (calibration 3a: caduceus.calibration-3a*.yaml, docs/calibration-caduceus.md): the median of the parameter
 # sets that reproduced both the wave and the walk. They are a plausible fit, not measurements.
+#
+# KNOWN CONFLICT (calibration 3b, same day): Devran measured that all four feet touch the floor
+# (leg gap 0 to -2 mm, not +2 mm), the leg joints have a deliberate 3-10 deg free play, the
+# electronics sit on top of the head, and the firmware walk moves ~6 cm in 2 cycles. With those
+# facts no parameter set reproduced the walk (it always tips backwards), so the 3b targets were not
+# met and these 3a values were kept on purpose. See docs/calibration-caduceus.md, section 3b.
 talaria: 1
 name: caduceus
 title: Caduceus

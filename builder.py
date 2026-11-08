@@ -81,6 +81,21 @@ def _geom_size(part: Part) -> str:
     return _v([s[0]])
 
 
+def _box_like_inertia(part: Part) -> list[float]:
+    """Principal inertia of the part's shape about its own center (kg*m^2)."""
+    m = part.mass * G
+    s = [x * CM for x in part.size]
+    if part.shape == "box":
+        x, y, z = s
+        return [m * (y * y + z * z) / 12, m * (x * x + z * z) / 12, m * (x * x + y * y) / 12]
+    if part.shape == "cylinder":
+        r, h = s
+        side = m * (3 * r * r + h * h) / 12
+        return [side, side, m * r * r / 2]
+    r = s[0]
+    return [2 * m * r * r / 5] * 3
+
+
 def _servo_gains(part: Part, voltage: float) -> tuple[float, float, float]:
     torque = part.joint.servo.torque_nm(voltage)
     kp = torque / math.radians(SATURATE_DEG)
@@ -114,6 +129,13 @@ def _body_xml(spec: Spec, part: Part, indent: str, root_z: float) -> str:
         f'pos="{_v(_center_in_body(part))}" mass="{_f(part.mass * G)}" rgba="{_rgba(part.color)}" '
         f'friction="{_f(0.5 * mat.friction)} {_f(mat.torsional)} {_f(mat.rolling)}" '
         f'solref="{_v(mat.solref)}" solimp="{_v(mat.solimp)}" solmix="1" contype="2" conaffinity="3"/>')
+    if part.com is not None:
+        # Explicit inertial: the part's mass sits at center + com (e.g. electronics stacked on top).
+        # The shape's own inertia is kept as an approximation.
+        center = _center_in_body(part)
+        pos = [c + o * CM for c, o in zip(center, part.com)]
+        lines.append(f'{indent}  <inertial pos="{_v(pos)}" mass="{_f(part.mass * G)}" '
+                     f'diaginertia="{_v(_box_like_inertia(part))}"/>')
     for child in spec.children(part.name):
         lines.append(_body_xml(spec, child, indent + "  ", root_z))
     lines.append(f"{indent}</body>")

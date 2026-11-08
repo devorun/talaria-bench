@@ -1,35 +1,39 @@
-# Calibration of caduceus.yaml against Devran's videos (8 Nov 2026). Stage 1: the whole plausible range.
-# Stage 2 (caduceus.calibration-stage2.yaml) samples inside the region stage 1 found.
-# Targets come from the WhatsApp wave clip and the "come here" walk clip (frames in the work folder:
-# reference/video-frames). Every parameter range below is a plausible physical range, not a fit.
-description: Caduceus wave and walk as seen on video.
+# Calibration 3b of caduceus.yaml (8 Nov 2026), with Devran's measurements of the real robot:
+# all four feet touch the floor when standing (a card fits under none of them), the leg joints
+# have a deliberate large free play that ends against the head, the electronics sit on top of the
+# head, and the firmware walk (2 cycles) moves the robot ~6 cm forward. Firmware speed comes from
+# code analysis (PCA9685 I2C time per smoothMove step), not from the videos (some are sped up).
+# Every range below is a plausible physical range, not a fit.
+description: Caduceus wave and walk (3b, with real measurements).
 spec: caduceus.yaml
 samples: 400
-seed: 2026
+seed: 2028
 bins: 4
 
 parameters:
-  leg_gap_cm: [-0.3, 0.5]          # leg bottoms minus arm bottoms in the home pose (- = legs longer, carry weight)
+  leg_gap_cm: [-0.2, 0.0]          # measured: all four feet touch; foam crushes 0-2 mm
   arm_above_pivot_cm: [1.5, 4.0]   # arm pivot height: how much of the 23.5 cm arm sits above its pivot
   head_mass_g: [250, 400]
+  head_com_z_cm: [2, 4]            # electronics on top: head centre of mass 2-4 cm above its box centre
   arm_mass_g: [15, 40]
   leg_mass_g: [15, 40]
   arm_depth_cm: [4, 6]             # x size (front-back) of the arms
   leg_depth_cm: [4, 6]
-  backlash_deg: [1, 3]             # MG90S gear play
+  arm_backlash_deg: [1, 2.5]       # MG90S gear play, arms (small)
+  leg_play_deg: [3, 10]            # deliberate free play of the leg joints, ends against the head
   foam_timeconst: [0.01, 0.05]     # foam contact softness: MuJoCo solref time constant (s)
   foam_width_mm: [1, 8]            # foam contact: depth over which it stiffens (solimp width)
   friction: [0.3, 0.7]             # lacquered wood
-  fr_left_arm: [0.6, 1.4]          # per-foot friction factor: hand-wrapped aluminium tape, wrinkles, dust
+  fr_left_arm: [0.6, 1.4]          # per-foot friction factor: hand-wrapped aluminium tape
   fr_right_arm: [0.6, 1.4]
   fr_left_leg: [0.6, 1.4]
   fr_right_leg: [0.6, 1.4]
-  step_overhead_ms: [0.5, 4.5]     # I2C time per smoothMove step (4 channels x ~1 ms at 100 kHz, see doc)
+  step_overhead_ms: [3.0, 4.5]     # I2C time per smoothMove step (4 channels x ~0.75-1.1 ms at 100 kHz)
   tether_n: [0, 0.15]              # pull of the 2-3 m power cable
   tether_dir_deg: [90, 270]        # roughly backwards or sideways (180 = straight back)
   tether_at_x: [-3, 0]             # where the cable plugs into the head (cm, head frame): back half
-  tether_at_y: [-8, 8]             # anywhere across the 16.5 cm head
-  tether_at_z: [0, 4.5]            # upper half (ESP32 on top)
+  tether_at_y: [-8, 8]
+  tether_at_z: [0, 4.5]            # upper half (electronics on top)
   off_left_arm: [-3, 3]            # servo calibration offsets (deg) present from boot
   off_left_leg: [-3, 3]
   off_right_leg: [-3, 3]
@@ -42,6 +46,7 @@ parameters:
 
 apply:
   parts.head.mass: head_mass_g
+  parts.head.com.2: head_com_z_cm
   parts.left_arm.mass: arm_mass_g
   parts.right_arm.mass: arm_mass_g
   parts.left_leg.mass: leg_mass_g
@@ -56,20 +61,20 @@ apply:
   # Leg bottom = anchor - 16; arm bottom = 1.0 - (23.5 - above) => anchor = gap - 6.5 + above
   parts.left_leg.joint.anchor.2: leg_gap_cm - 6.5 + arm_above_pivot_cm
   parts.right_leg.joint.anchor.2: leg_gap_cm - 6.5 + arm_above_pivot_cm
-  parts.left_arm.joint.servo.backlash_deg: backlash_deg
-  parts.right_arm.joint.servo.backlash_deg: backlash_deg
-  parts.left_leg.joint.servo.backlash_deg: backlash_deg
-  parts.right_leg.joint.servo.backlash_deg: backlash_deg
+  parts.left_arm.joint.servo.backlash_deg: arm_backlash_deg
+  parts.right_arm.joint.servo.backlash_deg: arm_backlash_deg
+  parts.left_leg.joint.servo.backlash_deg: leg_play_deg
+  parts.right_leg.joint.servo.backlash_deg: leg_play_deg
   materials.foam.solref.0: foam_timeconst
   materials.foam.solimp.2: foam_width_mm / 1000
   tether.max_force_n: tether_n
+  tether.at.0: tether_at_x
+  tether.at.1: tether_at_y
+  tether.at.2: tether_at_z
   parts.left_arm.friction: fr_left_arm
   parts.right_arm.friction: fr_right_arm
   parts.left_leg.friction: fr_left_leg
   parts.right_leg.friction: fr_right_leg
-  tether.at.0: tether_at_x
-  tether.at.1: tether_at_y
-  tether.at.2: tether_at_z
 
 world:
   friction: friction
@@ -87,24 +92,19 @@ world:
 
 targets:
   wave:
-    description: WhatsApp clip - the right arm swings up to ~72 deg, the body stays level, no tip.
+    description: WhatsApp and hello-hermes clips - the right arm swings up, the body stays level, no tip.
     move: wave
     speed: (1 + 3.95) / (1 + step_overhead_ms)   # spec timing assumes 3.95 ms overhead; smoothMove wait 1 ms
     require:
       fell: false
-      max_roll_change_deg: {max: 5}          # side-to-side: clearly visible in the front-view clip
+      max_roll_change_deg: {max: 5}          # side-to-side: clearly visible in the front-view clips
       max_pitch_change_deg: {max: 10}        # front-back: barely visible from the front (cos 10 deg = 0.985)
       yaw_deg: {abs_max: 5}                  # the robot keeps facing the camera
-      rise_cm.right_arm: {min: 2.0}           # the waving arm visibly leaves the floor
+      rise_cm.right_arm: {min: 2.0}          # the waving arm visibly leaves the floor
   walk:
-    description: Come-here clip - 2 cycles, little progress, a noticeable turn, legs swing off the floor.
+    description: Firmware walk n=2 ("come") - ~6 cm forward measured by Devran; yaw only reported.
     move: walk
     speed: (3 + 3.95) / (3 + step_overhead_ms)   # smoothMove wait 3 ms
     require:
       fell: false
-      forward_cm: {abs_max: 3}
-      # The video shows ~20-30 deg of turning. No plausible parameter set reproduced it together with the
-      # other targets (see docs/calibration-caduceus.md), so yaw is reported, not required:
-      # yaw_deg: {abs_min: 15, abs_max: 40}
-      lift_cm.left_leg: {min: 0.5}
-      lift_cm.right_leg: {min: 0.5}
+      forward_cm: {min: 3, max: 9}

@@ -36,6 +36,7 @@ Unknown keys are errors (typos are caught, not ignored).
   color: "#c9ced6"             # optional, display only
   ground_contact: true         # may touch the floor (feet). Default false: touching the floor = fall
   friction: 1.2                # optional: this part's friction factor, replacing the material's (a rubber pad)
+  com: [0, 0, 3]               # optional: centre of mass offset from the shape's center, cm (electronics on top)
   joint: {...}                 # a moving part (servo), or:
   pos: [0, 0, -3.5]            # a part fixed to its parent: its center in the parent's frame (cm)
 ```

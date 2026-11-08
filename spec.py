@@ -28,7 +28,7 @@ TOP_KEYS = {"talaria", "name", "title", "description", "photo", "voltage", "part
             "materials"}
 MATERIAL_KEYS = {"friction", "solref", "solimp"}
 PART_KEYS = {"name", "parent", "shape", "size", "mass", "material", "color", "ground_contact", "joint", "pos",
-             "friction"}
+             "friction", "com"}
 JOINT_KEYS = {"axis", "anchor", "offset", "range", "home", "servo", "max_speed", "hardware"}
 HARDWARE_KEYS = {"channel", "center_us", "us_per_deg", "direction"}
 TETHER_KEYS = {"part", "max_force_n", "at"}
@@ -72,6 +72,7 @@ class Part:
     joint: Optional[Joint] = None
     pos: Optional[tuple[float, float, float]] = None   # cm, fixed parts only
     friction: Optional[float] = None        # this part's friction factor, replacing the material's
+    com: Optional[tuple[float, float, float]] = None   # cm, centre of mass relative to the shape's center
 
     @property
     def is_root(self) -> bool:
@@ -140,6 +141,8 @@ class Spec:
                                      "mass": r(p.mass), "material": p.material, "ground_contact": p.ground_contact}
             if p.pos is not None:
                 entry["pos"] = vec(p.pos)
+            if p.com is not None:
+                entry["com"] = vec(p.com)
             if p.friction is not None:
                 entry["friction"] = r(p.friction)
             if p.joint is not None:
@@ -422,7 +425,12 @@ def _parse_part(raw: Any, index: int, voltage: float, problems: list[str]) -> Op
         if friction is None or not 0.05 <= friction <= 3.0:
             problems.append(f"{where}: friction factor must be 0.05..3 (replaces the material's factor)")
             friction = None
-
+    com = None
+    if raw.get("com") is not None:
+        com = _vec(raw["com"], 3)
+        if com is None or any(abs(v) > MAX_SIZE_CM for v in com):
+            problems.append(f"{where}: com must be [x, y, z] in cm (centre of mass offset from the shape's center)")
+            com = None
     joint = None
     pos = None
     if parent is None:
@@ -444,7 +452,7 @@ def _parse_part(raw: Any, index: int, voltage: float, problems: list[str]) -> Op
     if len(problems) > before:
         return None
     return Part(name=name, parent=parent, shape=shape, size=size, mass=mass, material=material, color=color,
-                ground_contact=ground_contact, joint=joint, pos=pos, friction=friction)
+                ground_contact=ground_contact, joint=joint, pos=pos, friction=friction, com=com)
 
 
 def _parse_joint(raw: Any, where: str, voltage: float, problems: list[str]) -> Optional[Joint]:

@@ -99,10 +99,42 @@ def test_shipped_caduceus_calibration_files_load():
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[1] / "examples" / "robots"
-    for name in ("caduceus.calibration.yaml", "caduceus.calibration-stage2.yaml"):
+    for name in ("caduceus.calibration.yaml", "caduceus.calibration-3a.yaml", "caduceus.calibration-3a-stage2.yaml"):
         config = cal.load_config(root / name)
         assert set(config.targets) == {"wave", "walk"}
         assert isinstance(config.targets["wave"].speed, ast.Expression)
+    b = cal.load_config(root / "caduceus.calibration.yaml")
+    assert b.params["leg_gap_cm"] == (-0.2, 0.0) and b.params["leg_play_deg"] == (3.0, 10.0)
+    spec, _ = cal.build_sample(b, {k: (lo + hi) / 2 for k, (lo, hi) in b.params.items()})
+    assert spec.part("head").com == (0.0, 0.0, 3.0)
+    assert spec.part("left_leg").joint.servo.backlash_deg == 6.5
+
+
+def test_center_of_mass_offset(mini_data):
+    from talaria_bench.builder import base_model
+
+    mini_data["parts"][0]["com"] = [0, 0, 1.5]
+    spec = parse_spec(mini_data)
+    model, _, xml = base_model(spec)
+    body = model.body("body").id
+    assert model.body_ipos[body][2] == pytest.approx(0.015)
+    assert model.body_mass[body] == pytest.approx(0.2)
+    mini_data["parts"][0]["com"] = [0, 0]
+    with pytest.raises(SpecError):
+        parse_spec(mini_data)
+
+
+def test_caduceus_v2_is_the_fixed_design(caduceus):
+    from pathlib import Path
+
+    from talaria_bench.spec import load_spec
+
+    v2 = load_spec(Path(__file__).resolve().parents[1] / "examples" / "robots" / "caduceus_v2.yaml")
+    assert v2.name == "caduceus_v2" and v2.photo is None
+    assert v2.part("head").com == (0.0, 0.0, -2.0)
+    assert {p.joint.servo.backlash_deg for p in v2.joint_parts} == {1.5}
+    assert v2.part("left_leg").joint.anchor[2] == pytest.approx(caduceus.part("left_leg").joint.anchor[2] - 0.2)
+    assert v2.total_mass_g == caduceus.total_mass_g and set(v2.moves) == set(caduceus.moves)
 
 
 def test_linear_easing_moves_at_one_constant_speed():
