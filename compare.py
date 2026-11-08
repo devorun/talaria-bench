@@ -76,7 +76,11 @@ def apply_overrides(data: dict, overrides: dict[str, Any]) -> dict:
 def set_path_any(data: dict, path: str, value: Any) -> None:
     """Like calibration.set_path but for any value (strings and mappings too)."""
     keys = path.split(".")
-    parent = _get(data, keys[:-1]) if len(keys) > 1 else data
+    parent: Any = data
+    for i, key in enumerate(keys[:-1]):            # walk down, creating missing mappings (e.g. bench)
+        if isinstance(parent, dict) and key not in parent:
+            parent[key] = [] if keys[i + 1].isdigit() else {}
+        parent = _get(parent, [key])
     if isinstance(parent, list):
         parent[int(keys[-1])] = value
     elif isinstance(parent, dict):

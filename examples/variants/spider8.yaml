@@ -6,3 +6,6 @@ variants:
   - name: body +100 g
     set:
       parts.body.mass: "+100"
+  - name: high step
+    set:
+      bench.walk_move: walk_high

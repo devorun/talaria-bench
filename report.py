@@ -47,8 +47,8 @@ def _conditions(sid: str, results: dict) -> str:
     if scene.family == "push":
         return (f"pushes of {', '.join(f'{p:g}' for p in PUSH_LEVELS)} x body weight for {PUSH_DURATION:g} s "
                 f"from 4 sides while standing; pass: survives the nudge ({NUDGE:g} x weight) from every side")
-    return (f"floor friction {SLIPPERY_FRICTION[0]:g}-{SLIPPERY_FRICTION[1]:g}; pass: >= 50% of the flat "
-            "median, no fall")
+    return (f"effective foot-floor friction {SLIPPERY_FRICTION[0]:g}-{SLIPPERY_FRICTION[1]:g} (any foot "
+            "material); pass: >= 50% of the flat median, no fall")
 
 
 def _fmt(v: Optional[float], unit: str = "") -> str:
@@ -101,6 +101,11 @@ def _scene_card(sid: str, jobs: list[dict], results: dict) -> dict[str, Any]:
             per_dir[d] = {"median": round(float(np.median(nums)), 3),
                           "p10": round(float(np.percentile(nums, 10)), 3),
                           "survives_nudge_pct": round(100 * sum(t is None or t > NUDGE for t in th) / len(th), 1)}
+            for key, level in (("slide_nudge_cm_median", NUDGE), ("slide_half_weight_cm_median", 0.5),
+                               ("slide_full_weight_cm_median", 1.0)):
+                vals = [j["metrics"].get("slides_cm", {}).get(d, {}).get(f"{level:g}") for j in jobs]
+                vals = [v for v in vals if v is not None]
+                per_dir[d][key] = round(float(np.median(vals)), 2) if vals else None
         card["push"] = {"levels": list(PUSH_LEVELS), "nudge": NUDGE, "duration_s": PUSH_DURATION,
                         "thresholds": per_dir}
         walks = [j["metrics"].get("walk_nudge_survived") for j in jobs if j["metrics"].get("walk_nudge_survived")]
@@ -188,6 +193,9 @@ def summary(report: dict) -> str:
         w = th[weakest]["median"]
         tips = "does not tip even at the largest push" if w >= ABOVE_MAX - 1e-9 else \
             f"a push of {_fmt(w)} x body weight from the {weakest} tips it (median)"
+        slide = max(((v.get("slide_half_weight_cm_median") or 0.0, d) for d, v in th.items()), default=(0.0, ""))
+        if slide[0] >= 2.0:
+            tips += f", and it slides instead (median {slide[0]:.0f} cm after a 0.5 x weight push from the {slide[1]})"
         out.append(f"Survives a nudge from every side in {_pct(push['pass_rate'])} of worlds; {tips}.")
     moves = [c for c in cards.values() if c["family"] == "moves" and c.get("applicable") and c.get("reliable", True)]
     if moves:
@@ -245,11 +253,16 @@ def to_markdown(report: dict) -> str:
     lines += ["", "**Summary.** " + report["summary"], ""]
     push = next((c for c in report["scenes"] if c["id"] == "push" and c.get("applicable")), None)
     if push:
-        lines += ["**Push test** (tipping push in x body weight, median / p10; survives the nudge):", "",
-                  "| From | Tipping push | Survives nudge |", "|---|---|---|"]
+        lines += ["**Push test** (tipping push in x body weight, median / p10; how far it slides when it does "
+                  "not tip, median):", "",
+                  "| From | Tipping push | Survives nudge | Slide after nudge | after 0.5 x weight | after 1 x weight |",
+                  "|---|---|---|---|---|---|"]
         for d, v in push["push"]["thresholds"].items():
+            def cm(x):
+                return "-" if x is None else f"{x:.1f} cm"
             lines.append(f"| {d} | {_fmt(v['median'], 'x weight')} / {_fmt(v['p10'], 'x weight')} | "
-                         f"{v['survives_nudge_pct']:.0f}% |")
+                         f"{v['survives_nudge_pct']:.0f}% | {cm(v.get('slide_nudge_cm_median'))} | "
+                         f"{cm(v.get('slide_half_weight_cm_median'))} | {cm(v.get('slide_full_weight_cm_median'))} |")
         mw = push["push"].get("mid_walk")
         if mw:
             note = "" if mw["reliable"] else " (NOT RELIABLE for this robot)"

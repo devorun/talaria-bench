@@ -38,9 +38,38 @@ def test_scene_worlds(spider):
     g = ramp.gravity()
     assert g[0] < 0                       # downhill is behind the robot: it faces uphill
     slip = scenes.world_for(spider, "slippery", 5)
-    assert 0.1 <= slip.friction <= 0.2
+    assert 0.08 <= slip.effective_friction <= 0.15
     flat = scenes.world_for(spider, "flat", 5)
     assert flat.offsets_deg == slip.offsets_deg      # the same world seed is the same world in every scene
+
+
+def test_slippery_friction_ignores_the_foot_material(spider):
+    from talaria_bench.builder import make_model
+
+    world = World(effective_friction=0.1)
+    model, _ = make_model(spider, world)
+    rubber = model.geom_friction[model.geom("foot_fl").id, 0]
+    pla = model.geom_friction[model.geom("knee_fl").id, 0]
+    assert rubber == pytest.approx(0.1) and pla == pytest.approx(0.1)
+
+
+def test_push_measures_sliding(spider):
+    job = scenes.run_scene(spider, "push", 1)
+    slides = job["metrics"]["slides_cm"]
+    assert set(slides) == set(scenes.PUSH_DIRECTIONS)
+    assert all(v >= 0 for d in slides.values() for v in d.values())
+    assert slides["left"]["0.5"] > slides["left"]["0.1"]
+
+
+def test_cache_dir_defaults(monkeypatch, tmp_path):
+    monkeypatch.delenv("TALARIA_CACHE", raising=False)
+    bench.set_data_dir(None)
+    assert bench.default_cache_dir() == bench.Path.home() / ".cache" / "talaria-bench"
+    bench.set_data_dir(tmp_path / "plugin-data")
+    assert bench.default_cache_dir() == tmp_path / "plugin-data" / "cache"
+    monkeypatch.setenv("TALARIA_CACHE", str(tmp_path / "env"))
+    assert bench.default_cache_dir() == tmp_path / "env"
+    bench.set_data_dir(None)
 
 
 def test_obstacle_bar_is_in_the_model(spider):

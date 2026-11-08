@@ -9,9 +9,10 @@ Every scene runs in randomized worlds (worlds.py) and every number is simulation
   pass = the root ends >= 5 cm past the bar.
 * ``push``: horizontal force pulses on the root (0.1 s, a multiple of body weight) from the front,
   back, left and right, increasing until the robot tips; pass = it survives a NUDGE (0.1 x weight for
-  0.1 s, i.e. a velocity change of ~10 cm/s) from every side while standing. Robots with a walk are
-  also nudged mid-walk (reported, not part of the pass rule).
-* ``slippery``: floor friction 0.1-0.2; pass = steady progress >= 50% of the robot's flat median and no
+  0.1 s, i.e. a velocity change of ~10 cm/s) from every side while standing. How far the robot slides
+  after each push it survives is measured too (a low, wide robot slides instead of tipping). Robots with
+  a walk are also nudged mid-walk (reported, not part of the pass rule).
+* ``slippery``: effective foot-floor friction 0.08-0.15 whatever the feet are made of; pass = steady progress >= 50% of the robot's flat median and no
   fall (decided by the benchmark once the flat results are in).
 * ``move:<name>`` (family ``moves``): every move of the robot that is not its walk or a repeating gait,
   played standing; pass = no fall. This is where arm gestures and dances are screened.
@@ -32,7 +33,7 @@ from .simrun import Result, run_move
 from .spec import Spec
 from .worlds import World
 
-SCENE_VERSION = 1
+SCENE_VERSION = 2
 NUDGE = 0.1                                   # x body weight, for PUSH_DURATION seconds
 PUSH_LEVELS = (0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1.0)
 PUSH_DURATION = 0.1                           # s
@@ -45,7 +46,7 @@ OBSTACLE_AHEAD_M = 0.05
 OBSTACLE_DEPTH_M = 0.02
 OBSTACLE_PASS_M = 0.05
 STUCK_MARGIN_M = 0.03
-SLIPPERY_FRICTION = (0.1, 0.2)
+SLIPPERY_FRICTION = (0.08, 0.15)        # effective foot-floor friction, any material
 SLIPPERY_SHARE = 0.5
 G = 9.81
 
@@ -136,7 +137,7 @@ def world_for(spec: Spec, scene_id: str, seed: int) -> World:
         world.floor_tilt_dir_deg = 180.0        # the floor goes down toward -x: the robot faces uphill
     if scene.family == "slippery":
         rng = np.random.default_rng([seed, 7919])
-        world.friction = float(rng.uniform(*SLIPPERY_FRICTION))
+        world.effective_friction = round(float(rng.uniform(*SLIPPERY_FRICTION)), 4)
     return world
 
 
@@ -249,11 +250,17 @@ def _push(spec: Spec, world: World, move: Optional[str], level: float, direction
 
 def _run_push(spec: Spec, seed: int, world: World, record: bool) -> dict[str, Any]:
     thresholds: dict[str, Optional[float]] = {}
+    slides: dict[str, dict[str, float]] = {}
     loads: dict[str, dict[str, float]] = {}
     for direction in PUSH_DIRECTIONS:
         thresholds[direction] = None
+        slides[direction] = {}
         for level in PUSH_LEVELS:
             r = _push(spec, world, None, level, direction, PUSH_AT, PUSH_RUN)
+            if not r.fell:
+                dx = r.end_xy_m[0] - r.start_xy_m[0]
+                dy = r.end_xy_m[1] - r.start_xy_m[1]
+                slides[direction][f"{level:g}"] = round(math.hypot(dx, dy) * 100, 3)
             if level == NUDGE:
                 for n, v in _loads(r).items():
                     old = loads.get(n)
@@ -265,7 +272,7 @@ def _run_push(spec: Spec, seed: int, world: World, record: bool) -> dict[str, An
     worst_dir = min(thresholds, key=lambda d: thresholds[d] if thresholds[d] is not None else math.inf)
     worst = thresholds[worst_dir]
     passed = all(t is None or t > NUDGE for t in thresholds.values())
-    metrics: dict[str, Any] = {"thresholds": thresholds, "weakest_side": worst_dir}
+    metrics: dict[str, Any] = {"thresholds": thresholds, "weakest_side": worst_dir, "slides_cm": slides}
     move = walk_move(spec)
     if move:
         plan_s = 2.5

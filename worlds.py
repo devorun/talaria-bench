@@ -52,6 +52,8 @@ class World:
     floor_tilt_dir_deg: float = 0.0     # direction the floor slopes down toward, 0 = +x
     tether_scale: float = 0.0
     tether_dir_deg: float = 180.0       # direction the cable pulls (horizontal), 180 = backwards (-x)
+    #: when set, every part's floor friction is exactly this value, whatever its material (slippery floor)
+    effective_friction: Optional[float] = None
     seed: Optional[int] = None
 
     @staticmethod

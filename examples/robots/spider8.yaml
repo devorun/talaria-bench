@@ -117,3 +117,23 @@ moves:
       - {ms: 120, joints: {hip_fl: -39.17, hip_fr: 10, hip_hl: 47.5, hip_hr: -14.17, knee_fl: 0, knee_fr: -30, knee_hl: 0, knee_hr: 0}}
       - {ms: 200, joints: {hip_fl: -30.83, hip_fr: 60, hip_hl: 55.83, hip_hr: -22.5, knee_fl: 0, knee_fr: -30, knee_hl: 0, knee_hr: 0}}
       - {ms: 120, joints: {hip_fl: -26.67, hip_fr: 60, hip_hl: 60, hip_hr: -26.67, knee_fl: 0, knee_fr: 0, knee_hl: 0, knee_hr: 0}}
+
+  # Same creep gait with the feet lifted much higher (knee 55 deg instead of 30: ~3 cm instead of ~1 cm),
+  # so the swinging foot clears small bars. Select it for the benchmark with  bench: {walk_move: walk_high}.
+  walk_high:
+    description: Creep forward with high steps (clears 1-2 cm bars; repeats until stopped).
+    loops: 1
+    repeat: true
+    frames:
+      - {ms: 120, joints: {hip_fl: -22.5, hip_fr: 55.83, hip_hl: 60, hip_hr: -30.83, knee_fl: 0, knee_fr: 0, knee_hl: 55, knee_hr: 0}}
+      - {ms: 200, joints: {hip_fl: -14.17, hip_fr: 47.5, hip_hl: 10, hip_hr: -39.17, knee_fl: 0, knee_fr: 0, knee_hl: 55, knee_hr: 0}}
+      - {ms: 120, joints: {hip_fl: -10, hip_fr: 43.33, hip_hl: 10, hip_hr: -43.33, knee_fl: 0, knee_fr: 0, knee_hl: 0, knee_hr: 0}}
+      - {ms: 120, joints: {hip_fl: -10, hip_fr: 39.17, hip_hl: 14.17, hip_hr: -47.5, knee_fl: 55, knee_fr: 0, knee_hl: 0, knee_hr: 0}}
+      - {ms: 200, joints: {hip_fl: -60, hip_fr: 30.83, hip_hl: 22.5, hip_hr: -55.83, knee_fl: 55, knee_fr: 0, knee_hl: 0, knee_hr: 0}}
+      - {ms: 120, joints: {hip_fl: -60, hip_fr: 26.67, hip_hl: 26.67, hip_hr: -60, knee_fl: 0, knee_fr: 0, knee_hl: 0, knee_hr: 0}}
+      - {ms: 120, joints: {hip_fl: -55.83, hip_fr: 22.5, hip_hl: 30.83, hip_hr: -60, knee_fl: 0, knee_fr: 0, knee_hl: 0, knee_hr: -55}}
+      - {ms: 200, joints: {hip_fl: -47.5, hip_fr: 14.17, hip_hl: 39.17, hip_hr: -10, knee_fl: 0, knee_fr: 0, knee_hl: 0, knee_hr: -55}}
+      - {ms: 120, joints: {hip_fl: -43.33, hip_fr: 10, hip_hl: 43.33, hip_hr: -10, knee_fl: 0, knee_fr: 0, knee_hl: 0, knee_hr: 0}}
+      - {ms: 120, joints: {hip_fl: -39.17, hip_fr: 10, hip_hl: 47.5, hip_hr: -14.17, knee_fl: 0, knee_fr: -55, knee_hl: 0, knee_hr: 0}}
+      - {ms: 200, joints: {hip_fl: -30.83, hip_fr: 60, hip_hl: 55.83, hip_hr: -22.5, knee_fl: 0, knee_fr: -55, knee_hl: 0, knee_hr: 0}}
+      - {ms: 120, joints: {hip_fl: -26.67, hip_fr: 60, hip_hl: 60, hip_hr: -26.67, knee_fl: 0, knee_fr: 0, knee_hl: 0, knee_hr: 0}}

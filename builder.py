@@ -291,7 +291,8 @@ def make_model(spec: Spec, world: Optional[World] = None, terrain: tuple = ()):
     for part in spec.parts:
         gid = m.geom(part.name).id
         factor = part.friction if part.friction is not None else spec.materials[part.material].friction
-        m.geom_friction[gid, 0] = world.friction * factor
+        m.geom_friction[gid, 0] = (world.effective_friction if world.effective_friction is not None
+                                   else world.friction * factor)
     m.body_mass[1:] *= world.mass_scale
     m.body_inertia[1:] *= world.mass_scale
     m.actuator_gainprm[:, 0] *= world.kp_scale

@@ -28,13 +28,22 @@ QUICK_WORLDS = 10
 _WORKER_SPEC: Optional[Spec] = None
 
 
+DATA_DIR: Optional[Path] = None      # set by register() to the data folder Hermes gives the plugin
+
+
+def set_data_dir(path: Optional[Path | str]) -> None:
+    """Where the plugin may keep data (Hermes: $HERMES_HOME/plugin-data/<plugin>). Never the code folder."""
+    global DATA_DIR
+    DATA_DIR = Path(path) if path else None
+
+
 def default_cache_dir() -> Path:
+    """$TALARIA_CACHE, else <plugin data dir>/cache when Hermes gave one, else ~/.cache/talaria-bench."""
     env = os.environ.get("TALARIA_CACHE")
     if env:
         return Path(env)
-    home = os.environ.get("HERMES_HOME")
-    if home:
-        return Path(home) / "plugins" / "talaria-bench" / "cache"
+    if DATA_DIR is not None:
+        return DATA_DIR / "cache"
     return Path.home() / ".cache" / "talaria-bench"
 
 
