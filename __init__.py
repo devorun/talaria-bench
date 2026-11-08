@@ -18,6 +18,8 @@ without Hermes, and pytest can collect the plugin directory without a parent pac
 from __future__ import annotations
 
 TOOLSET = "talaria"
+_RUNTIME = None
+_TOOLS = None
 EMOJI = {
     "robot_list": "🤖", "robot_define": "📐", "robot_show": "🔎", "bench_run": "🧪", "bench_status": "⏳",
     "bench_report": "📋", "bench_compare": "⚖️", "move_check": "🛡️", "move_save": "💾", "move_list": "📚",
@@ -32,8 +34,10 @@ def register(ctx) -> None:
     from .runtime import Runtime
     from .tools import TalariaTools
 
+    global _RUNTIME, _TOOLS
     runtime = Runtime(ctx)
     tools = TalariaTools(runtime)
+    _RUNTIME, _TOOLS = runtime, tools          # dashboard/plugin_api.py reuses them in the same process
     handlers = tools.handlers()
     for schema in schemas.ALL:
         name = schema["name"]

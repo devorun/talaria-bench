@@ -3,7 +3,7 @@
  "version": 1,
  "simulation": true,
  "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
- "created": "2026-11-08T17:04:55+00:00",
+ "created": "2026-11-08T17:36:42+00:00",
  "robot": {
   "name": "desk-biped4",
   "title": "Desk biped (4 servos)",
@@ -160,7 +160,8 @@
      "value": 17.257,
      "seed": 9,
      "reason": null
-    }
+    },
+    "median_seed": 2
    },
    "failure_reasons": {},
    "falls": 0,
@@ -212,7 +213,8 @@
      "value": 9.664,
      "seed": 11,
      "reason": null
-    }
+    },
+    "median_seed": 29
    },
    "failure_reasons": {},
    "falls": 0,
@@ -264,7 +266,8 @@
      "value": -1.394,
      "seed": 29,
      "reason": "slid back"
-    }
+    },
+    "median_seed": 5
    },
    "failure_reasons": {
     "no progress": 12,
@@ -319,7 +322,8 @@
      "value": -47.72,
      "seed": 29,
      "reason": "slid back"
-    }
+    },
+    "median_seed": 10
    },
    "failure_reasons": {
     "slid back": 14,
@@ -374,7 +378,8 @@
      "value": -5.523,
      "seed": 17,
      "reason": "stuck at the bar"
-    }
+    },
+    "median_seed": 2
    },
    "failure_reasons": {
     "stuck at the bar": 30
@@ -428,7 +433,8 @@
      "value": -5.523,
      "seed": 17,
      "reason": "stuck at the bar"
-    }
+    },
+    "median_seed": 7
    },
    "failure_reasons": {
     "stuck at the bar": 30
@@ -482,7 +488,8 @@
      "value": 0.5,
      "seed": 7,
      "reason": null
-    }
+    },
+    "median_seed": 15
    },
    "failure_reasons": {},
    "falls": 0,
@@ -587,7 +594,8 @@
      "value": 8.668,
      "seed": 11,
      "reason": "sliding"
-    }
+    },
+    "median_seed": 12
    },
    "failure_reasons": {
     "sliding": 1
@@ -652,10 +660,11 @@
     "median": 0.0,
     "p10": 0.0,
     "worst": {
-     "value": 0.0,
-     "seed": 0,
+     "value": 0.003,
+     "seed": 13,
      "reason": null
-    }
+    },
+    "median_seed": 9
    },
    "failure_reasons": {},
    "falls": 0,
@@ -700,10 +709,11 @@
     "median": 3.524,
     "p10": 2.983,
     "worst": {
-     "value": 2.435,
-     "seed": 6,
+     "value": 4.8,
+     "seed": 0,
      "reason": null
-    }
+    },
+    "median_seed": 9
    },
    "failure_reasons": {},
    "falls": 0,
@@ -735,11 +745,11 @@
  "limitations": [],
  "timing": {
   "jobs": 300,
-  "computed": 300,
-  "cached": 0,
+  "computed": 0,
+  "cached": 300,
   "workers": 8,
-  "seconds_jobs": 15.76,
-  "seconds_total": 22.33
+  "seconds_jobs": 0.15,
+  "seconds_total": 6.67
  },
  "summary": "On flat ground it covers the target distance in 100% of worlds (median 18.88 cm). Climbs the 10 deg ramp in 57% of worlds but slid back on the 15 deg ramp in 47% of worlds. The bar 1 cm: stuck at the bar in most worlds (passes 0%). The bar 2 cm: stuck at the bar in most worlds (passes 0%). Survives a nudge from every side in 100% of worlds; a push of 0.75 x body weight from the front tips it (median). Standing moves that never or almost never tip it: stand, dance. Keeps at least half its flat speed on a slippery floor in 97% of worlds. The leg r servo is near its limit (peak 100% of stall, estimate) during the move 'dance' test."
 }

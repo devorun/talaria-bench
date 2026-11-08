@@ -28,6 +28,7 @@ from .worlds import World
 
 DEFAULT_WORLDS = 60
 QUICK_WORLDS = 30
+BATCH = 10
 SEED_BASE = 5000
 MOVE_KEYS = ("frames", "loops", "easing", "repeat")
 
@@ -117,16 +118,40 @@ def _pct(x: float) -> str:
 
 
 def check(spec: Spec, name: str, move: dict[str, Any], speed: float = 1.0, worlds: int = DEFAULT_WORLDS,
-          seed: int = SEED_BASE, max_tip_upper: float = 0.10, max_load: float = 0.90) -> dict[str, Any]:
-    """Screen ``move`` in ``worlds`` randomized worlds (flat ground). Returns a JSON-able result."""
+          seed: int = SEED_BASE, max_tip_upper: float = 0.10, max_load: float = 0.90,
+          adaptive: bool = True) -> dict[str, Any]:
+    """Screen ``move`` in randomized worlds (flat ground). Returns a JSON-able result.
+
+    Adaptive (default): worlds run in batches of ``BATCH``; the check stops early once the tip chance is
+    clearly above ``max_tip_upper`` (the Wilson lower bound is past it), and a clean run that is too
+    short to bound the chance (e.g. quick mode, 0/30 leaves 11%) is extended to ``DEFAULT_WORLDS``."""
     limits = spec.joint_limits()
     plan = check_move(move, limits, speed=speed)        # raises MoveError for unplayable moves
     seconds = 8.0 if plan["repeat"] else plan["duration_ms"] / 1000.0 + 1.0
-    runs = [run_move(spec, move, World.random(seed + i, spec.joint_names, spec.world_ranges), seconds, speed=speed)
-            for i in range(worlds)]
+    target = max(1, int(worlds))
+    runs: list = []
+    stopped_early = extended = False
+    while True:
+        while len(runs) < target:
+            i = len(runs)
+            runs.append(run_move(spec, move, World.random(seed + i, spec.joint_names, spec.world_ranges),
+                                 seconds, speed=speed))
+            if (adaptive and len(runs) % BATCH == 0 and len(runs) < target
+                    and wilson(sum(r.fell for r in runs), len(runs))[0] > max_tip_upper):
+                stopped_early = True               # the failure is already clear
+                break
+        if stopped_early:
+            break
+        k0 = sum(r.fell for r in runs)
+        # No tips yet but too few worlds to bound the chance under the limit: extend before deciding.
+        if adaptive and k0 == 0 and wilson(0, len(runs))[1] > max_tip_upper and target < DEFAULT_WORLDS:
+            target, extended = DEFAULT_WORLDS, True
+            continue
+        break
     falls = [r for r in runs if r.fell]
     k, n = len(falls), len(runs)
     lo, hi = wilson(k, n)
+    tip_seeds = [seed + i for i, r in enumerate(runs) if r.fell][:5]
     joints = {}
     for j in spec.joint_names:
         peaks = np.array([r.joints[j].peak_ratio for r in runs])
@@ -162,6 +187,8 @@ def check(spec: Spec, name: str, move: dict[str, Any], speed: float = 1.0, world
                    f"(upper bound {_pct(hi)}); run the check with {DEFAULT_WORLDS} or more worlds"]
     result = {
         "robot": spec.name, "move": name, "speed": speed, "worlds": n, "verdict": verdict,
+        "worlds_requested": int(worlds), "stopped_early": stopped_early, "extended": extended,
+        "seed": seed, "tip_seeds": tip_seeds,
         "tip": {"falls": k, "rate": round(k / n, 4), "low": round(lo, 4), "high": round(hi, 4),
                 "fall_reasons": _count(r.fall_reason for r in falls), "fall_frame": None if fall_frame is None else fall_frame + 1},
         "joints": joints, "ground_contacts": ground, "self_collision_worlds": self_coll,

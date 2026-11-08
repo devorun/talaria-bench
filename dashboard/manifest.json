@@ -1,0 +1,13 @@
+{
+  "name": "talaria-bench",
+  "label": "Talaria Bench",
+  "description": "Robot test bench: 3D viewer, report cards, design comparison and move preflight (simulation).",
+  "icon": "Activity",
+  "version": "0.1.0",
+  "tab": {
+    "path": "/talaria",
+    "position": "end"
+  },
+  "entry": "dist/index.js",
+  "api": "plugin_api.py"
+}

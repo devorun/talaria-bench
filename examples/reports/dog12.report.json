@@ -3,7 +3,7 @@
  "version": 1,
  "simulation": true,
  "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
- "created": "2026-11-08T17:07:26+00:00",
+ "created": "2026-11-08T17:36:58+00:00",
  "robot": {
   "name": "dog12",
   "title": "Robot dog (12 servos)",
@@ -168,7 +168,8 @@
      "value": -0.905,
      "seed": 10,
      "reason": "no progress"
-    }
+    },
+    "median_seed": 24
    },
    "failure_reasons": {
     "no progress": 1
@@ -262,7 +263,8 @@
      "value": -28.621,
      "seed": 3,
      "reason": "slid back"
-    }
+    },
+    "median_seed": 16
    },
    "failure_reasons": {
     "slid back": 3
@@ -353,10 +355,11 @@
     "median": -32.659,
     "p10": -72.068,
     "worst": {
-     "value": -103.877,
-     "seed": 3,
-     "reason": "slid back"
-    }
+     "value": -35.953,
+     "seed": 7,
+     "reason": "tipped backward"
+    },
+    "median_seed": 18
    },
    "failure_reasons": {
     "slid back": 21,
@@ -449,10 +452,11 @@
     "median": -68.582,
     "p10": -189.075,
     "worst": {
-     "value": -260.741,
-     "seed": 25,
-     "reason": "slid back"
-    }
+     "value": -42.475,
+     "seed": 0,
+     "reason": "tipped backward"
+    },
+    "median_seed": 21
    },
    "failure_reasons": {
     "tipped backward": 22,
@@ -547,7 +551,8 @@
      "value": -34.47,
      "seed": 10,
      "reason": "no progress before the bar"
-    }
+    },
+    "median_seed": 19
    },
    "failure_reasons": {
     "no progress before the bar": 1
@@ -641,7 +646,8 @@
      "value": -10.073,
      "seed": 26,
      "reason": "stuck at the bar"
-    }
+    },
+    "median_seed": 23
    },
    "failure_reasons": {
     "stuck at the bar": 15
@@ -735,7 +741,8 @@
      "value": 1.0,
      "seed": 0,
      "reason": null
-    }
+    },
+    "median_seed": 21
    },
    "failure_reasons": {},
    "falls": 0,
@@ -880,7 +887,8 @@
      "value": -29.851,
      "seed": 24,
      "reason": "spinning in place"
-    }
+    },
+    "median_seed": 10
    },
    "failure_reasons": {
     "uncontrolled sliding": 22,
@@ -987,10 +995,11 @@
     "median": 0.029,
     "p10": 0.008,
     "worst": {
-     "value": 0.002,
-     "seed": 3,
+     "value": 0.157,
+     "seed": 29,
      "reason": null
-    }
+    },
+    "median_seed": 8
    },
    "failure_reasons": {},
    "falls": 0,
@@ -1075,10 +1084,11 @@
     "median": 26.229,
     "p10": 25.082,
     "worst": {
-     "value": 24.869,
-     "seed": 18,
+     "value": 28.28,
+     "seed": 20,
      "reason": null
-    }
+    },
+    "median_seed": 13
    },
    "failure_reasons": {},
    "falls": 0,
@@ -1153,8 +1163,8 @@
   "computed": 0,
   "cached": 300,
   "workers": 8,
-  "seconds_jobs": 0.15,
-  "seconds_total": 13.65
+  "seconds_jobs": 0.19,
+  "seconds_total": 11.99
  },
  "summary": "On flat ground it covers the target distance in 97% of worlds (median 45.1 cm). Climbs the 5 deg ramp in 90% of worlds but slid back on the 10 deg ramp in 70% of worlds. Clears the bar 1 cm in 97% of worlds. Clears the bar 2 cm in 50% of worlds. Survives a nudge from every side in 100% of worlds; does not tip even at the largest push. Standing moves that never or almost never tip it: stand, sit. On a slippery floor its feet skate and it glides out of control in 73% of worlds. The thigh hr servo is near its limit (peak 100% of stall, estimate) during the ramp 5 deg test."
 }

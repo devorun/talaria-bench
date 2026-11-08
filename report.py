@@ -71,8 +71,12 @@ def _scene_card(sid: str, jobs: list[dict], results: dict) -> dict[str, Any]:
     pass_rate = len(passed) / len(jobs) if jobs else None
     vals = [ABOVE_MAX if (sid == "push" and j.get("metric") is None) else float(j.get("metric") or 0.0)
             for j in jobs]
-    worst_job = min(jobs, key=lambda j: (ABOVE_MAX if sid == "push" and j.get("metric") is None
-                                         else float(j.get("metric") or 0.0)))
+    # Worse = lower for distances, payload and the tipping push; higher for a move's body tilt. A run that
+    # fell is always the worst.
+    sign = -1.0 if scene.family == "moves" else 1.0
+    ranked = sorted(zip(vals, (j["seed"] for j in jobs), jobs), key=lambda t: (sign * t[0], t[1]))
+    worst_job = next((j for j in jobs if j.get("fell")), ranked[0][2])
+    median_seed = ranked[len(ranked) // 2][1]
     reasons = Counter(j["reason"] for j in jobs if not j.get("passed") and j.get("reason"))
     loads: dict[str, dict[str, float]] = {}
     joints = sorted({n for j in jobs for n in j.get("loads", {})})
@@ -92,7 +96,8 @@ def _scene_card(sid: str, jobs: list[dict], results: dict) -> dict[str, Any]:
                    "median": round(float(np.median(vals)), 3), "p10": round(float(np.percentile(vals, 10)), 3),
                    "worst": {"value": None if (sid == "push" and worst_job.get("metric") is None)
                              else worst_job.get("metric"),
-                             "seed": worst_job["seed"], "reason": worst_job.get("reason")}},
+                             "seed": worst_job["seed"], "reason": worst_job.get("reason")},
+                   "median_seed": median_seed},
         "failure_reasons": dict(reasons.most_common()),
         "falls": sum(bool(j.get("fell")) for j in jobs),
         "loads": loads,

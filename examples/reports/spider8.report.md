@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `spider8` (250 g, 8 servos, spec `6ffd18ca18bc`), 30 worlds per scene (seeds 0..29), 32 s.
+Robot `spider8` (250 g, 8 servos, spec `6ffd18ca18bc`), 30 worlds per scene (seeds 0..29), 8 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|
@@ -15,7 +15,7 @@ Robot `spider8` (250 g, 8 servos, spec `6ffd18ca18bc`), 30 worlds per scene (see
 | Push test | GREEN | 100% | weakest tipping push: >1 (>1) x weight | - (world 0) | - |
 | Slippery floor | GREEN | 100% | steady progress: 21.88 (18.47) cm | 15.31 (world 22) | - |
 | Payload | n/a | - | - | - | the robot has no payload_part |
-| Move 'stand' | GREEN | 100% | max body tilt: 0 (0) deg | 0 (world 2) | - |
+| Move 'stand' | GREEN | 100% | max body tilt: 0 (0) deg | 0.03 (world 17) | - |
 
 **Summary.** On flat ground it covers the target distance in 100% of worlds (median 23.34 cm). Climbs the 10 deg ramp in 73% of worlds but slid back on the 15 deg ramp in 97% of worlds. The bar 1 cm: stuck at the bar in most worlds (passes 23%). The bar 2 cm: stuck at the bar in most worlds (passes 0%). Survives a nudge from every side in 100% of worlds; does not tip even at the largest push. Standing moves that never or almost never tip it: stand. Keeps at least half its flat speed on a slippery floor in 100% of worlds. The knee fr servo is near its limit (peak 100% of stall, estimate) during the bar 1 cm test.
 

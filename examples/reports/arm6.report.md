@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `arm6` (758 g, 6 servos, spec `297eee32befb`), 30 worlds per scene (seeds 0..29), 6 s.
+Robot `arm6` (758 g, 6 servos, spec `297eee32befb`), 30 worlds per scene (seeds 0..29), 2 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|

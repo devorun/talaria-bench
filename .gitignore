@@ -65,3 +65,6 @@ Thumbs.db
 
 # Firmware secrets
 secrets.h
+
+# UI build tooling
+ui/node_modules/

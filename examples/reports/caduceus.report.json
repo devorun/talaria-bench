@@ -3,7 +3,7 @@
  "version": 1,
  "simulation": true,
  "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
- "created": "2026-11-08T17:07:12+00:00",
+ "created": "2026-11-08T17:36:27+00:00",
  "robot": {
   "name": "caduceus",
   "title": "Caduceus",
@@ -166,7 +166,8 @@
      "value": 0.0,
      "seed": 0,
      "reason": "fell (tipped over)"
-    }
+    },
+    "median_seed": 15
    },
    "failure_reasons": {
     "fell (tipped over)": 30
@@ -217,10 +218,11 @@
     "median": -13.544,
     "p10": -14.618,
     "worst": {
-     "value": -15.904,
-     "seed": 24,
+     "value": -10.113,
+     "seed": 0,
      "reason": "tipped backward"
-    }
+    },
+    "median_seed": 12
    },
    "failure_reasons": {
     "tipped backward": 30
@@ -271,10 +273,11 @@
     "median": 0.0,
     "p10": -0.877,
     "worst": {
-     "value": -1.855,
-     "seed": 15,
-     "reason": "tipped backward"
-    }
+     "value": 0.0,
+     "seed": 0,
+     "reason": "cannot stand on the slope"
+    },
+    "median_seed": 12
    },
    "failure_reasons": {
     "cannot stand on the slope": 26,
@@ -329,7 +332,8 @@
      "value": 0.0,
      "seed": 0,
      "reason": "cannot stand on the slope"
-    }
+    },
+    "median_seed": 15
    },
    "failure_reasons": {
     "cannot stand on the slope": 30
@@ -380,10 +384,11 @@
     "median": -24.089,
     "p10": -24.761,
     "worst": {
-     "value": -25.234,
-     "seed": 10,
+     "value": -24.719,
+     "seed": 0,
      "reason": "fell (tipped over)"
-    }
+    },
+    "median_seed": 24
    },
    "failure_reasons": {
     "fell (tipped over)": 30
@@ -434,10 +439,11 @@
     "median": -24.541,
     "p10": -25.212,
     "worst": {
-     "value": -25.283,
-     "seed": 10,
+     "value": -25.243,
+     "seed": 0,
      "reason": "fell (tipped over)"
-    }
+    },
+    "median_seed": 19
    },
    "failure_reasons": {
     "fell (tipped over)": 30
@@ -491,7 +497,8 @@
      "value": 0.2,
      "seed": 0,
      "reason": null
-    }
+    },
+    "median_seed": 17
    },
    "failure_reasons": {},
    "falls": 0,
@@ -596,7 +603,8 @@
      "value": 0.0,
      "seed": 0,
      "reason": "fell (tipped over)"
-    }
+    },
+    "median_seed": 15
    },
    "failure_reasons": {
     "fell (tipped over)": 30
@@ -661,10 +669,11 @@
     "median": 6.274,
     "p10": 0.967,
     "worst": {
-     "value": 0.488,
-     "seed": 8,
+     "value": 8.511,
+     "seed": 7,
      "reason": null
-    }
+    },
+    "median_seed": 10
    },
    "failure_reasons": {},
    "falls": 0,
@@ -709,10 +718,11 @@
     "median": 8.524,
     "p10": 1.978,
     "worst": {
-     "value": 1.1,
-     "seed": 8,
-     "reason": null
-    }
+     "value": 64.596,
+     "seed": 1,
+     "reason": "tipped over"
+    },
+    "median_seed": 28
    },
    "failure_reasons": {
     "tipped over": 9
@@ -759,10 +769,11 @@
     "median": 6.671,
     "p10": 0.999,
     "worst": {
-     "value": 0.613,
-     "seed": 8,
+     "value": 8.657,
+     "seed": 15,
      "reason": null
-    }
+    },
+    "median_seed": 10
    },
    "failure_reasons": {},
    "falls": 0,
@@ -802,8 +813,8 @@
   "computed": 0,
   "cached": 330,
   "workers": 8,
-  "seconds_jobs": 0.08,
-  "seconds_total": 8.17
+  "seconds_jobs": 0.15,
+  "seconds_total": 7.37
  },
  "summary": "Survives a nudge from every side in 100% of worlds; a push of 0.2 x body weight from the front tips it (median). Standing moves that never or almost never tip it: wave, arms_up_alternating. Move 'arms_up_both' tips the robot in 30% of worlds. The right leg servo is near its limit (peak 100% of stall, estimate) during the move 'arms_up_both' test. 7 walking scene(s) are outside this model's scope for this robot and are not scored: This rigid-body model does not simulate soft foam feet; the bench does not guess here."
 }

@@ -97,8 +97,8 @@ MOVE_CHECK = {
                    "seconds to a minute.",
     "parameters": {"type": "object", "properties": {
         "robot": ROBOT, **MOVE_FIELDS,
-        "quick": {"type": "boolean", "description": "30 worlds instead of 60; a move with no tips can then only "
-                                                    "come out inconclusive, not pass."}},
+        "quick": {"type": "boolean", "description": "Start with 30 worlds instead of 60; a clean run is extended "
+                                                    "to 60 automatically so it can still pass."}},
         "required": ["robot"]},
 }
 

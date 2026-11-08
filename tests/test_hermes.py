@@ -301,11 +301,19 @@ def test_virtual_end_to_end_check_play_status(rt, tools):
 
 def test_failing_check_explains_and_suggests(rt, tools):
     check = call(tools, "move_check", {"robot": "caduceus", "move": "arms_up_both", "quick": True})
-    assert check["verdict"] == "fail" and not check["approved"] and check["worlds"] == 30
+    assert check["verdict"] == "fail" and not check["approved"]
+    assert check["stopped_early"] and check["worlds"] < 30 and check["tip"]["low"] > 0.10   # clear early
+    assert check["tip_seeds"] and all(s >= 5000 for s in check["tip_seeds"])
     assert check["tip"]["falls"] > 0 and check["reasons"] and check["suggestions"]
     assert any("Slow it down" in s for s in check["suggestions"])
     out = make_pre_tool_call(rt)(tool_name="robot_play", args={"robot": "caduceus", "move": "arms_up_both"})
     assert out["action"] == "block" and "Try:" in out["message"]
+
+
+def test_quick_check_extends_a_clean_move_so_it_can_pass(rt, tools):
+    check = call(tools, "move_check", {"robot": "caduceus", "move": "arms_up_alternating", "quick": True})
+    assert check["verdict"] == "pass" and check["extended"] and check["worlds"] == 60
+    assert check["worlds_requested"] == 30 and check["tip"]["high"] <= 0.10
 
 
 def test_real_target_checks_address_token_and_identity(rt, tools):

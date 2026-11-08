@@ -319,6 +319,8 @@ def _run_push(spec: Spec, seed: int, world: World, record: bool) -> dict[str, An
         level = worst if worst is not None else NUDGE
         job["trace"] = _push(spec, world, None, level, worst_dir, PUSH_AT, PUSH_RUN, record=True).trace
         job["trace_note"] = f"push {level:g} x weight from the {worst_dir}"
+        job["trace_meta"] = {"push": {"direction": worst_dir, "level": level, "at_s": PUSH_AT,
+                                      "duration_s": PUSH_DURATION, "vector": PUSH_DIRECTIONS[worst_dir]}}
     return job
 
 
@@ -380,6 +382,7 @@ def _run_payload(spec: Spec, seed: int, world: World, record: bool) -> dict[str,
         g = first_bad["grams"] if first_bad else steps[-1]
         job["trace"] = traces.get(g)
         job["trace_note"] = f"{g:g} g at {spec.payload_part}"
+        job["trace_meta"] = {"payload": {"grams": g, "part": spec.payload_part}}
     return job
 
 

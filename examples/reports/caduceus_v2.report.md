@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `caduceus_v2` (437 g, 4 servos, spec `b87fbcae7048`), 30 worlds per scene (seeds 0..29), 24 s.
+Robot `caduceus_v2` (437 g, 4 servos, spec `b87fbcae7048`), 30 worlds per scene (seeds 0..29), 8 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|
@@ -15,9 +15,9 @@ Robot `caduceus_v2` (437 g, 4 servos, spec `b87fbcae7048`), 30 worlds per scene 
 | Push test | GREEN | 100% | weakest tipping push: 0.3 (0.3) x weight | 0.3 (world 0) | - |
 | Slippery floor | OUT OF MODEL SCOPE | - | - | - | not scored (see limitations) |
 | Payload | n/a | - | - | - | the robot has no payload_part |
-| Move 'wave' | GREEN | 100% | max body tilt: 0.72 (0.46) deg | 0.36 (world 22) | - |
-| Move 'arms_up_both' | GREEN | 100% | max body tilt: 2.1 (1.36) deg | 1.28 (world 0) | - |
-| Move 'arms_up_alternating' | GREEN | 100% | max body tilt: 1 (0.58) deg | 0.54 (world 22) | - |
+| Move 'wave' | GREEN | 100% | max body tilt: 0.72 (0.46) deg | 2.1 (world 7) | - |
+| Move 'arms_up_both' | GREEN | 100% | max body tilt: 2.1 (1.36) deg | 3.36 (world 8) | - |
+| Move 'arms_up_alternating' | GREEN | 100% | max body tilt: 1 (0.58) deg | 2.56 (world 8) | - |
 
 **Summary.** Survives a nudge from every side in 100% of worlds; a push of 0.3 x body weight from the front tips it (median). Standing moves that never or almost never tip it: wave, arms_up_both, arms_up_alternating. 7 walking scene(s) are outside this model's scope for this robot and are not scored: This rigid-body model does not simulate soft foam feet; the bench does not guess here.
 
