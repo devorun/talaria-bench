@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 232" width="1040" height="232" role="img" aria-label="How Talaria Bench works: robot spec and photo, MuJoCo model, randomized worlds, arena scenes, report card" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif">
+<title>How Talaria Bench works: robot spec and photo, MuJoCo model, randomized worlds, arena scenes, report card</title>
+<defs><marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8b949e"/></marker><marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#3fb950"/></marker><marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#f85149"/></marker></defs>
+<rect x="0" y="14" width="176" height="158" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<circle cx="22" cy="38" r="11" fill="#58a6ff"/><text x="22" y="42.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#161b22">1</text>
+<text x="88.0" y="70" text-anchor="middle" font-size="15.5" font-weight="700" fill="#e6edf3">Robot spec + photo</text>
+<text x="88.0" y="94" text-anchor="middle" font-size="12.5" fill="#8b949e">parts in cm and g,</text>
+<text x="88.0" y="111" text-anchor="middle" font-size="12.5" fill="#8b949e">hobby servo models;</text>
+<text x="88.0" y="128" text-anchor="middle" font-size="12.5" fill="#8b949e">photo: appearance only</text>
+<rect x="216" y="14" width="176" height="158" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<circle cx="238" cy="38" r="11" fill="#58a6ff"/><text x="238" y="42.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#161b22">2</text>
+<text x="304.0" y="70" text-anchor="middle" font-size="15.5" font-weight="700" fill="#e6edf3">MuJoCo model</text>
+<text x="304.0" y="94" text-anchor="middle" font-size="12.5" fill="#8b949e">soft contacts by material,</text>
+<text x="304.0" y="111" text-anchor="middle" font-size="12.5" fill="#8b949e">servo torque and speed,</text>
+<text x="304.0" y="128" text-anchor="middle" font-size="12.5" fill="#8b949e">servo free play</text>
+<path d="M181 93.0 L211 93.0" fill="none" stroke="#8b949e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-muted)"/>
+<rect x="432" y="14" width="176" height="158" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<circle cx="454" cy="38" r="11" fill="#58a6ff"/><text x="454" y="42.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#161b22">3</text>
+<text x="520.0" y="70" text-anchor="middle" font-size="15.5" font-weight="700" fill="#e6edf3">Randomized worlds</text>
+<text x="520.0" y="94" text-anchor="middle" font-size="12.5" fill="#8b949e">friction, mass, torque,</text>
+<text x="520.0" y="111" text-anchor="middle" font-size="12.5" fill="#8b949e">latency, offsets, floor tilt;</text>
+<text x="520.0" y="128" text-anchor="middle" font-size="12.5" fill="#8b949e">30 per scene, 60 per move</text>
+<path d="M397 93.0 L427 93.0" fill="none" stroke="#8b949e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-muted)"/>
+<rect x="648" y="14" width="176" height="158" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<circle cx="670" cy="38" r="11" fill="#58a6ff"/><text x="670" y="42.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#161b22">4</text>
+<text x="736.0" y="70" text-anchor="middle" font-size="15.5" font-weight="700" fill="#e6edf3">Arena scenes</text>
+<text x="736.0" y="94" text-anchor="middle" font-size="12.5" fill="#8b949e">flat floor, ramps, bars,</text>
+<text x="736.0" y="111" text-anchor="middle" font-size="12.5" fill="#8b949e">push, slippery floor,</text>
+<text x="736.0" y="128" text-anchor="middle" font-size="12.5" fill="#8b949e">payload, standing moves</text>
+<path d="M613 93.0 L643 93.0" fill="none" stroke="#8b949e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-muted)"/>
+<rect x="864" y="14" width="176" height="158" rx="12" fill="#121d2f" stroke="#58a6ff" stroke-width="1.5"/>
+<circle cx="886" cy="38" r="11" fill="#58a6ff"/><text x="886" y="42.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#161b22">5</text>
+<text x="952.0" y="70" text-anchor="middle" font-size="15.5" font-weight="700" fill="#58a6ff">Report card</text>
+<text x="952.0" y="94" text-anchor="middle" font-size="12.5" fill="#8b949e">pass rate, median,</text>
+<text x="952.0" y="111" text-anchor="middle" font-size="12.5" fill="#8b949e">worst world and the reason</text>
+<text x="952.0" y="128" text-anchor="middle" font-size="12.5" fill="#8b949e">for each failure</text>
+<path d="M829 93.0 L859 93.0" fill="none" stroke="#8b949e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-muted)"/>
+<text x="520" y="214" text-anchor="middle" font-size="13" font-weight="400" fill="#8b949e">All of it is simulation, on a laptop CPU: no GPU, no CAD.</text>
+</svg>

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 150" width="1040" height="150" role="img" aria-label="The hardware path: Hermes sends a checked move over LAN HTTP with a token to an ESP32, which drives hobby servos through a PCA9685" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif">
+<title>The hardware path: Hermes sends a checked move over LAN HTTP with a token to an ESP32, which drives hobby servos through a PCA9685</title>
+<defs><marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8b949e"/></marker><marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#3fb950"/></marker><marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#f85149"/></marker></defs>
+<rect x="0" y="10" width="176" height="104" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<text x="88.0" y="42" text-anchor="middle" font-size="15.5" font-weight="700" fill="#e6edf3">Hermes</text>
+<text x="88.0" y="66" text-anchor="middle" font-size="12.5" fill="#8b949e">robot_play with a</text>
+<text x="88.0" y="83" text-anchor="middle" font-size="12.5" fill="#8b949e">checked move (keyframes)</text>
+<rect x="216" y="10" width="176" height="104" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<text x="304.0" y="42" text-anchor="middle" font-size="15.5" font-weight="700" fill="#e6edf3">LAN HTTP + token</text>
+<text x="304.0" y="66" text-anchor="middle" font-size="12.5" fill="#8b949e">plain HTTP on your</text>
+<text x="304.0" y="83" text-anchor="middle" font-size="12.5" fill="#8b949e">own network</text>
+<path d="M181 62.0 L211 62.0" fill="none" stroke="#8b949e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-muted)"/>
+<rect x="432" y="10" width="176" height="104" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<text x="520.0" y="42" text-anchor="middle" font-size="15.5" font-weight="700" fill="#e6edf3">ESP32 firmware</text>
+<text x="520.0" y="66" text-anchor="middle" font-size="12.5" fill="#8b949e">clamps every angle and</text>
+<text x="520.0" y="83" text-anchor="middle" font-size="12.5" fill="#8b949e">speed, no reflashing</text>
+<path d="M397 62.0 L427 62.0" fill="none" stroke="#8b949e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-muted)"/>
+<rect x="648" y="10" width="176" height="104" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<text x="736.0" y="42" text-anchor="middle" font-size="15.5" font-weight="700" fill="#e6edf3">PCA9685</text>
+<text x="736.0" y="66" text-anchor="middle" font-size="12.5" fill="#8b949e">16-channel PWM</text>
+<text x="736.0" y="83" text-anchor="middle" font-size="12.5" fill="#8b949e">servo driver (I2C)</text>
+<path d="M613 62.0 L643 62.0" fill="none" stroke="#8b949e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-muted)"/>
+<rect x="864" y="10" width="176" height="104" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+<text x="952.0" y="42" text-anchor="middle" font-size="15.5" font-weight="700" fill="#e6edf3">Hobby servos</text>
+<text x="952.0" y="66" text-anchor="middle" font-size="12.5" fill="#8b949e">SG90, MG90S,</text>
+<text x="952.0" y="83" text-anchor="middle" font-size="12.5" fill="#8b949e">MG996R and friends</text>
+<path d="M829 62.0 L859 62.0" fill="none" stroke="#8b949e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-muted)"/>
+<text x="520" y="140" text-anchor="middle" font-size="13" font-weight="400" fill="#8b949e">No hardware? The virtual robot speaks the same HTTP API.</text>
+</svg>
