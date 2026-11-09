@@ -250,3 +250,24 @@ def test_non_numeric_input_is_an_answer_not_a_server_error(client, path, body, n
     assert r.status_code == 200, r.text
     data = r.json()
     assert data["ok"] is False and needle in data["error"] + " ".join(data.get("problems", []))
+
+
+def test_look_detail_gives_the_viewer_drawing_hints_without_touching_the_spec(client):
+    from talaria_bench.runtime import EXAMPLES
+    from talaria_bench.spec import load_spec
+
+    before = load_spec(EXAMPLES / "caduceus.yaml").hash()
+    code, cad = get(client, "/robots/caduceus")
+    detail = cad["look"]["detail"]
+    assert set(detail) == {p["name"] for p in cad["parts"]}
+    assert detail["head"] == {"material": "foam", "ground": False}             # the body: no joint, must stay up
+    arm = detail["left_arm"]
+    assert arm["servo"] == "MG90S" and len(arm["anchor"]) == 3 and len(arm["axis"]) == 3
+    assert abs(sum(v * v for v in arm["axis"]) - 1.0) < 1e-3                   # a unit axis in the part's frame
+    assert detail["left_leg"]["ground"] is True
+    assert cad["render"]["look"]["detail"] == detail == cad["showcase"]["look"]["detail"]
+    trace = client.post(PREFIX + "/trace", json={"robot": "caduceus", "move": "wave"}).json()
+    assert trace["look"]["detail"] == detail and trace["look"]["material"] == "aluminum"
+    # Appearance only: the spec (and so every approval key and cache key built on its hash) is unchanged.
+    assert cad["spec_hash"] == before[:16] and load_spec(EXAMPLES / "caduceus.yaml").hash() == before
+    assert "detail" not in load_spec(EXAMPLES / "caduceus.yaml").look

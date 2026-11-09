@@ -30,7 +30,7 @@ PHOTO_TYPES = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
 GALLERY_IMG = PLUGIN_ROOT / "docs" / "img" / "gallery"
 VARIANTS_DIR = PLUGIN_ROOT / "examples" / "variants"
 TRACE_DECIMALS = 3
-TRACE_VERSION = 2
+TRACE_VERSION = 3          # 3: traces carry look.detail (drawing hints per part)
 _NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
 EDITABLE = ("size", "mass", "servo")
 
@@ -89,6 +89,7 @@ class WebAPI:
     def __init__(self, runtime: Runtime, tools: Optional[TalariaTools] = None):
         self.rt = runtime
         self.tools = tools or TalariaTools(runtime)
+        self._look_detail: dict[str, dict[str, Any]] = {}      # drawing hints per spec hash
 
     # Robots ---------------------------------------------------------------------------------------
 
@@ -136,7 +137,8 @@ class WebAPI:
                 "family": spec.family, "role": spec.role, "base": spec.base, "summary": spec.summary(),
                 "parts": parts, "joints": show.get("joints", []), "moves": self.moves(spec.name)["moves"],
                 "limitations": spec.limitations, "spec_hash": spec.hash()[:16],
-                "has_photo": self.photo_path(spec.name) is not None, "render": self.render(spec), "look": spec.look,
+                "has_photo": self.photo_path(spec.name) is not None, "render": self.render(spec),
+                "look": self.look(spec),
                 "showcase": self.render(spec, (spec.look.get("showcase") or {}).get("joints")),
                 "variants": self.variants(spec.name)["variants"], "servos": self._servo_names(),
                 "editable": bool(raw), "headline": _headline(spec.name),
@@ -156,6 +158,38 @@ class WebAPI:
         except (OSError, TypeError, yaml.YAMLError):
             return None
         return data if isinstance(data, dict) else None
+
+    def look(self, spec: Spec) -> dict[str, Any]:
+        """The spec's look plus drawing hints per part, for the 3D viewer only (appearance, never physics):
+        the part's material and whether it may touch the floor, and for a jointed part its servo model and
+        the joint's anchor and axis in the part's own frame, so the viewer can draw a servo horn that moves
+        with the part. Read from the finished model at the home pose; nothing is changed."""
+        key = spec.hash()
+        hit = self._look_detail.get(key)
+        if hit is None:
+            import mujoco
+
+            from .builder import _set_home, base_model
+
+            model, _, _ = base_model(spec)
+            data = mujoco.MjData(model)
+            _set_home(model, data, spec)
+            mujoco.mj_forward(model, data)
+            jointed = {p.name for p in spec.joint_parts}
+            hit = {}
+            for p in spec.parts:
+                entry: dict[str, Any] = {"material": p.material, "ground": bool(p.ground_contact)}
+                if p.name in jointed:
+                    gid, jid = model.geom(p.name).id, model.joint(p.name).id
+                    rot = data.geom_xmat[gid].reshape(3, 3)
+                    entry["servo"] = p.joint.servo.name
+                    entry["anchor"] = [round(float(v), 4) for v in rot.T @ (data.xanchor[jid] - data.geom_xpos[gid])]
+                    entry["axis"] = [round(float(v), 4) for v in rot.T @ data.xaxis[jid]]
+                hit[p.name] = entry
+            if len(self._look_detail) > 64:
+                self._look_detail.clear()
+            self._look_detail[key] = hit
+        return {**spec.look, "detail": hit}
 
     def render(self, spec: Spec, joints: Optional[dict[str, float]] = None) -> dict[str, Any]:
         """A static pose for the 3D viewer: every part's shape, size, colour and world pose, and every joint's
@@ -197,7 +231,7 @@ class WebAPI:
             jid = model.joint(p.name).id
             joint_axes.append({"name": p.name, "anchor": [round(float(v), 4) for v in data.xanchor[jid]],
                            "axis": [round(float(v), 4) for v in data.xaxis[jid]]})
-        return {"parts": parts, "joints": joint_axes, "units": "m", "up": "z", "look": spec.look}
+        return {"parts": parts, "joints": joint_axes, "units": "m", "up": "z", "look": self.look(spec)}
 
     def photo_path(self, name: str) -> Optional[Path]:
         try:
@@ -500,7 +534,7 @@ class WebAPI:
                      else World.nominal())
             r = run_move(spec, move, world, None, record=True, speed=speed)
             return {"ok": True, "simulation": True, "robot": spec.name, "move": name, "seed": seed, "speed": speed,
-                    "trace": compact_trace(r.trace), "meta": {"floor": "flat"}, "look": spec.look,
+                    "trace": compact_trace(r.trace), "meta": {"floor": "flat"}, "look": self.look(spec),
                     "result": {"fell": r.fell, "fell_at_s": r.fell_at_s, "fall_reason": r.fall_reason,
                                "max_tilt_deg": round(r.max_tilt_deg, 2)}}
         from .scenes import SCENES, get_scene, run_scene
@@ -513,7 +547,7 @@ class WebAPI:
         if not rec.get("trace"):
             raise ApiError(500, "the run produced no trace")
         return {"ok": True, "simulation": True, "robot": spec.name, "scene": scene, "seed": seed,
-                "trace": compact_trace(rec["trace"]), "note": rec.get("trace_note"), "look": spec.look,
+                "trace": compact_trace(rec["trace"]), "note": rec.get("trace_note"), "look": self.look(spec),
                 "meta": self.scene_meta(spec, get_scene(scene), rec),
                 "result": {"passed": rec.get("passed"), "fell": rec.get("fell"), "metric": rec.get("metric"),
                            "reason": rec.get("reason"), "fell_at_s": (rec.get("metrics") or {}).get("fell_at_s")}}
