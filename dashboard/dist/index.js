@@ -32,6 +32,10 @@
   --tb-amber: var(--ui-warning, #e0a12d);
   --tb-red: var(--ui-danger, var(--color-destructive, #e5544b));
   --tb-grey: color-mix(in srgb, currentColor 42%, transparent);
+  --tb-green-ink: color-mix(in srgb, var(--tb-green) 62%, var(--tb-fg));
+  --tb-amber-ink: color-mix(in srgb, var(--tb-amber) 62%, var(--tb-fg));
+  --tb-red-ink: color-mix(in srgb, var(--tb-red) 66%, var(--tb-fg));
+  --tb-accent-ink: color-mix(in srgb, var(--tb-accent) 70%, var(--tb-fg));
   --tb-radius: 14px;
   color: var(--tb-fg);
   font-size: 13.5px;
@@ -58,9 +62,11 @@
 }
 .tb-title { font-weight: 650; font-size: 15px; letter-spacing: -0.01em; }
 .tb-tagline { font-size: 11.5px; color: var(--tb-fg3); }
-.tb-tabs { display: flex; gap: 2px; padding: 3px; border-radius: 11px; background: var(--tb-card); border: 1px solid var(--tb-line); }
+.tb-tabs { display: flex; gap: 2px; padding: 3px; border-radius: 11px; background: var(--tb-card); border: 1px solid var(--tb-line);
+  max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.tb-tabs::-webkit-scrollbar { display: none; }
 .tb-tab {
-  all: unset; cursor: pointer; padding: 6px 12px; border-radius: 8px; font-size: 12.5px; color: var(--tb-fg2);
+  all: unset; cursor: pointer; padding: 6px 12px; border-radius: 8px; font-size: 12.5px; color: var(--tb-fg2); white-space: nowrap;
   transition: background .15s, color .15s;
 }
 .tb-tab:hover { color: var(--tb-fg); background: var(--tb-card); }
@@ -106,16 +112,16 @@
   font-weight: 560; white-space: nowrap; background: var(--tb-card-hi); color: var(--tb-fg2);
   border: 1px solid var(--tb-line);
 }
-.tb-chip.tb-tone-green { color: var(--tb-green); background: color-mix(in srgb, var(--tb-green) 13%, transparent); border-color: color-mix(in srgb, var(--tb-green) 30%, transparent); }
-.tb-chip.tb-tone-amber { color: var(--tb-amber); background: color-mix(in srgb, var(--tb-amber) 13%, transparent); border-color: color-mix(in srgb, var(--tb-amber) 30%, transparent); }
-.tb-chip.tb-tone-red { color: var(--tb-red); background: color-mix(in srgb, var(--tb-red) 13%, transparent); border-color: color-mix(in srgb, var(--tb-red) 30%, transparent); }
-.tb-chip.tb-tone-accent { color: var(--tb-accent); background: color-mix(in srgb, var(--tb-accent) 13%, transparent); border-color: color-mix(in srgb, var(--tb-accent) 30%, transparent); }
+.tb-chip.tb-tone-green { color: var(--tb-green-ink); background: color-mix(in srgb, var(--tb-green) 13%, transparent); border-color: color-mix(in srgb, var(--tb-green) 30%, transparent); }
+.tb-chip.tb-tone-amber { color: var(--tb-amber-ink); background: color-mix(in srgb, var(--tb-amber) 13%, transparent); border-color: color-mix(in srgb, var(--tb-amber) 30%, transparent); }
+.tb-chip.tb-tone-red { color: var(--tb-red-ink); background: color-mix(in srgb, var(--tb-red) 13%, transparent); border-color: color-mix(in srgb, var(--tb-red) 30%, transparent); }
+.tb-chip.tb-tone-accent { color: var(--tb-accent-ink); background: color-mix(in srgb, var(--tb-accent) 13%, transparent); border-color: color-mix(in srgb, var(--tb-accent) 30%, transparent); }
 .tb-chip.tb-tone-grey { color: var(--tb-fg2); }
 .tb-meta-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 
 .tb-btn {
   display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; border-radius: 9px; font: inherit;
-  font-size: 12.5px; font-weight: 580; cursor: pointer; color: var(--tb-fg); background: var(--tb-card-hi);
+  font-size: 12.5px; font-weight: 580; cursor: pointer; color: var(--tb-fg); background: var(--tb-card-hi); white-space: nowrap;
   border: 1px solid var(--tb-line); transition: transform .08s, background .15s, border-color .15s;
 }
 .tb-btn:hover:not(:disabled) { border-color: color-mix(in srgb, currentColor 30%, transparent); }
@@ -124,7 +130,10 @@
 .tb-btn-primary { background: var(--tb-accent); border-color: transparent;
   color: var(--ui-accent-foreground, var(--color-primary-foreground, #fff)); }
 .tb-btn-primary:hover:not(:disabled) { filter: brightness(1.08); border-color: transparent; }
-.tb-icon-btn { all: unset; cursor: pointer; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: var(--tb-card-hi); font-size: 11px; }
+.tb-icon-btn { all: unset; cursor: pointer; width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 50%;
+  background: var(--tb-accent); color: var(--ui-accent-foreground, var(--color-primary-foreground, #fff)); transition: filter .15s, transform .08s; }
+.tb-icon-btn:hover { filter: brightness(1.1); }
+.tb-icon-btn:active { transform: scale(.94); }
 
 .tb-input, .tb-select {
   font: inherit; font-size: 12.5px; color: var(--tb-fg); background: var(--tb-card); border: 1px solid var(--tb-line);
@@ -170,7 +179,7 @@
 .tb-viewer-canvas { position: absolute; inset: 0; }
 .tb-viewer-canvas canvas { width: 100% !important; height: 100% !important; display: block; outline: none; }
 .tb-viewer-tag { position: absolute; top: 10px; right: 10px; font-size: 10px; font-weight: 750; letter-spacing: .12em;
-  padding: 3px 8px; border-radius: 6px; color: var(--tb-fg2); background: var(--tb-card-hi); border: 1px solid var(--tb-line);
+  padding: 3px 8px; border-radius: 6px; color: #fff; background: rgba(18,21,27,.66); border: 1px solid rgba(255,255,255,.22);
   pointer-events: none; backdrop-filter: blur(6px); }
 .tb-viewer-tipped { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); pointer-events: none;
   font-size: 11px; font-weight: 800; letter-spacing: .12em; padding: 4px 10px; border-radius: 7px; color: #fff;
@@ -180,10 +189,12 @@
 .tb-viewer-label { position: absolute; left: 12px; top: 10px; display: flex; flex-direction: column; gap: 1px; pointer-events: none;
   font-size: 12.5px; font-weight: 640; }
 .tb-viewer-label small { font-weight: 500; font-size: 11.5px; color: var(--tb-fg3); }
-.tb-viewer-label.tb-tone-green small { color: var(--tb-green); }
-.tb-viewer-label.tb-tone-red small { color: var(--tb-red); }
-.tb-viewer-reset { all: unset; cursor: pointer; position: absolute; right: 10px; bottom: 10px; width: 26px; height: 26px;
-  display: grid; place-items: center; border-radius: 7px; background: var(--tb-card-hi); border: 1px solid var(--tb-line); color: var(--tb-fg2); }
+.tb-viewer-label.tb-tone-green small { color: var(--tb-green-ink); }
+.tb-viewer-label.tb-tone-red small { color: var(--tb-red-ink); }
+.tb-viewer-reset { all: unset; cursor: pointer; position: absolute; right: 10px; bottom: 10px; width: 28px; height: 28px;
+  display: grid; place-items: center; border-radius: 7px; color: #fff; background: rgba(18,21,27,.66);
+  border: 1px solid rgba(255,255,255,.22); backdrop-filter: blur(6px); }
+.tb-viewer-reset:hover { background: rgba(18,21,27,.86); }
 .tb-viewer-error { position: absolute; inset: 0; display: grid; place-items: center; color: var(--tb-fg3); }
 .tb-viewer-wait { display: grid; place-items: center; color: var(--tb-fg3); background: var(--tb-card); }
 .tb-overlay-note { position: absolute; left: 12px; bottom: 56px; font-size: 12px; color: var(--tb-fg2); }
@@ -193,12 +204,29 @@
 .tb-views-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @container (max-width: 860px) { .tb-views-2, .tb-views-3 { grid-template-columns: 1fr; } }
 
-.tb-timeline { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
-.tb-card:not(.tb-card-flush) .tb-timeline { padding: 4px 0 0; }
-.tb-scrub { position: relative; flex: 1; display: flex; align-items: center; }
-.tb-scrub input { width: 100%; accent-color: var(--tb-accent); }
-.tb-mark { position: absolute; top: -4px; width: 2px; height: 8px; background: var(--tb-red); border-radius: 1px; pointer-events: none; }
-.tb-time { font-variant-numeric: tabular-nums; font-size: 11.5px; color: var(--tb-fg3); min-width: 92px; text-align: right; }
+.tb-timeline { display: flex; align-items: center; gap: 12px; padding: 14px 14px 10px; flex-wrap: wrap; border-top: 1px solid var(--tb-line); }
+.tb-card:not(.tb-card-flush) .tb-timeline { padding: 14px 0 0; border-top: 0; }
+.tb-scrub { position: relative; flex: 1; min-width: 150px; height: 28px; display: flex; align-items: center; }
+.tb-scrub-track { position: absolute; left: 8px; right: 8px; height: 6px; border-radius: 99px; background: var(--tb-card-hi);
+  box-shadow: inset 0 0 0 1px var(--tb-line); overflow: hidden; }
+.tb-scrub-fill { height: 100%; background: var(--tb-accent); }
+.tb-scrub input { position: relative; width: 100%; height: 28px; margin: 0; padding: 0; background: transparent; cursor: pointer;
+  -webkit-appearance: none; appearance: none; }
+.tb-scrub input::-webkit-slider-runnable-track { height: 6px; background: transparent; }
+.tb-scrub input::-moz-range-track { height: 6px; background: transparent; }
+.tb-scrub input::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -5px; border-radius: 50%;
+  background: #fff; border: 2px solid var(--tb-accent); box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.tb-scrub input::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid var(--tb-accent);
+  box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.tb-mark { position: absolute; top: 5px; bottom: 5px; width: 2px; margin-left: -1px; border-radius: 1px; pointer-events: none;
+  background: var(--tb-accent); }
+.tb-mark i { position: absolute; bottom: calc(100% + 1px); left: 50%; transform: translateX(-50%); font-style: normal; font-size: 9.5px;
+  font-weight: 750; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; color: var(--tb-accent-ink); }
+.tb-mark-red { background: var(--tb-red); }
+.tb-mark-red i { color: var(--tb-red-ink); }
+.tb-time { font-variant-numeric: tabular-nums; font-size: 12.5px; font-weight: 620; min-width: 96px; text-align: right; }
+.tb-time small { font-size: 11.5px; font-weight: 500; color: var(--tb-fg3); }
+.tb-rates .tb-seg-btn { padding: 4px 8px; font-size: 11.5px; font-variant-numeric: tabular-nums; }
 
 /* Photo */
 .tb-photo { margin: 0; border-radius: var(--tb-radius); overflow: hidden; border: 1px solid var(--tb-line); position: relative; background: var(--tb-card); min-height: 240px; }
@@ -229,12 +257,17 @@
 .tb-table tr.tb-clickable:hover td { background: var(--tb-card); }
 .tb-table tr.tb-active td { background: color-mix(in srgb, var(--tb-accent) 9%, transparent); }
 .tb-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 7px; vertical-align: -1px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
-.tb-delta { font-size: 11px; font-weight: 650; margin-left: 4px; color: var(--tb-fg3); }
-.tb-delta.tb-up { color: var(--tb-green); }
-.tb-delta.tb-down { color: var(--tb-red); }
+.tb-delta { display: inline-block; font-size: 11px; font-weight: 700; margin-left: 8px; padding: 1px 7px; border-radius: 6px;
+  color: var(--tb-fg3); background: var(--tb-card-hi); font-variant-numeric: tabular-nums; }
+.tb-delta.tb-up { color: var(--tb-green-ink); background: color-mix(in srgb, var(--tb-green) 14%, transparent); }
+.tb-delta.tb-down { color: var(--tb-red-ink); background: color-mix(in srgb, var(--tb-red) 14%, transparent); }
+.tb-table tbody th { text-align: left; font-weight: 560; font-size: 12.5px; color: var(--tb-fg); padding: 6px 8px;
+  border-bottom: 1px solid var(--tb-line); white-space: nowrap; }
+.tb-table tr.tb-clickable:hover th { background: var(--tb-card); }
+.tb-table tr.tb-active th { background: color-mix(in srgb, var(--tb-accent) 9%, transparent); }
 
 /* Report tiles */
-.tb-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 10px; }
+.tb-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(188px, 1fr)); gap: 10px; }
 .tb-tile { all: unset; cursor: pointer; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 3px;
   border: 1px solid var(--tb-line); background: var(--tb-card); position: relative; overflow: hidden; transition: transform .12s, box-shadow .15s; }
 .tb-tile::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--tb-grey); }
@@ -248,9 +281,14 @@
 .tb-tile.tb-active { box-shadow: 0 0 0 2px var(--tb-accent); }
 .tb-tile:disabled { cursor: default; }
 .tb-tile-grey, .tb-tile-muted { color: var(--tb-fg2); }
-.tb-tile-top { display: flex; justify-content: space-between; align-items: center; }
+.tb-tile-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.tb-tile-status { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 780; letter-spacing: .08em; white-space: nowrap; }
+.tb-tile-status.tb-tone-green { color: var(--tb-green-ink); }
+.tb-tile-status.tb-tone-amber { color: var(--tb-amber-ink); }
+.tb-tile-status.tb-tone-red { color: var(--tb-red-ink); }
+.tb-tile-big small { margin-left: 6px; font-size: 11.5px; font-weight: 600; letter-spacing: 0; color: var(--tb-fg3); }
 .tb-tile-title { font-weight: 620; font-size: 12.5px; }
-.tb-tile-big { font-size: 26px; font-weight: 720; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.tb-tile-big { font-size: 30px; font-weight: 740; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 2px; }
 .tb-tile-sub, .tb-tile-worst, .tb-tile-note { font-size: 11.5px; color: var(--tb-fg3); }
 .tb-tile-metric { font-size: 12px; color: var(--tb-fg2); }
 .tb-tile-scope { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; margin-top: 10px; color: var(--tb-fg2); }
@@ -300,27 +338,72 @@
 .tb-thumb .tb-badge { position: absolute; right: 10px; top: 10px; }
 
 /* Move check */
-.tb-verdict { display: grid; grid-template-columns: auto 1fr auto; gap: 22px; align-items: center; padding: 20px 24px;
-  border-radius: 18px; color: #fff; position: relative; overflow: hidden; }
+.tb-verdict { display: grid; grid-template-columns: auto 1fr auto; gap: 30px; align-items: center; padding: 26px 32px;
+  border-radius: 18px; color: #fff; position: relative; overflow: hidden; box-shadow: 0 18px 40px -28px #000; }
 .tb-verdict::after { content: ""; position: absolute; inset: 0; background: radial-gradient(80% 140% at 100% 0%, rgba(255,255,255,.18), transparent 60%); pointer-events: none; }
-.tb-verdict-green { background: linear-gradient(135deg, color-mix(in srgb, var(--tb-green) 92%, #000), color-mix(in srgb, var(--tb-green) 70%, #000)); }
-.tb-verdict-red { background: linear-gradient(135deg, color-mix(in srgb, var(--tb-red) 92%, #000), color-mix(in srgb, var(--tb-red) 68%, #000)); }
-.tb-verdict-grey { background: linear-gradient(135deg, #5d6470, #444a54); }
-.tb-verdict-word { font-size: 40px; font-weight: 800; letter-spacing: .04em; line-height: 1; }
-.tb-verdict-title { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
-.tb-verdict-body { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
-.tb-muted-on { opacity: .78; }
-.tb-verdict-stat { text-align: right; font-size: 12.5px; }
-.tb-big { font-size: 34px; font-weight: 780; line-height: 1; font-variant-numeric: tabular-nums; }
+.tb-verdict-green { background: linear-gradient(135deg, color-mix(in srgb, var(--tb-green) 70%, #000), color-mix(in srgb, var(--tb-green) 50%, #000)); }
+.tb-verdict-red { background: linear-gradient(135deg, color-mix(in srgb, var(--tb-red) 78%, #000), color-mix(in srgb, var(--tb-red) 56%, #000)); }
+.tb-verdict-grey { background: linear-gradient(135deg, #59606c, #3f454e); }
+.tb-verdict-word { font-size: clamp(44px, 6.6cqi, 92px); font-weight: 850; letter-spacing: .03em; line-height: .95; }
+.tb-verdict-title { font-weight: 720; font-size: 17px; margin-bottom: 2px; }
+.tb-verdict-body { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; position: relative; z-index: 1; }
+.tb-muted-on { opacity: .85; }
+.tb-verdict-stat { text-align: right; font-size: 13px; position: relative; z-index: 1; display: flex; flex-direction: column; gap: 3px; }
+.tb-verdict-worlds { font-size: 14.5px; }
+.tb-verdict-worlds b { font-weight: 780; }
+.tb-big { font-size: clamp(40px, 4.8cqi, 68px); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.tb-big small { margin-left: 8px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .tb-interval { padding: 14px 4px 2px; }
-.tb-interval-track { position: relative; height: 14px; border-radius: 99px; background: var(--tb-card-hi); }
-.tb-interval-range { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: color-mix(in srgb, var(--tb-red) 45%, transparent); min-width: 4px; }
+.tb-interval-track { position: relative; height: 16px; border-radius: 99px; background: var(--tb-card-hi); }
+.tb-interval-ok { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px 0 0 99px; background: color-mix(in srgb, var(--tb-green) 20%, transparent); }
+.tb-interval-range { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: color-mix(in srgb, var(--tb-red) 55%, transparent); min-width: 4px; }
+.tb-interval-range.tb-ok { background: color-mix(in srgb, var(--tb-green) 60%, transparent); }
 .tb-interval-point { position: absolute; top: -3px; width: 4px; height: 20px; margin-left: -2px; border-radius: 2px; background: var(--tb-fg); }
 .tb-interval-limit { position: absolute; top: -10px; bottom: -4px; width: 0; border-left: 2px dashed var(--tb-green); }
-.tb-interval-limit span { position: absolute; top: -16px; left: 4px; font-size: 10.5px; color: var(--tb-green); white-space: nowrap; }
+.tb-interval-limit span { position: absolute; top: -16px; left: 4px; font-size: 10.5px; font-weight: 650; color: var(--tb-green-ink); white-space: nowrap; }
 .tb-interval-scale { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--tb-fg3); margin-top: 4px; }
 .tb-suggest ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
 .tb-suggest li::marker { color: var(--tb-accent); font-weight: 700; }
+
+.tb-root code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92em; padding: 1px 5px; border-radius: 5px;
+  color: inherit; background: var(--tb-card-hi); border: 1px solid var(--tb-line); }
+
+/* Layout helpers */
+.tb-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.tb-end { align-items: flex-end; }
+.tb-card-head > .tb-row { flex-wrap: wrap; }
+.tb-summary-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; font-size: 13.5px; line-height: 1.5; }
+.tb-summary-list li { position: relative; padding-left: 16px; color: var(--tb-fg2); }
+.tb-summary-list li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 5px; height: 5px; border-radius: 50%; background: var(--tb-fg3); }
+.tb-summary-list li:first-child { font-size: 14.5px; font-weight: 600; color: var(--tb-fg); }
+.tb-summary-list li:first-child::before { background: var(--tb-accent); }
+
+/* Keyboard focus: always visible, also on the controls that reset their own styles. */
+.tb-root :is(button, select, input, textarea, a, [role="tab"], [tabindex]):focus-visible {
+  outline: 2px solid var(--tb-accent); outline-offset: 2px; }
+.tb-root .tb-scrub input:focus-visible { outline-offset: -2px; border-radius: 99px; }
+.tb-check:focus-within { outline: 2px solid var(--tb-accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .tb-root *, .tb-root *::before, .tb-root *::after { transition: none !important; }
+  .tb-viewer-tipped { animation: none; }
+}
+
+/* Phones and narrow panels */
+@container (max-width: 560px) {
+  .tb-header { padding: 10px 14px; gap: 10px; }
+  .tb-main { padding: 14px 14px 32px; }
+  .tb-picker { margin-left: 0; width: 100%; }
+  .tb-picker .tb-select { width: 100%; }
+  .tb-hero h2 { font-size: 19px; }
+  .tb-hero-actions { width: 100%; }
+  .tb-verdict { padding: 20px; gap: 14px; }
+  .tb-verdict-stat { text-align: left; }
+  .tb-list-row { flex-direction: column; align-items: flex-start; }
+  .tb-time small { display: none; }
+  .tb-time { min-width: 0; }
+  .tb-barrow { grid-template-columns: 84px 1fr 40px; }
+  .tb-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 `;
 
   // src/platform.js
@@ -448,7 +531,7 @@
       /* @__PURE__ */ jsx("div", { className: "tb-barrow-label", children: label }),
       /* @__PURE__ */ jsxs("div", { className: "tb-bar", children: [
         /* @__PURE__ */ jsx("div", { className: "tb-bar-fill tb-fill-" + t, style: { width: pct2 + "%" } }),
-        mark != null ? /* @__PURE__ */ jsx("div", { className: "tb-bar-mark", style: { left: mark / max * 100 + "%" } }) : null
+        mark != null ? /* @__PURE__ */ jsx("div", { className: "tb-bar-mark", style: { left: mark / max * 100 + "%" }, title: `limit ${mark}%` }) : null
       ] }),
       /* @__PURE__ */ jsx("div", { className: "tb-barrow-right", children: right }),
       note ? /* @__PURE__ */ jsx("div", { className: "tb-barrow-note", children: note }) : null
@@ -503,20 +586,22 @@
   }
   function fmt(v, unit) {
     if (v == null) return "–";
-    if (unit === "x weight" && v >= 9) return ">1";
+    if (unit === "x weight" && v > PUSH_MAX) return ">1";
     const s = Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2);
     return s.replace(/\.?0+$/, "") || "0";
   }
+  var PUSH_MAX = 1;
+  var cm = (v) => Math.abs(v).toFixed(1);
+  var short = (v) => (Math.round(v * 10) / 10).toFixed(1).replace(/\.0$/, "");
   function human(sceneId, v, unit) {
     if (v == null) return "–";
-    const n = (x) => fmt(Math.abs(x), unit);
     const id = sceneId || "";
-    if (id.startsWith("obstacle")) return v >= 0 ? `${n(v)} cm past the bar` : `stopped ${n(v)} cm before the bar`;
-    if (id.startsWith("ramp")) return v >= 0 ? `climbed ${n(v)} cm` : `slid ${n(v)} cm back down`;
-    if (id === "flat" || id === "slippery") return v >= 0 ? `${n(v)} cm forward` : `${n(v)} cm backwards`;
-    if (id === "push") return v >= 9 ? "no tip up to 1× weight" : `tips at ${fmt(v)}× weight`;
-    if (id === "payload") return v < 0 ? "no safe payload" : `${fmt(v)} g safe payload`;
-    if (id.startsWith("move:")) return `${fmt(v)}° body tilt`;
+    if (id.startsWith("obstacle")) return v >= 0 ? `${cm(v)} cm past the bar` : `stopped ${cm(v)} cm before the bar`;
+    if (id.startsWith("ramp")) return v >= 0 ? `climbed ${cm(v)} cm` : `slid ${cm(v)} cm back down`;
+    if (id === "flat" || id === "slippery") return v >= 0 ? `${cm(v)} cm forward` : `${cm(v)} cm backwards`;
+    if (id === "push") return v > PUSH_MAX ? "no tip up to 1× weight" : `tips at ${fmt(v)}× weight`;
+    if (id === "payload") return v < 0 ? "no safe payload" : `${short(v)} g safe payload`;
+    if (id.startsWith("move:")) return `${short(v)}° body tilt`;
     return `${fmt(v, unit)} ${unit || ""}`.trim();
   }
   function RobotPicker({ robots, value, onChange }) {
@@ -19260,162 +19345,6 @@ void main() {
     vertexPosition.y += _rotatedPosition.y;
     vertexPosition.applyMatrix4(_viewWorldMatrix);
   }
-  var LineBasicMaterial = class extends Material {
-    constructor(parameters) {
-      super();
-      this.isLineBasicMaterial = true;
-      this.type = "LineBasicMaterial";
-      this.color = new Color(16777215);
-      this.map = null;
-      this.linewidth = 1;
-      this.linecap = "round";
-      this.linejoin = "round";
-      this.fog = true;
-      this.setValues(parameters);
-    }
-    copy(source) {
-      super.copy(source);
-      this.color.copy(source.color);
-      this.map = source.map;
-      this.linewidth = source.linewidth;
-      this.linecap = source.linecap;
-      this.linejoin = source.linejoin;
-      this.fog = source.fog;
-      return this;
-    }
-  };
-  var _vStart = /* @__PURE__ */ new Vector3();
-  var _vEnd = /* @__PURE__ */ new Vector3();
-  var _inverseMatrix$1 = /* @__PURE__ */ new Matrix4();
-  var _ray$1 = /* @__PURE__ */ new Ray();
-  var _sphere$1 = /* @__PURE__ */ new Sphere();
-  var _intersectPointOnRay = /* @__PURE__ */ new Vector3();
-  var _intersectPointOnSegment = /* @__PURE__ */ new Vector3();
-  var Line = class extends Object3D {
-    constructor(geometry = new BufferGeometry(), material = new LineBasicMaterial()) {
-      super();
-      this.isLine = true;
-      this.type = "Line";
-      this.geometry = geometry;
-      this.material = material;
-      this.updateMorphTargets();
-    }
-    copy(source, recursive) {
-      super.copy(source, recursive);
-      this.material = Array.isArray(source.material) ? source.material.slice() : source.material;
-      this.geometry = source.geometry;
-      return this;
-    }
-    computeLineDistances() {
-      const geometry = this.geometry;
-      if (geometry.index === null) {
-        const positionAttribute = geometry.attributes.position;
-        const lineDistances = [0];
-        for (let i = 1, l = positionAttribute.count; i < l; i++) {
-          _vStart.fromBufferAttribute(positionAttribute, i - 1);
-          _vEnd.fromBufferAttribute(positionAttribute, i);
-          lineDistances[i] = lineDistances[i - 1];
-          lineDistances[i] += _vStart.distanceTo(_vEnd);
-        }
-        geometry.setAttribute("lineDistance", new Float32BufferAttribute(lineDistances, 1));
-      } else {
-        console.warn("THREE.Line.computeLineDistances(): Computation only possible with non-indexed BufferGeometry.");
-      }
-      return this;
-    }
-    raycast(raycaster, intersects) {
-      const geometry = this.geometry;
-      const matrixWorld = this.matrixWorld;
-      const threshold = raycaster.params.Line.threshold;
-      const drawRange = geometry.drawRange;
-      if (geometry.boundingSphere === null) geometry.computeBoundingSphere();
-      _sphere$1.copy(geometry.boundingSphere);
-      _sphere$1.applyMatrix4(matrixWorld);
-      _sphere$1.radius += threshold;
-      if (raycaster.ray.intersectsSphere(_sphere$1) === false) return;
-      _inverseMatrix$1.copy(matrixWorld).invert();
-      _ray$1.copy(raycaster.ray).applyMatrix4(_inverseMatrix$1);
-      const localThreshold = threshold / ((this.scale.x + this.scale.y + this.scale.z) / 3);
-      const localThresholdSq = localThreshold * localThreshold;
-      const step = this.isLineSegments ? 2 : 1;
-      const index = geometry.index;
-      const attributes = geometry.attributes;
-      const positionAttribute = attributes.position;
-      if (index !== null) {
-        const start = Math.max(0, drawRange.start);
-        const end = Math.min(index.count, drawRange.start + drawRange.count);
-        for (let i = start, l = end - 1; i < l; i += step) {
-          const a = index.getX(i);
-          const b = index.getX(i + 1);
-          const intersect = checkIntersection(this, raycaster, _ray$1, localThresholdSq, a, b);
-          if (intersect) {
-            intersects.push(intersect);
-          }
-        }
-        if (this.isLineLoop) {
-          const a = index.getX(end - 1);
-          const b = index.getX(start);
-          const intersect = checkIntersection(this, raycaster, _ray$1, localThresholdSq, a, b);
-          if (intersect) {
-            intersects.push(intersect);
-          }
-        }
-      } else {
-        const start = Math.max(0, drawRange.start);
-        const end = Math.min(positionAttribute.count, drawRange.start + drawRange.count);
-        for (let i = start, l = end - 1; i < l; i += step) {
-          const intersect = checkIntersection(this, raycaster, _ray$1, localThresholdSq, i, i + 1);
-          if (intersect) {
-            intersects.push(intersect);
-          }
-        }
-        if (this.isLineLoop) {
-          const intersect = checkIntersection(this, raycaster, _ray$1, localThresholdSq, end - 1, start);
-          if (intersect) {
-            intersects.push(intersect);
-          }
-        }
-      }
-    }
-    updateMorphTargets() {
-      const geometry = this.geometry;
-      const morphAttributes = geometry.morphAttributes;
-      const keys = Object.keys(morphAttributes);
-      if (keys.length > 0) {
-        const morphAttribute = morphAttributes[keys[0]];
-        if (morphAttribute !== void 0) {
-          this.morphTargetInfluences = [];
-          this.morphTargetDictionary = {};
-          for (let m = 0, ml = morphAttribute.length; m < ml; m++) {
-            const name = morphAttribute[m].name || String(m);
-            this.morphTargetInfluences.push(0);
-            this.morphTargetDictionary[name] = m;
-          }
-        }
-      }
-    }
-  };
-  function checkIntersection(object, raycaster, ray, thresholdSq, a, b) {
-    const positionAttribute = object.geometry.attributes.position;
-    _vStart.fromBufferAttribute(positionAttribute, a);
-    _vEnd.fromBufferAttribute(positionAttribute, b);
-    const distSq = ray.distanceSqToSegment(_vStart, _vEnd, _intersectPointOnRay, _intersectPointOnSegment);
-    if (distSq > thresholdSq) return;
-    _intersectPointOnRay.applyMatrix4(object.matrixWorld);
-    const distance = raycaster.ray.origin.distanceTo(_intersectPointOnRay);
-    if (distance < raycaster.near || distance > raycaster.far) return;
-    return {
-      distance,
-      // What do we want? intersection point on the ray or on the segment??
-      // point: raycaster.ray.at( distance ),
-      point: _intersectPointOnSegment.clone().applyMatrix4(object.matrixWorld),
-      index: a,
-      face: null,
-      faceIndex: null,
-      barycoord: null,
-      object
-    };
-  }
   var CanvasTexture = class extends Texture {
     constructor(canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy) {
       super(canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy);
@@ -20736,6 +20665,85 @@ void main() {
       return new _CylinderGeometry(data.radiusTop, data.radiusBottom, data.height, data.radialSegments, data.heightSegments, data.openEnded, data.thetaStart, data.thetaLength);
     }
   };
+  var ConeGeometry = class _ConeGeometry extends CylinderGeometry {
+    constructor(radius = 1, height = 1, radialSegments = 32, heightSegments = 1, openEnded = false, thetaStart = 0, thetaLength = Math.PI * 2) {
+      super(0, radius, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength);
+      this.type = "ConeGeometry";
+      this.parameters = {
+        radius,
+        height,
+        radialSegments,
+        heightSegments,
+        openEnded,
+        thetaStart,
+        thetaLength
+      };
+    }
+    static fromJSON(data) {
+      return new _ConeGeometry(data.radius, data.height, data.radialSegments, data.heightSegments, data.openEnded, data.thetaStart, data.thetaLength);
+    }
+  };
+  var RingGeometry = class _RingGeometry extends BufferGeometry {
+    constructor(innerRadius = 0.5, outerRadius = 1, thetaSegments = 32, phiSegments = 1, thetaStart = 0, thetaLength = Math.PI * 2) {
+      super();
+      this.type = "RingGeometry";
+      this.parameters = {
+        innerRadius,
+        outerRadius,
+        thetaSegments,
+        phiSegments,
+        thetaStart,
+        thetaLength
+      };
+      thetaSegments = Math.max(3, thetaSegments);
+      phiSegments = Math.max(1, phiSegments);
+      const indices = [];
+      const vertices = [];
+      const normals = [];
+      const uvs = [];
+      let radius = innerRadius;
+      const radiusStep = (outerRadius - innerRadius) / phiSegments;
+      const vertex2 = new Vector3();
+      const uv = new Vector2();
+      for (let j = 0; j <= phiSegments; j++) {
+        for (let i = 0; i <= thetaSegments; i++) {
+          const segment = thetaStart + i / thetaSegments * thetaLength;
+          vertex2.x = radius * Math.cos(segment);
+          vertex2.y = radius * Math.sin(segment);
+          vertices.push(vertex2.x, vertex2.y, vertex2.z);
+          normals.push(0, 0, 1);
+          uv.x = (vertex2.x / outerRadius + 1) / 2;
+          uv.y = (vertex2.y / outerRadius + 1) / 2;
+          uvs.push(uv.x, uv.y);
+        }
+        radius += radiusStep;
+      }
+      for (let j = 0; j < phiSegments; j++) {
+        const thetaSegmentLevel = j * (thetaSegments + 1);
+        for (let i = 0; i < thetaSegments; i++) {
+          const segment = i + thetaSegmentLevel;
+          const a = segment;
+          const b = segment + thetaSegments + 1;
+          const c = segment + thetaSegments + 2;
+          const d = segment + 1;
+          indices.push(a, b, d);
+          indices.push(b, c, d);
+        }
+      }
+      this.setIndex(indices);
+      this.setAttribute("position", new Float32BufferAttribute(vertices, 3));
+      this.setAttribute("normal", new Float32BufferAttribute(normals, 3));
+      this.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+    }
+    copy(source) {
+      super.copy(source);
+      this.parameters = Object.assign({}, source.parameters);
+      return this;
+    }
+    static fromJSON(data) {
+      return new _RingGeometry(data.innerRadius, data.outerRadius, data.thetaSegments, data.phiSegments, data.thetaStart, data.thetaLength);
+    }
+  };
   var SphereGeometry = class _SphereGeometry extends BufferGeometry {
     constructor(radius = 1, widthSegments = 32, heightSegments = 16, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI) {
       super();
@@ -21040,24 +21048,6 @@ void main() {
       this.specularIntensityMap = source.specularIntensityMap;
       this.specularColor.copy(source.specularColor);
       this.specularColorMap = source.specularColorMap;
-      return this;
-    }
-  };
-  var LineDashedMaterial = class extends LineBasicMaterial {
-    constructor(parameters) {
-      super();
-      this.isLineDashedMaterial = true;
-      this.type = "LineDashedMaterial";
-      this.scale = 1;
-      this.dashSize = 3;
-      this.gapSize = 1;
-      this.setValues(parameters);
-    }
-    copy(source) {
-      super.copy(source);
-      this.scale = source.scale;
-      this.dashSize = source.dashSize;
-      this.gapSize = source.gapSize;
       return this;
     }
   };
@@ -22335,65 +22325,6 @@ void main() {
       return new this.constructor().copy(this);
     }
   };
-  var _axis = /* @__PURE__ */ new Vector3();
-  var _lineGeometry;
-  var _coneGeometry;
-  var ArrowHelper = class extends Object3D {
-    // dir is assumed to be normalized
-    constructor(dir = new Vector3(0, 0, 1), origin = new Vector3(0, 0, 0), length = 1, color = 16776960, headLength = length * 0.2, headWidth = headLength * 0.2) {
-      super();
-      this.type = "ArrowHelper";
-      if (_lineGeometry === void 0) {
-        _lineGeometry = new BufferGeometry();
-        _lineGeometry.setAttribute("position", new Float32BufferAttribute([0, 0, 0, 0, 1, 0], 3));
-        _coneGeometry = new CylinderGeometry(0, 0.5, 1, 5, 1);
-        _coneGeometry.translate(0, -0.5, 0);
-      }
-      this.position.copy(origin);
-      this.line = new Line(_lineGeometry, new LineBasicMaterial({ color, toneMapped: false }));
-      this.line.matrixAutoUpdate = false;
-      this.add(this.line);
-      this.cone = new Mesh(_coneGeometry, new MeshBasicMaterial({ color, toneMapped: false }));
-      this.cone.matrixAutoUpdate = false;
-      this.add(this.cone);
-      this.setDirection(dir);
-      this.setLength(length, headLength, headWidth);
-    }
-    setDirection(dir) {
-      if (dir.y > 0.99999) {
-        this.quaternion.set(0, 0, 0, 1);
-      } else if (dir.y < -0.99999) {
-        this.quaternion.set(1, 0, 0, 0);
-      } else {
-        _axis.set(dir.z, 0, -dir.x).normalize();
-        const radians = Math.acos(dir.y);
-        this.quaternion.setFromAxisAngle(_axis, radians);
-      }
-    }
-    setLength(length, headLength = length * 0.2, headWidth = headLength * 0.2) {
-      this.line.scale.set(1, Math.max(1e-4, length - headLength), 1);
-      this.line.updateMatrix();
-      this.cone.scale.set(headWidth, headLength, headWidth);
-      this.cone.position.y = length;
-      this.cone.updateMatrix();
-    }
-    setColor(color) {
-      this.line.material.color.set(color);
-      this.cone.material.color.set(color);
-    }
-    copy(source) {
-      super.copy(source, false);
-      this.line.copy(source.line);
-      this.cone.copy(source.cone);
-      return this;
-    }
-    dispose() {
-      this.line.geometry.dispose();
-      this.line.material.dispose();
-      this.cone.geometry.dispose();
-      this.cone.material.dispose();
-    }
-  };
   var Controls = class extends EventDispatcher {
     constructor(object, domElement = null) {
       super();
@@ -23392,8 +23323,30 @@ void main() {
 
   // src/stage.js
   var TIP_RED = new Color(16723232);
+  var BLACK = new Color(0);
   var HAZARD_YELLOW = "#f5c518";
-  var RAMP_TONE = "#d9a441";
+  var RAMP_TOP = "#c9b88f";
+  var RAMP_EDGE = "#e3a52c";
+  var RAMP_SIDE = 10851436;
+  var AXES = [new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(0, 0, 1)];
+  var Y_AXIS = new Vector3(0, 1, 0);
+  var VIEW_FRONT = [0.78, 0.5, 0.72];
+  var VIEW_SIDE = [0.24, 0.4, 1];
+  var FINISH = {
+    foam: { roughness: 0.9, metalness: 0, clearcoat: 0, sheen: 0.5, sheenRoughness: 0.9, bevel: [0.1, 16e-4] },
+    pla: { roughness: 0.5, metalness: 0.02, clearcoat: 0.3, clearcoatRoughness: 0.45, bevel: [0.2, 36e-4] },
+    wood: { roughness: 0.82, metalness: 0, clearcoat: 0, bevel: [0.1, 2e-3] },
+    metal: { roughness: 0.34, metalness: 0.88, clearcoat: 0.15, clearcoatRoughness: 0.5, bevel: [0.12, 2e-3] },
+    rubber: { roughness: 0.96, metalness: 0, clearcoat: 0, bevel: [0.25, 4e-3] }
+  };
+  var FOIL = {
+    roughness: 0.37,
+    metalness: 0.9,
+    clearcoat: 0.1,
+    clearcoatRoughness: 0.6,
+    envMapIntensity: 1.3,
+    bevel: [0.08, 18e-4]
+  };
   function luminance(css) {
     const m = /rgba?\(([^)]+)\)/.exec(css || "");
     if (!m) return 0.5;
@@ -23413,29 +23366,33 @@ void main() {
     t.anisotropy = 8;
     return t;
   }
-  function rampTexture(dark) {
-    const t = canvasTexture(512, 128, (g, w, h) => {
-      g.fillStyle = dark ? "rgba(217,164,65,0.20)" : "rgba(190,135,40,0.22)";
+  function rampTexture(length, width) {
+    const w = 1024;
+    const h = Math.max(128, Math.round(w * width / length));
+    return canvasTexture(w, h, (g) => {
+      g.fillStyle = RAMP_TOP;
       g.fillRect(0, 0, w, h);
-      for (let i = 0; i < 16; i++) {
-        g.fillStyle = i % 2 ? "rgba(217,164,65,0.42)" : "rgba(217,164,65,0.10)";
-        g.fillRect(i * w / 16, 0, w / 16, h);
+      const px2 = w / length;
+      for (let i = 0; i * 0.05 <= length + 1e-6; i++) {
+        const strong = i % 4 === 0;
+        g.fillStyle = strong ? "rgba(60,45,15,0.42)" : "rgba(60,45,15,0.18)";
+        g.fillRect(Math.round(i * 0.05 * px2) - (strong ? 2 : 1), 0, strong ? 4 : 2, h);
       }
-      g.strokeStyle = RAMP_TONE;
-      g.lineWidth = 6;
-      g.strokeRect(3, 3, w - 6, h - 6);
+      const band = Math.round(0.018 * px2);
+      g.fillStyle = RAMP_EDGE;
+      g.fillRect(0, 0, w, band);
+      g.fillRect(0, h - band, w, band);
     });
-    return t;
   }
-  function textSprite(text, { color = "#ffffff", bg = "rgba(20,22,28,0.82)", height = 0.016 } = {}) {
-    const pad = 18;
-    const font = "600 64px system-ui, -apple-system, Segoe UI, sans-serif";
+  function textSprite(text, { color = "#ffffff", bg = "rgba(20,22,28,0.86)", px: px2 = 19 } = {}) {
+    const pad = 20;
+    const font = "650 64px system-ui, -apple-system, Segoe UI, sans-serif";
     const probe = document.createElement("canvas").getContext("2d");
     probe.font = font;
     const w = Math.ceil(probe.measureText(text).width) + pad * 2;
     const tex = canvasTexture(w, 96, (g, cw, ch) => {
       g.fillStyle = bg;
-      const r = 22;
+      const r = 24;
       g.beginPath();
       g.moveTo(r, 0);
       g.arcTo(cw, 0, cw, ch, r);
@@ -23448,8 +23405,9 @@ void main() {
       g.textBaseline = "middle";
       g.fillText(text, pad, ch / 2 + 3);
     });
-    const sprite = new Sprite(new SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
-    sprite.scale.set(height * w / 96, height, 1);
+    const sprite = new Sprite(new SpriteMaterial({ map: tex, depthTest: false, transparent: true, sizeAttenuation: false }));
+    sprite.userData = { label: true, px: px2, aspect: w / 96 };
+    sprite.center.set(0.5, 0);
     sprite.renderOrder = 10;
     return sprite;
   }
@@ -23468,14 +23426,20 @@ void main() {
       g.fillRect(168, 96, 70, 6);
     });
   }
-  function partGeometry(shape, size) {
+  function finishOf(part, look) {
+    if (look.material === "aluminum") return FOIL;
+    const detail = (look.detail || {})[part.name] || {};
+    return FINISH[detail.material] || FINISH.pla;
+  }
+  function partGeometry(shape, size, finish) {
     if (shape === "box") {
       const [x, y, z] = size;
-      const r = Math.min(x, y, z) * 0.22;
-      return new RoundedBoxGeometry(x, y, z, 5, r);
+      const m = Math.min(x, y, z);
+      const [share, cap] = finish.bevel;
+      return new RoundedBoxGeometry(x, y, z, 4, Math.min(m * share, cap, m * 0.49));
     }
     if (shape === "cylinder") {
-      const g = new CylinderGeometry(size[0], size[0], size[1], 48, 1);
+      const g = new CylinderGeometry(size[0], size[0], size[1], 56, 1);
       g.rotateX(Math.PI / 2);
       return g;
     }
@@ -23484,7 +23448,22 @@ void main() {
       g.rotateX(Math.PI / 2);
       return g;
     }
-    return new SphereGeometry(size[0], 40, 24);
+    return new SphereGeometry(size[0], 48, 28);
+  }
+  function support(shape, size, d) {
+    if (shape === "box") return (Math.abs(d.x) * size[0] + Math.abs(d.y) * size[1] + Math.abs(d.z) * size[2]) / 2;
+    if (shape === "cylinder") return Math.abs(d.z) * size[1] / 2 + size[0] * Math.sqrt(Math.max(0, 1 - d.z * d.z));
+    if (shape === "capsule") return Math.abs(d.z) * (size[1] || size[0]) / 2 + size[0];
+    return size[0];
+  }
+  function disposeTree(root) {
+    root.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) {
+        if (o.material.map) o.material.map.dispose();
+        o.material.dispose();
+      }
+    });
   }
   var Stage = class {
     constructor(container, { interactive = true, dark = null, preserve = false } = {}) {
@@ -23495,8 +23474,8 @@ void main() {
       this.renderer.shadowMap.enabled = true;
       this.renderer.shadowMap.type = PCFSoftShadowMap;
       this.renderer.outputColorSpace = SRGBColorSpace;
-      this.renderer.toneMapping = ACESFilmicToneMapping;
-      this.renderer.toneMappingExposure = this.dark ? 1 : 0.92;
+      this.renderer.toneMapping = NeutralToneMapping;
+      this.renderer.toneMappingExposure = this.dark ? 0.95 : 1;
       this.renderer.setClearColor(0, 0);
       this.renderer.domElement.className = "tb-canvas";
       container.appendChild(this.renderer.domElement);
@@ -23505,7 +23484,7 @@ void main() {
       this.envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
       pmrem.dispose();
       this.scene.environment = this.envMap;
-      this.scene.environmentIntensity = this.dark ? 0.55 : 0.45;
+      this.scene.environmentIntensity = this.dark ? 0.5 : 0.55;
       this.camera = new PerspectiveCamera(32, 1, 0.01, 50);
       this.camera.position.set(0.6, 0.35, 0.6);
       this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -23515,8 +23494,10 @@ void main() {
       this.controls.maxPolarAngle = Math.PI * 0.495;
       this.controls.minDistance = 0.08;
       this.controls.maxDistance = 6;
+      this.controls.autoRotateSpeed = 0.9;
       this.controls.addEventListener("start", () => {
         this.userMoved = true;
+        this.controls.autoRotate = false;
       });
       this._lights();
       this.world = new Group();
@@ -23524,19 +23505,27 @@ void main() {
       this.scene.add(this.world);
       this.tilt = new Group();
       this.world.add(this.tilt);
-      this.floor = new Group();
+      const floor = this._makeFloor();
+      this.floor = floor.group;
+      this.grid = floor.grid;
       this.tilt.add(this.floor);
+      this.slick = new Group();
+      this.slick.visible = false;
+      this.floor.add(this.slick);
+      this._slick();
       this.terrain = new Group();
       this.tilt.add(this.terrain);
       this.robot = new Group();
       this.tilt.add(this.robot);
-      this._floor();
       this.meshes = [];
       this.meta = {};
       this.look = {};
       this.follow = true;
       this.userMoved = false;
-      this.tipping = false;
+      this.tipPhase = 0;
+      this.tipPart = null;
+      this._qa = new Quaternion();
+      this._qb = new Quaternion();
       this._resize = new ResizeObserver(() => this.resize());
       this._resize.observe(container);
       this.resize();
@@ -23550,18 +23539,18 @@ void main() {
       loop();
     }
     _lights() {
-      const sky = this.dark ? 13161215 : 16777215;
-      const ground = this.dark ? 1711396 : 12170411;
-      this.hemi = new HemisphereLight(sky, ground, this.dark ? 0.9 : 0.75);
+      const sky = this.dark ? 13884671 : 16777215;
+      const ground = this.dark ? 2106412 : 12170411;
+      this.hemi = new HemisphereLight(sky, ground, this.dark ? 0.7 : 0.8);
       this.scene.add(this.hemi);
-      const key = new DirectionalLight(16777215, this.dark ? 2.2 : 2.3);
+      const key = new DirectionalLight(16774890, this.dark ? 2 : 2.3);
       key.position.set(1.2, 2.4, 1.6);
       key.castShadow = true;
       key.shadow.mapSize.set(2048, 2048);
-      key.shadow.radius = 6;
+      key.shadow.radius = 5;
       key.shadow.blurSamples = 16;
-      key.shadow.bias = -4e-4;
-      key.shadow.normalBias = 0.02;
+      key.shadow.bias = -3e-4;
+      key.shadow.normalBias = 0.012;
       const s = key.shadow.camera;
       s.left = s.bottom = -0.6;
       s.right = s.top = 0.6;
@@ -23570,14 +23559,20 @@ void main() {
       this.key = key;
       this.scene.add(key);
       this.scene.add(key.target);
-      const rim = new DirectionalLight(this.dark ? 9417983 : 10335976, this.dark ? 1 : 1.1);
+      const fill = new DirectionalLight(14674175, this.dark ? 0.55 : 0.5);
+      fill.position.set(1.4, 0.7, -1.6);
+      this.scene.add(fill);
+      const rim = new DirectionalLight(this.dark ? 9417983 : 10335976, this.dark ? 1.1 : 1);
       rim.position.set(-1.6, 1.2, -1.4);
       this.scene.add(rim);
     }
-    _floor() {
-      const shadow = new Mesh(new PlaneGeometry(8, 8), new ShadowMaterial({ opacity: this.dark ? 0.5 : 0.34 }));
+    // A shadow catcher plus a procedural grid: a soft disc with 5 cm / 20 cm lines, fading out radially. In
+    // the light theme the disc is a mid grey, so white and silver robots keep their outline against it.
+    _makeFloor() {
+      const group = new Group();
+      const shadow = new Mesh(new PlaneGeometry(8, 8), new ShadowMaterial({ opacity: this.dark ? 0.5 : 0.32 }));
       shadow.receiveShadow = true;
-      this.floor.add(shadow);
+      group.add(shadow);
       const SPAN = 1.6;
       const grid = new Mesh(new PlaneGeometry(SPAN, SPAN), new ShaderMaterial({
         transparent: true,
@@ -23614,61 +23609,53 @@ void main() {
         }`
       }));
       grid.position.z = 6e-4;
-      this.grid = grid;
-      this.floor.add(grid);
-      this.slick = new Mesh(
-        new CircleGeometry(1.1, 64),
+      group.add(grid);
+      return { group, grid };
+    }
+    // The slippery floor: a glossy, faintly blue sheet with a brighter rim.
+    _slick() {
+      const sheet = new Mesh(
+        new CircleGeometry(0.62, 72),
         new MeshPhysicalMaterial({
-          color: 6273023,
+          color: 6733311,
           transparent: true,
-          opacity: 0.18,
-          roughness: 0.05,
+          opacity: this.dark ? 0.15 : 0.22,
+          roughness: 0.03,
           metalness: 0,
           clearcoat: 1,
-          clearcoatRoughness: 0.05,
+          clearcoatRoughness: 0.03,
           depthWrite: false
         })
       );
-      this.slick.position.z = 1e-3;
-      this.slick.visible = false;
-      this.floor.add(this.slick);
+      sheet.position.z = 1e-3;
+      const rim = new Mesh(
+        new RingGeometry(0.612, 0.62, 72),
+        new MeshBasicMaterial({ color: 10212607, transparent: true, opacity: 0.75, depthWrite: false })
+      );
+      rim.position.z = 12e-4;
+      this.slick.add(sheet, rim);
     }
-    _material(p, look, decalParts) {
+    _material(p, look, decalParts, finish) {
       let color = new Color(p.color || "#9aa4b2");
       if (look.accent && !decalParts.has(p.name)) color = color.lerp(new Color(look.accent), 0.78);
-      if (look.material === "aluminum") {
-        return new MeshPhysicalMaterial({
-          color,
-          metalness: 0.82,
-          roughness: 0.34,
-          clearcoat: 0.25,
-          clearcoatRoughness: 0.5,
-          envMapIntensity: 1.25
-        });
-      }
-      return new MeshPhysicalMaterial({
-        color,
-        roughness: 0.46,
-        metalness: 0.04,
-        clearcoat: 0.4,
-        clearcoatRoughness: 0.35,
-        sheen: 0.2
-      });
+      const { bevel, ...pbr } = finish;
+      if (finish === FOIL) color.lerp(new Color(16777215), 0.12);
+      return new MeshPhysicalMaterial({ color, ...pbr });
     }
     _decorate(mesh, part, kind, look) {
       if (kind !== "oled" || part.shape !== "box") return;
       const [sx, sy, sz] = part.size_m;
-      const pw = sy * 0.46;
-      const ph = sz * 0.36;
+      const pw = sy * 0.34;
+      const ph = sz * 0.3;
       const panel = new Mesh(
-        new RoundedBoxGeometry(4e-3, pw, ph, 3, 15e-4),
-        new MeshStandardMaterial({ color: 1382429, roughness: 0.55, metalness: 0.2 })
+        new RoundedBoxGeometry(3e-3, pw, ph, 3, 12e-4),
+        new MeshStandardMaterial({ color: 1053463, roughness: 0.4, metalness: 0.3 })
       );
-      panel.position.set(sx / 2 + 1e-3, 0, sz * 0.08);
+      panel.position.set(sx / 2 + 8e-4, 0, sz * 0.06);
       panel.castShadow = true;
       mesh.add(panel);
       const glow = look.oled || "#58b4ff";
-      const screen = new Mesh(new PlaneGeometry(pw * 0.78, ph * 0.62), new MeshBasicMaterial({
+      const screen = new Mesh(new PlaneGeometry(pw * 0.84, ph * 0.72), new MeshBasicMaterial({
         map: oledTexture(glow),
         toneMapped: false
       }));
@@ -23677,33 +23664,67 @@ void main() {
         new Vector3(0, 0, 1),
         new Vector3(1, 0, 0)
       ));
-      screen.position.set(22e-4, 0, 0);
+      screen.position.set(17e-4, 0, 0);
       panel.add(screen);
+    }
+    // A servo horn with its screw at a joint: a short dark (or light, on dark parts) cylinder along the joint
+    // axis, through the driven part. It is symmetric about the axis, so it sits right for both linked parts.
+    _horn(mesh, part, d, color) {
+      const axis = new Vector3(...d.axis);
+      if (axis.lengthSq() < 0.5) return;
+      axis.normalize();
+      const anchor = new Vector3(...d.anchor);
+      const half = support(part.shape, part.size_m, axis);
+      const centre = -anchor.dot(axis);
+      const eps = 16e-4;
+      const s0 = Math.max(Math.min(0, centre - half), centre - half - 0.012) - eps;
+      const s1 = Math.min(Math.max(0, centre + half), centre + half + 0.012) + eps;
+      const least = AXES.reduce((a, b) => Math.abs(a.dot(axis)) < Math.abs(b.dot(axis)) ? a : b);
+      const u = new Vector3().crossVectors(axis, least).normalize();
+      const v = new Vector3().crossVectors(axis, u);
+      const across = Math.min(support(part.shape, part.size_m, u), support(part.shape, part.size_m, v));
+      const big = /996|995|946|ds3|standard/i.test(d.servo || "");
+      const radius = Math.min(big ? 0.0105 : 72e-4, across * 0.8);
+      if (radius < 25e-4) return;
+      const lum = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+      const horn = new Mesh(
+        new CylinderGeometry(radius, radius, s1 - s0, 36),
+        new MeshStandardMaterial({ color: lum < 0.12 ? 15131352 : 2303790, roughness: 0.55, metalness: 0.05 })
+      );
+      horn.quaternion.setFromUnitVectors(Y_AXIS, axis);
+      horn.position.copy(anchor).addScaledVector(axis, (s0 + s1) / 2);
+      horn.castShadow = true;
+      const screw = new Mesh(
+        new CylinderGeometry(radius * 0.36, radius * 0.36, s1 - s0 + 12e-4, 20),
+        new MeshStandardMaterial({ color: 13225686, roughness: 0.28, metalness: 1 })
+      );
+      horn.add(screw);
+      mesh.add(horn);
     }
     setRobot(parts, look = {}) {
       for (const m of this.meshes) {
         this.robot.remove(m);
-        m.traverse((o) => {
-          if (o.geometry) o.geometry.dispose();
-          if (o.material) {
-            if (o.material.map) o.material.map.dispose();
-            o.material.dispose();
-          }
-        });
+        disposeTree(m);
       }
+      this._clearTip();
       this.look = look || {};
+      const detail = this.look.detail || {};
       const decals = new Map((this.look.decals || []).map((d) => [d.part, d.kind]));
       this.meshes = parts.map((p) => {
-        const mesh = new Mesh(partGeometry(p.shape, p.size_m), this._material(p, this.look, decals));
+        const finish = finishOf(p, this.look);
+        const mesh = new Mesh(partGeometry(p.shape, p.size_m, finish), this._material(p, this.look, decals, finish));
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         mesh.name = p.name;
+        mesh.userData = { shape: p.shape, size: p.size_m, ground: (detail[p.name] || {}).ground };
         if (decals.has(p.name)) this._decorate(mesh, p, decals.get(p.name), this.look);
+        const d = detail[p.name];
+        if (d && d.anchor && d.axis) this._horn(mesh, p, d, mesh.material.color);
         this.robot.add(mesh);
         return mesh;
       });
       this.root = this.meshes[0];
-      this.tipping = false;
+      this.known = Object.keys(detail).length > 0;
     }
     setPose(frame) {
       if (!frame) return;
@@ -23712,85 +23733,172 @@ void main() {
         this.meshes[i].position.set(x, y, z);
         this.meshes[i].quaternion.set(qx, qy, qz, qw);
       }
-      this._updatePayload(frame);
+      this._afterPose();
+    }
+    // A pose between two recorded frames (k in 0..1), so replays stay smooth at any display rate and in
+    // slow motion.
+    setPoseBlend(a, b, k) {
+      if (!a) return;
+      if (!b || k <= 0) {
+        this.setPose(a);
+        return;
+      }
+      for (let i = 0; i < this.meshes.length && i < a.length && i < b.length; i++) {
+        const p = a[i], q = b[i];
+        this.meshes[i].position.set(p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k, p[2] + (q[2] - p[2]) * k);
+        this._qa.set(p[4], p[5], p[6], p[3]);
+        this._qb.set(q[4], q[5], q[6], q[3]);
+        this.meshes[i].quaternion.slerpQuaternions(this._qa, this._qb, k);
+      }
+      this._afterPose();
+    }
+    _afterPose() {
+      this._updatePayload();
+      if (this.tipLabel && this.tipPart) this._placeAbove(this.tipLabel, this.tipPart, 0.014);
       if (this.follow && this.root) this._track();
     }
-    // Red highlight on every part while ``on`` (the moment a run tips over).
-    setTip(on) {
-      if (on === this.tipping) return;
-      this.tipping = on;
-      for (const m of this.meshes) {
-        m.material.emissive = on ? TIP_RED : new Color(0);
-        m.material.emissiveIntensity = on ? 0.55 : 0;
-      }
-    }
-    _clearTerrain() {
-      while (this.terrain.children.length) {
-        const c = this.terrain.children.pop();
-        c.traverse((o) => {
-          if (o.geometry) o.geometry.dispose();
-          if (o.material) {
-            if (o.material.map) o.material.map.dispose();
-            o.material.dispose();
-          }
+    // The lowest and highest point of every part along x, y, z of the (possibly tilted) floor frame.
+    _bounds(meshes = this.meshes) {
+      const lo = new Vector3(Infinity, Infinity, Infinity);
+      const hi = new Vector3(-Infinity, -Infinity, -Infinity);
+      const inv = new Quaternion();
+      const d = new Vector3();
+      for (const m of meshes) {
+        inv.copy(m.quaternion).invert();
+        AXES.forEach((axis, i) => {
+          const h = support(m.userData.shape, m.userData.size, d.copy(axis).applyQuaternion(inv));
+          lo.setComponent(i, Math.min(lo.getComponent(i), m.position.getComponent(i) - h));
+          hi.setComponent(i, Math.max(hi.getComponent(i), m.position.getComponent(i) + h));
         });
       }
-      if (this.levelLine) {
-        this.world.remove(this.levelLine);
-        this.levelLine.geometry.dispose();
-        this.levelLine.material.dispose();
-        this.levelLine = null;
+      return { lo, hi };
+    }
+    _placeAbove(sprite, mesh, gap) {
+      const { hi } = this._bounds([mesh]);
+      sprite.position.set(mesh.position.x, mesh.position.y, hi.z + gap);
+    }
+    // 0: nothing. 1: the moment of the tip (strong red on the part that touches the floor, plus a label).
+    // 2: afterwards (the part stays faintly marked until the replay loops).
+    // ``why`` is the simulator's fall reason when the run has one ("part 'head' touched the floor", "root tilted
+    // more than 60 deg"); without it the stage works the part out from the pose.
+    setTip(phase, why = null) {
+      if (phase === this.tipPhase) return;
+      const was = this.tipPhase;
+      this.tipPhase = phase;
+      if (!phase) {
+        this._clearTip();
+        return;
       }
-      if (this.label) {
-        this.scene.remove(this.label);
-        this.label.material.map.dispose();
-        this.label.material.dispose();
-        this.label = null;
+      if (!was) this._markTip(why);
+      const strength = phase === 1 ? 0.7 : 0.3;
+      for (const m of this.tipMarked || []) m.material.emissiveIntensity = strength;
+    }
+    _markTip(why) {
+      let part = null;
+      let text = "tipped over";
+      const named = /'([^']+)' touched the floor/.exec(why || "");
+      const touched = named ? this.meshes.find((m) => m.name === named[1]) : null;
+      if (touched) {
+        part = touched;
+        text = `${part.name.replace(/_/g, " ")} touches the floor`;
+      } else if (/tilted more than/.test(why || "")) {
+        part = this.root;
+        text = "tilted past 60°";
+      } else if (this.known) {
+        let lowest = Infinity;
+        for (const m of this.meshes) {
+          if (m.userData.ground) continue;
+          const z = this._bounds([m]).lo.z;
+          if (z < lowest) {
+            lowest = z;
+            part = m;
+          }
+        }
+        if (part && lowest < 6e-3) text = `${part.name.replace(/_/g, " ")} touches the floor`;
+        else {
+          part = this.root;
+          text = "tilted past 60°";
+        }
+      }
+      this.tipMarked = part ? [part] : this.meshes;
+      for (const m of this.tipMarked) m.material.emissive = TIP_RED;
+      this.tipPart = part || this.root;
+      if (this.tipPart) {
+        this.tipLabel = textSprite(text, { bg: "rgba(214,40,28,0.94)" });
+        this.robot.add(this.tipLabel);
+        this._placeAbove(this.tipLabel, this.tipPart, 0.014);
+        this._fitLabels();
       }
     }
+    _clearTip() {
+      for (const m of this.tipMarked || []) {
+        m.material.emissive = BLACK;
+        m.material.emissiveIntensity = 0;
+      }
+      this.tipMarked = null;
+      this.tipPart = null;
+      this.tipPhase = 0;
+      if (this.tipLabel) {
+        this.robot.remove(this.tipLabel);
+        this.tipLabel.material.map.dispose();
+        this.tipLabel.material.dispose();
+        this.tipLabel = null;
+      }
+    }
+    // Labels keep their pixel size: scale each one for the current canvas height.
+    _fitLabels() {
+      const unit = 2 * Math.tan(this.camera.fov * Math.PI / 360) / Math.max(this.container.clientHeight, 10);
+      this.scene.traverse((o) => {
+        if (o.userData && o.userData.label) o.scale.set(o.userData.px * o.userData.aspect * unit, o.userData.px * unit, 1);
+      });
+    }
+    _label(text, at, opts = {}) {
+      const sprite = textSprite(text, opts);
+      sprite.position.copy(at);
+      this.terrain.add(sprite);
+      return sprite;
+    }
+    _clearTerrain() {
+      while (this.terrain.children.length) disposeTree(this.terrain.children.pop());
+      if (this.level) {
+        this.world.remove(this.level);
+        disposeTree(this.level);
+        this.level = null;
+      }
+      this.arrow = null;
+      this.payload = null;
+      this.payloadLabel = null;
+    }
+    // Dress the scene. Call after the robot has its first pose: sizes and positions follow the robot.
     setMeta(meta = {}) {
       this.meta = meta;
       this._clearTerrain();
+      const { lo, hi } = this.meshes.length ? this._bounds() : { lo: new Vector3(-0.1, -0.1, 0), hi: new Vector3(0.1, 0.1, 0.1) };
+      this._size = hi.clone().sub(lo).length();
+      const mid = lo.clone().add(hi).multiplyScalar(0.5);
       const tilt = (meta.tilt_deg || 0) * Math.PI / 180;
       this.tilt.rotation.y = -tilt;
       this.slick.visible = meta.floor === "slippery";
-      if (tilt) {
-        const ramp = new Mesh(new PlaneGeometry(1.2, 0.5), new MeshStandardMaterial({
-          map: rampTexture(this.dark),
-          transparent: true,
-          roughness: 0.85,
-          depthWrite: false
-        }));
-        ramp.position.set(0.3, 0, 4e-4);
-        this.terrain.add(ramp);
-        const up = new ArrowHelper(new Vector3(1, 0, 0), new Vector3(-0.05, -0.2, 2e-3), 0.4, 14263361, 0.05, 0.03);
-        this.terrain.add(up);
-        const level = new Line(
-          new BufferGeometry().setFromPoints([
-            new Vector3(-0.3, -0.25, 0),
-            new Vector3(0.9, -0.25, 0)
-          ]),
-          new LineDashedMaterial({
-            color: this.dark ? 16777215 : 2502716,
-            dashSize: 0.02,
-            gapSize: 0.015,
-            transparent: true,
-            opacity: 0.5
-          })
+      this.floor.visible = !tilt;
+      const ink = this.dark ? 16777215 : 2502716;
+      const near = lo.y - Math.max(0.035, this._size * 0.1);
+      if (tilt) this._ramp(tilt, meta.tilt_deg, lo, hi);
+      else if (meta.mark === "front") this._scaleMark(hi.x + Math.max(0.03, this._size * 0.1), mid.y + (hi.y - lo.y) * 0.3, ink, true);
+      else if (meta.mark !== "none") this._scaleMark(mid.x, near, ink);
+      if (meta.floor === "slippery") {
+        this.slick.position.set(mid.x, mid.y, 0);
+        const mu = typeof meta.friction === "number" ? ` · friction ${meta.friction.toFixed(2)}` : "";
+        this._label(
+          `slippery floor${mu}`,
+          new Vector3(hi.x + this._size * 0.16, mid.y + (hi.y - lo.y) * 0.25, 4e-3),
+          { color: "#bfe4ff" }
         );
-        level.computeLineDistances();
-        this.levelLine = level;
-        this.world.add(level);
-        this.labelAt = new Vector3(0.16, -0.13, 0.025);
-        this.label = textSprite(`${Math.round(meta.tilt_deg)}° ramp`, { color: "#ffd27a" });
-        this.scene.add(this.label);
       }
       for (const b of meta.boxes || []) {
         const [hx, hy, hz] = b.half;
-        const width = Math.min(hy, 0.18) * 2;
+        const width = Math.min(hy, Math.max(0.18, (hi.y - lo.y) * 0.9)) * 2;
         const bar = new Group();
-        const seg = 0.03;
-        const n = Math.max(2, Math.round(width / seg));
+        const n = Math.max(2, Math.round(width / 0.03));
         const yellow = new MeshStandardMaterial({ color: HAZARD_YELLOW, roughness: 0.55 });
         const black = new MeshStandardMaterial({ color: 1447964, roughness: 0.6 });
         for (let i = 0; i < n; i++) {
@@ -23804,81 +23912,216 @@ void main() {
         }
         bar.position.set(...b.center);
         this.terrain.add(bar);
-        this.labelAt = new Vector3(b.center[0] + 0.05, -0.16, hz * 2 + 0.012);
-        this.label = textSprite(`${Math.round(hz * 2 * 1e3) / 10} cm bar`, { color: HAZARD_YELLOW });
-        this.scene.add(this.label);
+        this._label(
+          `${Math.round(hz * 2 * 1e3) / 10} cm bar`,
+          new Vector3(b.center[0], -width / 2 - 0.02, hz * 2 + 8e-3),
+          { color: HAZARD_YELLOW }
+        );
       }
-      this.arrow = null;
       if (meta.push) {
         const v = meta.push.vector || [1, 0];
         const dir = new Vector3(v[0], v[1], 0).normalize();
-        this.arrow = new ArrowHelper(dir, new Vector3(), 0.12, 16734799, 0.04, 0.025);
-        this.arrow.visible = false;
-        this.terrain.add(this.arrow);
+        const len = Math.max(0.07, this._size * 0.32);
+        const mat = new MeshStandardMaterial({ color: 16734799, roughness: 0.4, emissive: 16734799, emissiveIntensity: 0.25 });
+        const arrow = new Group();
+        const shaft = new Mesh(new CylinderGeometry(len * 0.07, len * 0.07, len * 0.66, 20), mat);
+        shaft.position.y = len * 0.33;
+        const head = new Mesh(new ConeGeometry(len * 0.17, len * 0.34, 28), mat);
+        head.position.y = len * 0.83;
+        arrow.add(shaft, head);
+        arrow.quaternion.setFromUnitVectors(Y_AXIS, dir);
+        arrow.userData = { dir, len };
+        arrow.visible = false;
+        shaft.castShadow = head.castShadow = true;
+        this.arrow = arrow;
+        this.terrain.add(arrow);
+        const level = meta.push.level;
+        this.arrowLabel = this._label(level != null ? `push ${level}× weight` : "push", new Vector3(), { color: "#ffd0cb" });
+        this.arrowLabel.visible = false;
       }
-      this.payload = null;
       if (meta.payload && meta.payload.part) {
-        const r = 8e-3 + Math.cbrt(Math.max(meta.payload.grams, 1)) * 22e-4;
+        const side = 0.012 + Math.cbrt(Math.max(meta.payload.grams, 1)) * 34e-4;
         this.payload = new Mesh(
-          new SphereGeometry(r, 24, 16),
-          new MeshStandardMaterial({ color: 8161174, roughness: 0.3, metalness: 0.6 })
+          new RoundedBoxGeometry(side, side, side, 3, side * 0.12),
+          new MeshStandardMaterial({ color: 8884898, roughness: 0.32, metalness: 0.75 })
         );
         this.payload.castShadow = true;
+        this.payload.userData = { side };
         this.payloadIndex = this.meshes.findIndex((m) => m.name === meta.payload.part);
         this.terrain.add(this.payload);
+        this.payloadLabel = this._label(`${meta.payload.grams} g payload`, new Vector3(), { color: "#e3e8ef" });
+        this._updatePayload();
       }
-      this._placeLabel();
+      this._fitLabels();
     }
-    _placeLabel() {
-      if (!this.label || !this.labelAt) return;
-      this.scene.updateMatrixWorld(true);
-      this.label.position.copy(this.labelAt.clone().applyMatrix4(this.tilt.matrixWorld));
+    // A 10 cm scale mark on the floor beside the robot (or, ``across``, in front of it).
+    _scaleMark(x, y, ink, across = false) {
+      const mat = new MeshBasicMaterial({ color: ink, transparent: true, opacity: this.dark ? 0.8 : 0.75, depthWrite: false });
+      const mark = new Group();
+      const bar = new Mesh(new PlaneGeometry(0.1, 24e-4), mat);
+      const a = new Mesh(new PlaneGeometry(24e-4, 0.012), mat);
+      const b = new Mesh(new PlaneGeometry(24e-4, 0.012), mat);
+      a.position.x = -0.05;
+      b.position.x = 0.05;
+      mark.add(bar, a, b);
+      mark.position.set(x, y, 14e-4);
+      if (across) mark.rotation.z = Math.PI / 2;
+      this.terrain.add(mark);
+      const label = textSprite("10 cm", {
+        px: 15,
+        color: this.dark ? "#ffffff" : "#1d2733",
+        bg: this.dark ? "rgba(20,22,28,0.62)" : "rgba(255,255,255,0.78)"
+      });
+      label.position.set(x, y, 5e-3);
+      this.terrain.add(label);
+    }
+    // The ramp: a wedge on a level floor. Its top is the tilted floor the robot stands on; the side wall
+    // facing the camera carries the angle (a level line, an arc and the number).
+    _ramp(tilt, degrees, lo, hi) {
+      const length = hi.x - lo.x;
+      const x0 = lo.x - Math.max(0.24, length * 0.9);
+      const x1 = hi.x + Math.max(0.7, length * 2.2);
+      const half = Math.max(0.2, (hi.y - lo.y) * 0.5 + 0.1);
+      const cx = (lo.y + hi.y) / 2;
+      const top = new Mesh(
+        new PlaneGeometry(x1 - x0, half * 2),
+        new MeshStandardMaterial({ map: rampTexture(x1 - x0, half * 2), roughness: 0.86 })
+      );
+      top.position.set((x0 + x1) / 2, cx, -2e-4);
+      top.receiveShadow = true;
+      this.terrain.add(top);
+      this._scaleMark((lo.x + hi.x) / 2, lo.y - Math.min(0.05, (half - (hi.y - lo.y) / 2) * 0.5), 3813144);
+      const c = Math.cos(tilt), s = Math.sin(tilt);
+      const level = new Group();
+      const [ax, az] = [x0 * c, x0 * s];
+      const [bx, bz] = [x1 * c, x1 * s];
+      const y0 = cx - half, y1 = cx + half;
+      const wedge = new BufferGeometry();
+      wedge.setAttribute("position", new Float32BufferAttribute([
+        ax,
+        y0,
+        az,
+        bx,
+        y0,
+        az,
+        bx,
+        y0,
+        bz,
+        // side facing the camera (-y)
+        ax,
+        y1,
+        az,
+        bx,
+        y1,
+        bz,
+        bx,
+        y1,
+        az,
+        // far side
+        bx,
+        y0,
+        az,
+        bx,
+        y1,
+        az,
+        bx,
+        y1,
+        bz,
+        bx,
+        y0,
+        az,
+        bx,
+        y1,
+        bz,
+        bx,
+        y0,
+        bz
+        // the tall end
+      ], 3));
+      wedge.computeVertexNormals();
+      level.add(new Mesh(wedge, new MeshStandardMaterial({ color: RAMP_SIDE, roughness: 0.9, side: DoubleSide })));
+      const floor = this._makeFloor();
+      floor.group.position.set((lo.x + hi.x) / 2 * c, cx, az - 4e-4);
+      level.add(floor.group);
+      const px2 = Math.max(x0 + 0.02, lo.x - Math.max(0.05, length * 0.3));
+      const r = Math.min(0.2, Math.max(0.1, length * 0.7));
+      const wall = y0 - 8e-4;
+      const dark = new MeshBasicMaterial({ color: 2827286, side: DoubleSide });
+      const sector = new Mesh(new CircleGeometry(r, 40, 0, tilt), new MeshBasicMaterial({
+        color: 2827286,
+        transparent: true,
+        opacity: 0.2,
+        side: DoubleSide
+      }));
+      sector.rotation.x = Math.PI / 2;
+      sector.position.set(px2 * c, wall, px2 * s);
+      const arc = new Mesh(new RingGeometry(r - 3e-3, r, 40, 1, 0, tilt), dark);
+      arc.rotation.x = Math.PI / 2;
+      arc.position.copy(sector.position);
+      const line = new Mesh(new PlaneGeometry(r * 1.25, 3e-3), dark);
+      line.rotation.x = Math.PI / 2;
+      line.position.set(px2 * c + r * 0.625, wall, px2 * s);
+      level.add(sector, arc, line);
+      const label = textSprite(`${Math.round(degrees)}° ramp`, { color: "#ffd27a", px: 22 });
+      label.position.set(px2 * c + r * 1.45 * Math.cos(tilt / 2), wall - 0.01, px2 * s + r * 1.45 * Math.sin(tilt / 2) - 0.02);
+      level.add(label);
+      this.level = level;
+      this.world.add(level);
     }
     setTime(t) {
       if (!this.arrow || !this.meta.push || !this.root) return;
       const p = this.meta.push;
-      const on = t >= p.at_s - 0.05 && t <= p.at_s + Math.max(p.duration_s, 0.5);
+      const on = t >= p.at_s - 0.05 && t <= p.at_s + Math.max(p.duration_s, 0.6);
       this.arrow.visible = on;
+      this.arrowLabel.visible = on;
       if (on) {
-        const dir = new Vector3(p.vector[0], p.vector[1], 0).normalize();
-        this.arrow.position.copy(this.root.position.clone().addScaledVector(dir, -0.16));
+        const { dir, len } = this.arrow.userData;
+        const { lo, hi } = this._bounds();
+        const reach = Math.abs(dir.x) * (hi.x - lo.x) / 2 + Math.abs(dir.y) * (hi.y - lo.y) / 2;
+        const height = (lo.z + hi.z) / 2;
+        const tail = new Vector3((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, height).addScaledVector(dir, -(reach + len + 0.012));
+        this.arrow.position.copy(tail);
+        this.arrowLabel.position.copy(tail).add(new Vector3(0, 0, len * 0.25));
       }
     }
-    _updatePayload(frame) {
+    _updatePayload() {
       if (!this.payload || this.payloadIndex < 0) return;
-      const [x, y, z] = frame[this.payloadIndex];
-      this.payload.position.set(x, y, z - 0.025);
+      const m = this.meshes[this.payloadIndex];
+      const { lo } = this._bounds([m]);
+      const side = this.payload.userData.side;
+      this.payload.position.set(m.position.x, m.position.y, Math.max(lo.z - side / 2 + 2e-3, side / 2));
+      this.payloadLabel.position.set(m.position.x, m.position.y, this._bounds([m]).hi.z + 0.012);
     }
-    _robotBox() {
-      const box = new Box3();
-      for (const m of this.meshes) box.expandByObject(m);
-      return box;
+    setTurntable(on) {
+      this.controls.autoRotate = !!on && !this.userMoved;
     }
-    // Aim the camera at the robot. ``fit`` also chooses the distance (first frame or "reset view").
-    frame(fit = true, { distance = 2.35, azimuth = [0.78, 0.5, 0.72] } = {}) {
+    // Aim the camera at the robot. ``fit`` also chooses the distance and the side (first frame, "reset view").
+    frame(fit = true, { distance = null, azimuth = null } = {}) {
+      if (!this.meshes.length) return;
       this.scene.updateMatrixWorld(true);
-      const box = this._robotBox();
-      if (box.isEmpty()) return;
-      const center = box.getCenter(new Vector3());
-      const size = box.getSize(new Vector3()).length();
+      const { lo, hi } = this._bounds();
+      const size = hi.clone().sub(lo).length();
       this._size = size;
+      const center = this.tilt.localToWorld(lo.clone().add(hi).multiplyScalar(0.5));
+      const ramp = !!this.meta.tilt_deg;
       center.y *= 0.85;
+      if (ramp) center.y -= size * 0.16;
       this.controls.target.copy(center);
       if (fit) {
-        const dist = Math.max(size * distance, 0.3);
-        const dir = new Vector3(...azimuth).normalize();
+        const v = this.camera.fov * Math.PI / 360;
+        const h = Math.atan(Math.tan(v) * this.camera.aspect);
+        const k = Math.sin(v) / Math.sin(Math.min(v, h));
+        const dist = Math.max(size * (distance || (ramp ? 2.75 : 2.15)) * k, 0.3);
+        const dir = new Vector3(...azimuth || (ramp ? VIEW_SIDE : VIEW_FRONT)).normalize();
         this.camera.position.copy(center).addScaledVector(dir, dist);
         this.userMoved = false;
       }
       this._aimLight(center, size);
-      this._placeLabel();
       this.controls.update();
     }
     _track() {
-      this.scene.updateMatrixWorld(true);
-      const box = this._robotBox();
-      if (box.isEmpty()) return;
-      const p = box.getCenter(new Vector3());
+      const { lo, hi } = this._bounds();
+      const p = this.tilt.localToWorld(lo.clone().add(hi).multiplyScalar(0.5));
       p.y = this.controls.target.y + (p.y - this.controls.target.y) * 0.3;
       const step = p.sub(this.controls.target).multiplyScalar(0.12);
       this.controls.target.add(step);
@@ -23902,6 +24145,7 @@ void main() {
       this.renderer.setSize(w, h, false);
       this.camera.aspect = w / h;
       this.camera.updateProjectionMatrix();
+      this._fitLabels();
     }
     renderNow() {
       this.controls.update();
@@ -23912,14 +24156,9 @@ void main() {
       cancelAnimationFrame(this._raf);
       this._resize.disconnect();
       this.controls.dispose();
+      this._clearTip();
       this._clearTerrain();
-      this.scene.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) {
-          if (o.material.map) o.material.map.dispose();
-          o.material.dispose();
-        }
-      });
+      disposeTree(this.scene);
       if (this.envMap) this.envMap.dispose();
       this.renderer.dispose();
       this.renderer.forceContextLoss();
@@ -23928,6 +24167,7 @@ void main() {
   };
 
   // src/viewer.jsx
+  var TIP_FLASH_S = 0.8;
   function tipTime(trace, result) {
     if (!trace || !result || !result.fell) return null;
     if (result.fell_at_s != null) return result.fell_at_s;
@@ -23938,21 +24178,31 @@ void main() {
     }
     return (trace.frames.length - 1) / trace.fps;
   }
+  function tipMarks(...runs) {
+    const marks = [];
+    for (const [trace, result, label] of runs) {
+      const t = tipTime(trace, result);
+      if (t != null && !marks.some((m) => Math.abs(m.t - t) < 0.02)) marks.push({ t, label: label || "tips", tone: "red" });
+    }
+    return marks;
+  }
   function Viewer3D({
     parts,
     frames,
     pose,
     meta,
     look,
-    frameIndex = 0,
     time = 0,
+    fps = 30,
     label,
     sublabel,
     tone,
     height = 340,
     interactive = true,
     onStage,
-    tipAt = null
+    tipAt = null,
+    tipWhy = null,
+    turntable = false
   }) {
     const box = useRef(null);
     const stage = useRef(null);
@@ -23974,17 +24224,22 @@ void main() {
       const s = stage.current;
       if (!s || !parts) return;
       s.setRobot(parts, look || {});
-      s.setMeta(meta || {});
       s.setPose(frames ? frames[0] : pose);
+      s.setMeta(meta || {});
       s.frame(true);
     }, [parts, meta, frames, pose, look]);
     useEffect(() => {
       const s = stage.current;
       if (!s || !frames || !frames.length) return;
-      s.setPose(frames[Math.min(frameIndex, frames.length - 1)]);
+      const f = Math.max(0, Math.min(frames.length - 1, time * fps));
+      const i = Math.floor(f);
+      s.setPoseBlend(frames[i], frames[Math.min(i + 1, frames.length - 1)], f - i);
       s.setTime(time);
-      s.setTip(tipAt != null && time >= tipAt && time < tipAt + 0.8);
-    }, [frameIndex, time, frames, tipAt]);
+      s.setTip(tipAt != null && time >= tipAt ? time < tipAt + TIP_FLASH_S ? 1 : 2 : 0, tipWhy);
+    }, [time, frames, tipAt, tipWhy, fps]);
+    useEffect(() => {
+      if (stage.current) stage.current.setTurntable(turntable && !frames);
+    }, [turntable, frames, parts]);
     return /* @__PURE__ */ jsxs("div", { className: "tb-viewer", style: { height }, children: [
       /* @__PURE__ */ jsx("div", { className: "tb-viewer-canvas", ref: box }),
       /* @__PURE__ */ jsx("div", { className: "tb-viewer-tag", children: "SIMULATION" }),
@@ -24003,8 +24258,19 @@ void main() {
           type: "button",
           className: "tb-viewer-reset",
           title: "Reset view",
+          "aria-label": "Reset view",
           onClick: () => stage.current && stage.current.frame(true),
-          children: "⟲"
+          children: /* @__PURE__ */ jsx("svg", { viewBox: "0 0 16 16", width: "14", height: "14", "aria-hidden": "true", children: /* @__PURE__ */ jsx(
+            "path",
+            {
+              d: "M3 8a5 5 0 1 0 1.6-3.7M3 2.5v2.3h2.3",
+              fill: "none",
+              stroke: "currentColor",
+              strokeWidth: "1.6",
+              strokeLinecap: "round",
+              strokeLinejoin: "round"
+            }
+          ) })
         }
       ),
       error ? /* @__PURE__ */ jsx("div", { className: "tb-viewer-error", children: error }) : null
@@ -24044,13 +24310,11 @@ void main() {
     }, []);
     return { t: Math.min(t, duration || 0), playing, setPlaying, rate, setRate, seek, duration };
   }
-  function frameAt(trace, t) {
-    if (!trace) return 0;
-    return Math.max(0, Math.min(trace.frames.length - 1, Math.floor(t * trace.fps)));
-  }
+  var RATES = [0.25, 0.5, 1, 2];
   function Timeline({ player, marks = [] }) {
     const { t, playing, setPlaying, rate, setRate, seek, duration } = player;
     if (!duration) return null;
+    const at = (v) => `${Math.min(Math.max(v, 0), duration) / duration * 100}%`;
     return /* @__PURE__ */ jsxs("div", { className: "tb-timeline", children: [
       /* @__PURE__ */ jsx(
         "button",
@@ -24059,46 +24323,52 @@ void main() {
           className: "tb-icon-btn",
           onClick: () => setPlaying(!playing),
           "aria-label": playing ? "Pause" : "Play",
-          children: playing ? "❚❚" : "▶"
+          children: /* @__PURE__ */ jsx("svg", { viewBox: "0 0 12 12", width: "12", height: "12", "aria-hidden": "true", children: playing ? /* @__PURE__ */ jsx("path", { d: "M2.5 1.5h2.4v9H2.5zM7.1 1.5h2.4v9H7.1z", fill: "currentColor" }) : /* @__PURE__ */ jsx("path", { d: "M3 1.3v9.4L10.4 6z", fill: "currentColor" }) })
         }
       ),
       /* @__PURE__ */ jsxs("div", { className: "tb-scrub", children: [
+        /* @__PURE__ */ jsx("div", { className: "tb-scrub-track", children: /* @__PURE__ */ jsx("div", { className: "tb-scrub-fill", style: { width: at(t) } }) }),
+        marks.map((m) => /* @__PURE__ */ jsx("span", { className: "tb-mark tb-mark-" + (m.tone || "accent"), style: { left: at(m.t) }, children: /* @__PURE__ */ jsx("i", { children: m.label }) }, m.label + m.t)),
         /* @__PURE__ */ jsx(
           "input",
           {
             type: "range",
             min: 0,
             max: duration,
-            step: 1 / 60,
+            step: 1 / 120,
             value: t,
+            "aria-label": "Replay position",
             onChange: (e) => {
               setPlaying(false);
               seek(parseFloat(e.target.value));
             }
           }
-        ),
-        marks.map((m) => /* @__PURE__ */ jsx(
-          "span",
-          {
-            className: "tb-mark",
-            title: m.label,
-            style: { left: `${Math.min(m.t, duration) / duration * 100}%` }
-          },
-          m.label
-        ))
+        )
       ] }),
       /* @__PURE__ */ jsxs("span", { className: "tb-time", children: [
         t.toFixed(2),
-        " / ",
-        duration.toFixed(2),
-        " s"
+        " ",
+        /* @__PURE__ */ jsxs("small", { children: [
+          "/ ",
+          duration.toFixed(2),
+          " s"
+        ] })
       ] }),
-      /* @__PURE__ */ jsxs("select", { className: "tb-select tb-select-sm", value: rate, onChange: (e) => setRate(parseFloat(e.target.value)), children: [
-        /* @__PURE__ */ jsx("option", { value: 0.25, children: "0.25×" }),
-        /* @__PURE__ */ jsx("option", { value: 0.5, children: "0.5×" }),
-        /* @__PURE__ */ jsx("option", { value: 1, children: "1×" }),
-        /* @__PURE__ */ jsx("option", { value: 2, children: "2×" })
-      ] })
+      /* @__PURE__ */ jsx("div", { className: "tb-seg tb-rates", role: "group", "aria-label": "Playback speed", children: RATES.map((r) => /* @__PURE__ */ jsxs(
+        "button",
+        {
+          type: "button",
+          className: "tb-seg-btn" + (rate === r ? " tb-active" : ""),
+          "aria-pressed": rate === r,
+          title: r < 1 ? "Slow motion" : r > 1 ? "Fast" : "Real time",
+          onClick: () => setRate(r),
+          children: [
+            r,
+            "×"
+          ]
+        },
+        r
+      )) })
     ] });
   }
   function traceDuration(...traces) {
@@ -24304,18 +24574,20 @@ void main() {
               parts: tr ? tr.parts : rest.parts,
               frames: tr ? tr.frames : null,
               pose: tr ? null : restPose,
+              fps: tr ? tr.fps : 30,
               meta: trace && trace.ok ? trace.meta : null,
               look: detail.look,
               tipAt: tr ? tipTime(tr, trace.result) : null,
-              frameIndex: frameAt(tr, player.t),
+              tipWhy: tr ? trace.result.fall_reason : null,
               time: player.t,
+              turntable: true,
               label: playing ? `move: ${playing}` : "showcase pose",
               sublabel: tr ? trace.result.fell ? `tipped at ${trace.result.fell_at_s?.toFixed(2)} s` : "nominal world, stays up" : "standing on the floor",
               tone: tr ? trace.result.fell ? "red" : "green" : null,
-              height: 420
+              height: 440
             }
           ),
-          tr ? /* @__PURE__ */ jsx(Timeline, { player }) : null,
+          tr ? /* @__PURE__ */ jsx(Timeline, { player, marks: tipMarks([tr, trace.result]) }) : null,
           traceLoading ? /* @__PURE__ */ jsxs("div", { className: "tb-overlay-note", children: [
             /* @__PURE__ */ jsx("span", { className: "tb-spinner" }),
             " simulating ",
@@ -24367,7 +24639,7 @@ void main() {
               ] })
             ] }),
             /* @__PURE__ */ jsxs("div", { className: "tb-row tb-gap-sm", children: [
-              /* @__PURE__ */ jsx(Button, { onClick: () => setPlaying(m.name), children: "▶ Simulate" }),
+              /* @__PURE__ */ jsx(Button, { onClick: () => setPlaying(m.name), children: "Simulate" }),
               /* @__PURE__ */ jsx(Button, { onClick: () => go("check", robot, m.name), children: "Check" })
             ] })
           ] }, m.name)) }),
@@ -24389,6 +24661,16 @@ void main() {
   }
 
   // src/views/bench.jsx
+  var SCORED = /* @__PURE__ */ new Set(["green", "amber", "red"]);
+  function TileHead({ card, st }) {
+    return /* @__PURE__ */ jsxs("div", { className: "tb-tile-top", children: [
+      /* @__PURE__ */ jsx("span", { className: "tb-tile-title", children: card.title }),
+      /* @__PURE__ */ jsxs("span", { className: "tb-tile-status tb-tone-" + st.tone, children: [
+        /* @__PURE__ */ jsx("span", { className: "tb-dot tb-fill-" + st.tone }),
+        SCORED.has(st.tone) ? st.label : null
+      ] })
+    ] });
+  }
   function Tile({ card, active, onClick, quick }) {
     const st = STATUS[card.status] || STATUS["n/a"];
     const m = card.metric || {};
@@ -24396,28 +24678,41 @@ void main() {
     const isMove = card.id.startsWith("move:");
     if (scoped && isMove) {
       const falls = card.runs - card.passed;
-      return /* @__PURE__ */ jsxs("button", { type: "button", className: `tb-tile tb-tile-${st.tone}${active ? " tb-active" : ""}`, onClick, children: [
-        /* @__PURE__ */ jsxs("div", { className: "tb-tile-top", children: [
-          /* @__PURE__ */ jsx("span", { className: "tb-tile-title", children: card.title }),
-          /* @__PURE__ */ jsx("span", { className: "tb-dot tb-fill-" + st.tone })
-        ] }),
-        /* @__PURE__ */ jsx("div", { className: "tb-tile-big", children: pct(falls / card.runs) }),
-        /* @__PURE__ */ jsxs("div", { className: "tb-tile-sub", children: [
-          "tipped in ",
-          falls,
-          "/",
-          card.runs,
-          " ",
-          quick ? "quick " : "",
-          "preflight worlds"
-        ] }),
-        /* @__PURE__ */ jsxs("div", { className: "tb-tile-metric", children: [
-          "median ",
-          human(card.id, m.median)
-        ] }),
-        /* @__PURE__ */ jsx("div", { className: "tb-tile-worst", children: m.worst && m.worst.reason ? `worst: ${m.worst.reason}` : "never tipped" })
-      ] });
+      return /* @__PURE__ */ jsxs(
+        "button",
+        {
+          type: "button",
+          className: `tb-tile tb-tile-${st.tone}${active ? " tb-active" : ""}`,
+          onClick,
+          "aria-pressed": active,
+          children: [
+            /* @__PURE__ */ jsx(TileHead, { card, st }),
+            /* @__PURE__ */ jsxs("div", { className: "tb-tile-big", children: [
+              pct(falls / card.runs),
+              /* @__PURE__ */ jsx("small", { children: "tip chance" })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "tb-tile-sub", children: [
+              "tipped in ",
+              falls,
+              " of ",
+              card.runs,
+              " ",
+              quick ? "quick " : "",
+              "preflight worlds"
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "tb-tile-metric", children: [
+              "median: ",
+              /* @__PURE__ */ jsx("b", { children: human(card.id, m.median) })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "tb-tile-worst", children: [
+              "worst: ",
+              m.worst && m.worst.reason ? m.worst.reason : "never tipped"
+            ] })
+          ]
+        }
+      );
     }
+    const worst = m.worst || {};
     return /* @__PURE__ */ jsxs(
       "button",
       {
@@ -24425,15 +24720,17 @@ void main() {
         className: `tb-tile tb-tile-${st.tone}${active ? " tb-active" : ""}`,
         onClick,
         disabled: !scoped,
+        "aria-pressed": scoped ? active : void 0,
         children: [
-          /* @__PURE__ */ jsxs("div", { className: "tb-tile-top", children: [
-            /* @__PURE__ */ jsx("span", { className: "tb-tile-title", children: card.title }),
-            /* @__PURE__ */ jsx("span", { className: "tb-dot tb-fill-" + st.tone })
-          ] }),
+          /* @__PURE__ */ jsx(TileHead, { card, st }),
           scoped ? /* @__PURE__ */ jsxs(Fragment2, { children: [
-            /* @__PURE__ */ jsx("div", { className: "tb-tile-big", children: pct(card.pass_rate) }),
+            /* @__PURE__ */ jsxs("div", { className: "tb-tile-big", children: [
+              pct(card.pass_rate),
+              /* @__PURE__ */ jsx("small", { children: "pass" })
+            ] }),
             /* @__PURE__ */ jsxs("div", { className: "tb-tile-sub", children: [
-              "pass · ",
+              card.passed,
+              " of ",
               card.runs,
               " worlds"
             ] }),
@@ -24443,11 +24740,11 @@ void main() {
             ] }),
             /* @__PURE__ */ jsxs("div", { className: "tb-tile-worst", children: [
               "worst: ",
-              m.worst && m.worst.value != null ? human(card.id, m.worst.value, m.unit) : m.worst && m.worst.reason || "–"
+              worst.value != null ? human(card.id, worst.value, m.unit) : worst.reason || (card.id === "push" ? "no tip" : "–")
             ] })
           ] }) : /* @__PURE__ */ jsxs(Fragment2, { children: [
             /* @__PURE__ */ jsx("div", { className: "tb-tile-scope", children: st.label }),
-            /* @__PURE__ */ jsx("div", { className: "tb-tile-note", children: card.status === "out_of_scope" ? "not scored" : card.note || "does not apply" })
+            /* @__PURE__ */ jsx("div", { className: "tb-tile-note", children: card.status === "out_of_scope" ? "not scored" : (card.note || "does not apply").replace(/_/g, " ") })
           ] })
         ]
       }
@@ -24461,7 +24758,7 @@ void main() {
     const b = worst[0] && worst[0].ok ? worst[0] : null;
     const player = usePlayer(traceDuration(a && a.trace, b && b.trace));
     const view = (d, title, loading) => {
-      if (loading || !d) return /* @__PURE__ */ jsxs("div", { className: "tb-viewer tb-viewer-wait", style: { height: 320 }, children: [
+      if (loading || !d) return /* @__PURE__ */ jsxs("div", { className: "tb-viewer tb-viewer-wait", style: { height: 340 }, children: [
         /* @__PURE__ */ jsx("span", { className: "tb-spinner" }),
         " recording ",
         title,
@@ -24473,18 +24770,23 @@ void main() {
         {
           parts: d.trace.parts,
           frames: d.trace.frames,
+          fps: d.trace.fps,
           meta: d.meta,
           look: d.look,
           tipAt: tipTime(d.trace, r),
-          frameIndex: frameAt(d.trace, player.t),
+          tipWhy: r.reason,
           time: player.t,
-          height: 320,
+          height: 340,
           label: `${title} · world ${d.seed}`,
           sublabel: (r.passed ? "passed" : r.reason || "failed") + (d.note ? ` · ${d.note}` : ""),
           tone: r.passed ? "green" : "red"
         }
       );
     };
+    const marks = [
+      ...a && a.meta && a.meta.push ? [{ t: a.meta.push.at_s, label: "push", tone: "accent" }] : [],
+      ...tipMarks([a && a.trace, a && a.result, "median tips"], [b && b.trace, b && b.result, "worst tips"])
+    ];
     return /* @__PURE__ */ jsxs("div", { className: "tb-card", children: [
       /* @__PURE__ */ jsxs("div", { className: "tb-card-head", children: [
         /* @__PURE__ */ jsxs("h3", { children: [
@@ -24497,12 +24799,15 @@ void main() {
         view(a, "median", median[1]),
         view(b, "worst", worst[1])
       ] }),
-      /* @__PURE__ */ jsx(Timeline, { player, marks: a && a.meta && a.meta.push ? [{ t: a.meta.push.at_s, label: "push" }] : [] }),
-      /* @__PURE__ */ jsx("div", { className: "tb-row tb-wrap tb-gap-sm", children: Object.entries(card.failure_reasons || {}).map(([k, v]) => /* @__PURE__ */ jsxs(Chip, { tone: "red", children: [
-        k,
-        " × ",
-        v
-      ] }, k)) }),
+      /* @__PURE__ */ jsx(Timeline, { player, marks }),
+      Object.keys(card.failure_reasons || {}).length ? /* @__PURE__ */ jsxs("div", { className: "tb-row tb-wrap tb-gap-sm", children: [
+        /* @__PURE__ */ jsx("span", { className: "tb-muted", children: "why runs failed:" }),
+        Object.entries(card.failure_reasons).map(([k, v]) => /* @__PURE__ */ jsxs(Chip, { tone: "red", children: [
+          k,
+          " × ",
+          v
+        ] }, k))
+      ] }) : null,
       /* @__PURE__ */ jsx(ErrorBox, { data: median[0] })
     ] });
   }
@@ -24521,9 +24826,14 @@ void main() {
         /* @__PURE__ */ jsx("h3", { children: "Servo load" }),
         /* @__PURE__ */ jsx(Chip, { children: "estimate" })
       ] }),
-      /* @__PURE__ */ jsx("p", { className: "tb-muted tb-small", children: "Highest peak per joint across in-scope scenes, as % of datasheet stall torque. Stall torque is not a safe continuous torque." }),
-      rows.map(([j, v]) => /* @__PURE__ */ jsx(Bar, { label: j, value: v.peak, mark: 90, right: `${v.peak.toFixed(0)}%`, note: v.where }, j))
+      /* @__PURE__ */ jsx("p", { className: "tb-muted tb-small", children: "Highest peak per joint across in-scope scenes, as % of datasheet stall torque. Stall torque is not a safe continuous torque. The mark is at 90%." }),
+      rows.map(([j, v]) => /* @__PURE__ */ jsx(Bar, { label: j, value: v.peak, mark: 90, right: `${v.peak.toFixed(0)}%`, note: `peak in: ${v.where}` }, j))
     ] });
+  }
+  function Summary({ text }) {
+    const lines = (text || "").split(/(?<=[.!?])\s+(?=[A-Z])/).filter(Boolean);
+    if (lines.length < 2) return /* @__PURE__ */ jsx("p", { className: "tb-lead", children: text });
+    return /* @__PURE__ */ jsx("ul", { className: "tb-summary-list", children: lines.map((l) => /* @__PURE__ */ jsx("li", { children: l }, l)) });
   }
   function BenchPage({ robot }) {
     const [data, loading, reload] = useApi(robot ? `/robots/${robot}/report` : null);
@@ -24554,13 +24864,16 @@ void main() {
       data && !data.ok ? /* @__PURE__ */ jsxs(Empty, { children: [
         "No report for ",
         robot,
-        " yet. Start a quick run."
+        " yet. Start a quick run: it takes well under a minute."
       ] }) : null,
       report ? /* @__PURE__ */ jsxs(Fragment2, { children: [
         /* @__PURE__ */ jsxs("div", { className: "tb-card tb-summary", children: [
           /* @__PURE__ */ jsxs("div", { className: "tb-card-head", children: [
-            /* @__PURE__ */ jsx("h3", { children: "Summary" }),
-            /* @__PURE__ */ jsxs("div", { className: "tb-row tb-gap-sm", children: [
+            /* @__PURE__ */ jsxs("h3", { children: [
+              report.robot && report.robot.title ? report.robot.title : robot,
+              ": summary"
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "tb-row tb-gap-sm tb-wrap", children: [
               ["green", "amber", "red", "out_of_scope", "n/a"].filter((k) => counts[k]).map((k) => /* @__PURE__ */ jsxs(Chip, { tone: STATUS[k].tone, children: [
                 counts[k],
                 " ",
@@ -24569,13 +24882,14 @@ void main() {
               report.settings.quick ? /* @__PURE__ */ jsx(Chip, { tone: "amber", children: "quick run" }) : null,
               /* @__PURE__ */ jsxs(Chip, { children: [
                 report.settings.worlds,
-                " worlds/scene · moves ",
-                report.settings.move_worlds || 60
+                " worlds per scene · ",
+                report.settings.move_worlds || 60,
+                " per move"
               ] }),
-              /* @__PURE__ */ jsx(Chip, { children: report.origin })
+              report.origin ? /* @__PURE__ */ jsx(Chip, { children: report.origin }) : null
             ] })
           ] }),
-          /* @__PURE__ */ jsx("p", { className: "tb-lead", children: report.summary }),
+          /* @__PURE__ */ jsx(Summary, { text: report.summary }),
           /* @__PURE__ */ jsx("p", { className: "tb-muted tb-small", children: report.label })
         ] }),
         /* @__PURE__ */ jsx("div", { className: "tb-tiles", children: cards.map((c) => /* @__PURE__ */ jsx(
@@ -24626,10 +24940,10 @@ void main() {
   function Delta({ d }) {
     if (d == null) return null;
     const pts = Math.round(d * 100);
-    if (!pts) return /* @__PURE__ */ jsx("span", { className: "tb-delta", children: "±0" });
-    return /* @__PURE__ */ jsxs("span", { className: "tb-delta " + (pts > 0 ? "tb-up" : "tb-down"), children: [
-      pts > 0 ? "+" : "",
-      pts,
+    if (!pts) return /* @__PURE__ */ jsx("span", { className: "tb-delta", title: "same pass rate as the base design", children: "= same" });
+    return /* @__PURE__ */ jsxs("span", { className: "tb-delta " + (pts > 0 ? "tb-up" : "tb-down"), title: "pass rate against the base design, in percentage points", children: [
+      pts > 0 ? "▲ +" : "▼ −",
+      Math.abs(pts),
       " pts"
     ] });
   }
@@ -24699,7 +25013,7 @@ void main() {
       ] }),
       /* @__PURE__ */ jsx("div", { className: "tb-grid-views tb-views-" + Math.min(names.length, 3), children: names.map((n, i) => {
         const d = ok[i];
-        if (!d) return /* @__PURE__ */ jsxs("div", { className: "tb-viewer tb-viewer-wait", style: { height: 300 }, children: [
+        if (!d) return /* @__PURE__ */ jsxs("div", { className: "tb-viewer tb-viewer-wait", style: { height: 320 }, children: [
           /* @__PURE__ */ jsx("span", { className: "tb-spinner" }),
           " ",
           n,
@@ -24711,12 +25025,13 @@ void main() {
           {
             parts: d.trace.parts,
             frames: d.trace.frames,
+            fps: d.trace.fps,
             meta: d.meta,
             look: d.look,
             tipAt: tipTime(d.trace, r),
-            frameIndex: frameAt(d.trace, player.t),
+            tipWhy: r.reason,
             time: player.t,
-            height: 300,
+            height: 320,
             label: n,
             sublabel: r.passed ? `passed · ${human(row.scene, r.metric)}` : `${r.reason || "failed"} · ${human(row.scene, r.metric)}`,
             tone: r.passed ? "green" : "red"
@@ -24724,7 +25039,7 @@ void main() {
           n
         );
       }) }),
-      /* @__PURE__ */ jsx(Timeline, { player })
+      /* @__PURE__ */ jsx(Timeline, { player, marks: tipMarks(...ok.map((d, i) => [d && d.trace, d && d.result, `${names[i]} tips`])) })
     ] });
   }
   function ComparePage({ robot }) {
@@ -24816,9 +25131,17 @@ void main() {
             "tr",
             {
               className: (row && row.scene === r.scene ? "tb-active " : "") + "tb-clickable",
+              tabIndex: 0,
+              "aria-selected": !!row && row.scene === r.scene,
               onClick: () => setRow(r),
+              onKeyDown: (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setRow(r);
+                }
+              },
               children: [
-                /* @__PURE__ */ jsx("td", { children: r.title }),
+                /* @__PURE__ */ jsx("th", { scope: "row", children: r.title }),
                 names.map((n) => {
                   const c = r.cells[n];
                   const st = STATUS[c.status] || STATUS["n/a"];
@@ -24853,24 +25176,40 @@ void main() {
     fail: { word: "BLOCKED", tone: "red", line: "robot_play will refuse this move until a changed version passes." },
     inconclusive: { word: "INCONCLUSIVE", tone: "grey", line: "No tips, but too few worlds to bound the chance under 10%." }
   };
+  var LOAD_LIMIT = 90;
   function Interval({ tip, limit }) {
     const L = (x) => `${Math.min(100, x * 100)}%`;
-    return /* @__PURE__ */ jsxs("div", { className: "tb-interval", children: [
-      /* @__PURE__ */ jsxs("div", { className: "tb-interval-track", children: [
-        /* @__PURE__ */ jsx("div", { className: "tb-interval-limit", style: { left: L(limit) }, children: /* @__PURE__ */ jsxs("span", { children: [
-          "limit ",
-          Math.round(limit * 100),
-          "%"
-        ] }) }),
-        /* @__PURE__ */ jsx("div", { className: "tb-interval-range", style: { left: L(tip.low), width: `calc(${L(tip.high)} - ${L(tip.low)})` } }),
-        /* @__PURE__ */ jsx("div", { className: "tb-interval-point", style: { left: L(tip.rate) } })
-      ] }),
-      /* @__PURE__ */ jsxs("div", { className: "tb-interval-scale", children: [
-        /* @__PURE__ */ jsx("span", { children: "0%" }),
-        /* @__PURE__ */ jsx("span", { children: "50%" }),
-        /* @__PURE__ */ jsx("span", { children: "100%" })
-      ] })
-    ] });
+    return /* @__PURE__ */ jsxs(
+      "div",
+      {
+        className: "tb-interval",
+        role: "img",
+        "aria-label": `Tip chance ${(tip.rate * 100).toFixed(0)}%, 95% interval ${(tip.low * 100).toFixed(0)} to ${(tip.high * 100).toFixed(0)}%, limit ${Math.round(limit * 100)}%`,
+        children: [
+          /* @__PURE__ */ jsxs("div", { className: "tb-interval-track", children: [
+            /* @__PURE__ */ jsx("div", { className: "tb-interval-ok", style: { width: L(limit) } }),
+            /* @__PURE__ */ jsx("div", { className: "tb-interval-limit", style: { left: L(limit) }, children: /* @__PURE__ */ jsxs("span", { children: [
+              "limit ",
+              Math.round(limit * 100),
+              "%"
+            ] }) }),
+            /* @__PURE__ */ jsx(
+              "div",
+              {
+                className: "tb-interval-range" + (tip.high <= limit ? " tb-ok" : ""),
+                style: { left: L(tip.low), width: `calc(${L(tip.high)} - ${L(tip.low)})` }
+              }
+            ),
+            /* @__PURE__ */ jsx("div", { className: "tb-interval-point", style: { left: L(tip.rate) } })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "tb-interval-scale", children: [
+            /* @__PURE__ */ jsx("span", { children: "0%" }),
+            /* @__PURE__ */ jsx("span", { children: "50%" }),
+            /* @__PURE__ */ jsx("span", { children: "100%" })
+          ] })
+        ]
+      }
+    );
   }
   function Result({ res, robot, move, speed }) {
     const v = VERDICT[res.verdict] || VERDICT.inconclusive;
@@ -24882,13 +25221,14 @@ void main() {
     const [busy, setBusy] = useState(null);
     useEffect(() => setPlay(null), [res]);
     const joints = Object.entries(res.joints).sort((a, b) => b[1].peak_pct_p90 - a[1].peak_pct_p90);
+    const loaded = joints.filter(([, l]) => l.peak_pct_p90 >= LOAD_LIMIT);
     const doPlay = async (target) => {
       setBusy(target);
       setPlay(await api("/play", { method: "POST", body: { robot, move, speed, target } }));
       setBusy(null);
     };
     return /* @__PURE__ */ jsxs(Fragment2, { children: [
-      /* @__PURE__ */ jsxs("div", { className: "tb-verdict tb-verdict-" + v.tone, children: [
+      /* @__PURE__ */ jsxs("div", { className: "tb-verdict tb-verdict-" + v.tone, role: "status", children: [
         /* @__PURE__ */ jsx("div", { className: "tb-verdict-word", children: v.word }),
         /* @__PURE__ */ jsxs("div", { className: "tb-verdict-body", children: [
           /* @__PURE__ */ jsxs("div", { className: "tb-verdict-title", children: [
@@ -24898,21 +25238,29 @@ void main() {
             speed !== 1 ? ` at speed ${speed}` : ""
           ] }),
           /* @__PURE__ */ jsx("div", { children: v.line }),
+          loaded.length ? /* @__PURE__ */ jsxs("div", { children: [
+            "Servo load over ",
+            LOAD_LIMIT,
+            "% of stall (estimate): ",
+            loaded.map(([j, l]) => `${j} ${l.peak_pct_p90.toFixed(0)}%`).join(", ")
+          ] }) : null,
           /* @__PURE__ */ jsx("div", { className: "tb-small tb-muted-on", children: res.label })
         ] }),
         /* @__PURE__ */ jsxs("div", { className: "tb-verdict-stat", children: [
           /* @__PURE__ */ jsxs("div", { className: "tb-big", children: [
             (res.tip.rate * 100).toFixed(0),
-            "%"
+            "%",
+            /* @__PURE__ */ jsx("small", { children: "tip chance" })
           ] }),
-          /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsxs("div", { className: "tb-verdict-worlds", children: [
             "tipped in ",
-            res.tip.falls,
-            "/",
-            res.worlds,
-            " ",
-            res.official ? "" : "quick ",
-            "worlds"
+            /* @__PURE__ */ jsxs("b", { children: [
+              res.tip.falls,
+              " of ",
+              res.worlds
+            ] }),
+            " simulated worlds",
+            res.official ? "" : " (quick)"
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "tb-small", children: [
             "95% interval ",
@@ -24924,93 +25272,103 @@ void main() {
         ] })
       ] }),
       /* @__PURE__ */ jsxs("div", { className: "tb-two", children: [
-        /* @__PURE__ */ jsxs("div", { className: "tb-card", children: [
-          /* @__PURE__ */ jsxs("div", { className: "tb-card-head", children: [
-            /* @__PURE__ */ jsx("h3", { children: "Tip chance" }),
-            /* @__PURE__ */ jsxs("div", { className: "tb-row tb-gap-sm", children: [
-              res.official ? /* @__PURE__ */ jsx(Chip, { tone: "accent", title: "the same 60 fixed-seed worlds the report card and gallery use", children: "official · 60 fixed worlds" }) : /* @__PURE__ */ jsxs(Chip, { tone: "amber", children: [
-                "quick · ",
-                res.worlds,
-                " worlds"
+        /* @__PURE__ */ jsxs("div", { className: "tb-stack", children: [
+          /* @__PURE__ */ jsxs("div", { className: "tb-card", children: [
+            /* @__PURE__ */ jsxs("div", { className: "tb-card-head", children: [
+              /* @__PURE__ */ jsx("h3", { children: "Tip chance" }),
+              /* @__PURE__ */ jsxs("div", { className: "tb-row tb-gap-sm tb-wrap", children: [
+                res.official ? /* @__PURE__ */ jsx(Chip, { tone: "accent", title: "the same 60 fixed-seed worlds the report card and gallery use", children: "official · 60 fixed worlds" }) : /* @__PURE__ */ jsxs(Chip, { tone: "amber", children: [
+                  "quick · ",
+                  res.worlds,
+                  " worlds"
+                ] }),
+                res.extended ? /* @__PURE__ */ jsx(Chip, { children: "clean at 30, extended to 60" }) : null
+              ] })
+            ] }),
+            /* @__PURE__ */ jsx(Interval, { tip: res.tip, limit: 0.1 }),
+            /* @__PURE__ */ jsx("p", { className: "tb-small tb-muted", children: "A move passes when the upper end of the 95% Wilson interval is at most 10% and no servo peaks above 90% of stall torque (90th percentile across worlds)." }),
+            res.tip.fall_frame ? /* @__PURE__ */ jsxs("p", { children: [
+              "Most tips start during ",
+              /* @__PURE__ */ jsxs("b", { children: [
+                "frame ",
+                res.tip.fall_frame
               ] }),
-              res.extended ? /* @__PURE__ */ jsx(Chip, { children: "clean at 30, extended to 60" }) : null
+              "."
+            ] }) : null,
+            /* @__PURE__ */ jsxs("h4", { children: [
+              "Servo load ",
+              /* @__PURE__ */ jsx(Chip, { children: "estimate" })
+            ] }),
+            joints.map(([j, l]) => /* @__PURE__ */ jsx(Bar, { label: j, value: l.peak_pct_p90, mark: LOAD_LIMIT, right: `${l.peak_pct_p90.toFixed(0)}%` }, j)),
+            /* @__PURE__ */ jsxs("p", { className: "tb-small tb-muted", children: [
+              "Peak torque as a share of datasheet stall torque; the mark is the ",
+              LOAD_LIMIT,
+              "% limit."
             ] })
           ] }),
-          /* @__PURE__ */ jsx(Interval, { tip: res.tip, limit: 0.1 }),
-          /* @__PURE__ */ jsx("p", { className: "tb-small tb-muted", children: "A move passes when the upper end of the 95% Wilson interval is at most 10% and no servo peaks above 90% of stall torque (90th percentile across worlds)." }),
-          res.tip.fall_frame ? /* @__PURE__ */ jsxs("p", { children: [
-            "Most tips start during ",
-            /* @__PURE__ */ jsxs("b", { children: [
-              "frame ",
-              res.tip.fall_frame
+          res.suggestions && res.suggestions.length ? /* @__PURE__ */ jsxs("div", { className: "tb-card tb-suggest", children: [
+            /* @__PURE__ */ jsxs("div", { className: "tb-card-head", children: [
+              /* @__PURE__ */ jsx("h3", { children: "What to change" }),
+              /* @__PURE__ */ jsx("span", { className: "tb-muted", children: "derived from the move and the numbers" })
             ] }),
-            "."
+            /* @__PURE__ */ jsx("ol", { children: res.suggestions.map((s) => /* @__PURE__ */ jsx("li", { children: s }, s)) })
           ] }) : null,
-          /* @__PURE__ */ jsxs("h4", { children: [
-            "Servo load ",
-            /* @__PURE__ */ jsx(Chip, { children: "estimate" })
-          ] }),
-          joints.map(([j, l]) => /* @__PURE__ */ jsx(Bar, { label: j, value: l.peak_pct_p90, mark: 90, right: `${l.peak_pct_p90.toFixed(0)}%` }, j))
+          res.speed_limit_stretches && res.speed_limit_stretches.length ? /* @__PURE__ */ jsx("div", { className: "tb-callout tb-tone-amber", children: res.speed_limit_stretches.map((w) => /* @__PURE__ */ jsx("div", { children: w }, w)) }) : null
         ] }),
-        /* @__PURE__ */ jsx("div", { className: "tb-card tb-card-flush", children: tr ? /* @__PURE__ */ jsxs(Fragment2, { children: [
-          /* @__PURE__ */ jsx(
-            Viewer3D,
-            {
-              parts: tr.parts,
-              frames: tr.frames,
-              meta: trace.meta,
-              look: trace.look,
-              tipAt: tipTime(tr, trace.result),
-              frameIndex: frameAt(tr, player.t),
-              time: player.t,
-              height: 360,
-              label: seed != null ? `a world where it tipped (${seed})` : "nominal world",
-              sublabel: trace.result.fell ? `tips at ${trace.result.fell_at_s?.toFixed(2)} s` : "stays up",
-              tone: trace.result.fell ? "red" : "green"
-            }
-          ),
-          /* @__PURE__ */ jsx(Timeline, { player })
-        ] }) : /* @__PURE__ */ jsx("div", { className: "tb-viewer tb-viewer-wait", style: { height: 360 }, children: tl ? /* @__PURE__ */ jsxs(Fragment2, { children: [
-          /* @__PURE__ */ jsx("span", { className: "tb-spinner" }),
-          " recording replay…"
-        ] }) : null }) })
-      ] }),
-      res.suggestions && res.suggestions.length ? /* @__PURE__ */ jsxs("div", { className: "tb-card tb-suggest", children: [
-        /* @__PURE__ */ jsxs("div", { className: "tb-card-head", children: [
-          /* @__PURE__ */ jsx("h3", { children: "What to change" }),
-          /* @__PURE__ */ jsx("span", { className: "tb-muted", children: "derived from the move and the numbers" })
-        ] }),
-        /* @__PURE__ */ jsx("ol", { children: res.suggestions.map((s) => /* @__PURE__ */ jsx("li", { children: s }, s)) })
-      ] }) : null,
-      res.speed_limit_stretches && res.speed_limit_stretches.length ? /* @__PURE__ */ jsx("div", { className: "tb-callout tb-tone-amber", children: res.speed_limit_stretches.map((w) => /* @__PURE__ */ jsx("div", { children: w }, w)) }) : null,
-      /* @__PURE__ */ jsxs("div", { className: "tb-card", children: [
-        /* @__PURE__ */ jsxs("div", { className: "tb-card-head", children: [
-          /* @__PURE__ */ jsx("h3", { children: "Play it" }),
-          /* @__PURE__ */ jsx("span", { className: "tb-muted", children: "through the same approval gate as the robot_play tool" })
-        ] }),
-        /* @__PURE__ */ jsxs("p", { className: "tb-small tb-muted", children: [
-          "The robot first eases back to its home pose at half speed, then plays the move, so it starts where the preflight started. A real robot also needs its token (from ",
-          /* @__PURE__ */ jsx("code", { children: "hermes talaria firmware" }),
-          ")."
-        ] }),
-        /* @__PURE__ */ jsxs("div", { className: "tb-row tb-gap", children: [
-          /* @__PURE__ */ jsx(Button, { kind: res.verdict === "pass" ? "primary" : "default", busy: busy === "virtual", onClick: () => doPlay("virtual"), children: "Play on virtual robot" }),
-          /* @__PURE__ */ jsx(Button, { busy: busy === "real", onClick: () => doPlay("real"), children: "Play on real robot" })
-        ] }),
-        play ? play.ok ? /* @__PURE__ */ jsxs("div", { className: "tb-callout tb-tone-green", children: [
-          "Playing ",
-          play.move,
-          " on the ",
-          play.target,
-          " robot (",
-          play.duration_s.toFixed(1),
-          " s",
-          play.homing_ms ? `, after ${(play.homing_ms / 1e3).toFixed(1)} s back to home` : ", from home",
-          ")."
-        ] }) : /* @__PURE__ */ jsxs("div", { className: "tb-callout " + (play.blocked ? "tb-tone-red" : "tb-tone-amber"), children: [
-          play.blocked ? /* @__PURE__ */ jsx("strong", { children: "Gate: " }) : null,
-          play.error
-        ] }) : null
+        /* @__PURE__ */ jsxs("div", { className: "tb-stack", children: [
+          /* @__PURE__ */ jsx("div", { className: "tb-card tb-card-flush", children: tr ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+            /* @__PURE__ */ jsx(
+              Viewer3D,
+              {
+                parts: tr.parts,
+                frames: tr.frames,
+                fps: tr.fps,
+                meta: trace.meta,
+                look: trace.look,
+                tipAt: tipTime(tr, trace.result),
+                tipWhy: trace.result.fall_reason,
+                time: player.t,
+                height: 400,
+                label: seed != null ? `a world where it tipped (${seed})` : "nominal world",
+                sublabel: trace.result.fell ? `tips at ${trace.result.fell_at_s?.toFixed(2)} s` : "stays up",
+                tone: trace.result.fell ? "red" : "green"
+              }
+            ),
+            /* @__PURE__ */ jsx(Timeline, { player, marks: tipMarks([tr, trace.result]) })
+          ] }) : /* @__PURE__ */ jsx("div", { className: "tb-viewer tb-viewer-wait", style: { height: 400 }, children: tl ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+            /* @__PURE__ */ jsx("span", { className: "tb-spinner" }),
+            " recording replay…"
+          ] }) : null }) }),
+          /* @__PURE__ */ jsxs("div", { className: "tb-card", children: [
+            /* @__PURE__ */ jsxs("div", { className: "tb-card-head", children: [
+              /* @__PURE__ */ jsx("h3", { children: "Play it" }),
+              /* @__PURE__ */ jsx("span", { className: "tb-muted", children: "through the same approval gate as the robot_play tool" })
+            ] }),
+            /* @__PURE__ */ jsxs("p", { className: "tb-small tb-muted", children: [
+              "The robot first eases back to its home pose at half speed, then plays the move, so it starts where the preflight started. A real robot also needs its token (from ",
+              /* @__PURE__ */ jsx("code", { children: "hermes talaria firmware" }),
+              ")."
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "tb-row tb-gap tb-wrap", children: [
+              /* @__PURE__ */ jsx(Button, { kind: res.verdict === "pass" ? "primary" : "default", busy: busy === "virtual", onClick: () => doPlay("virtual"), children: "Play on virtual robot" }),
+              /* @__PURE__ */ jsx(Button, { busy: busy === "real", onClick: () => doPlay("real"), children: "Play on real robot" })
+            ] }),
+            play ? play.ok ? /* @__PURE__ */ jsxs("div", { className: "tb-callout tb-tone-green", children: [
+              "Playing ",
+              play.move,
+              " on the ",
+              play.target,
+              " robot (",
+              play.duration_s.toFixed(1),
+              " s",
+              play.homing_ms ? `, after ${(play.homing_ms / 1e3).toFixed(1)} s back to home` : ", from home",
+              ")."
+            ] }) : /* @__PURE__ */ jsxs("div", { className: "tb-callout " + (play.blocked ? "tb-tone-red" : "tb-tone-amber"), children: [
+              play.blocked ? /* @__PURE__ */ jsx("strong", { children: "Gate: " }) : null,
+              play.error
+            ] }) : null
+          ] })
+        ] })
       ] })
     ] });
   }
@@ -25041,7 +25399,7 @@ void main() {
         /* @__PURE__ */ jsx("p", { children: "Preflight before anything moves: the move runs in randomized simulated worlds on flat ground. A pass records an approval for exactly this move, speed and spec; anything else is refused at play time." })
       ] }) }),
       /* @__PURE__ */ jsxs("div", { className: "tb-card", children: [
-        /* @__PURE__ */ jsxs("div", { className: "tb-row tb-gap tb-wrap", children: [
+        /* @__PURE__ */ jsxs("div", { className: "tb-row tb-gap tb-wrap tb-end", children: [
           /* @__PURE__ */ jsxs("label", { className: "tb-field", children: [
             "Move",
             /* @__PURE__ */ jsx("select", { className: "tb-select", value: move, onChange: (e) => {
