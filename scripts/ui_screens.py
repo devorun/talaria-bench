@@ -70,6 +70,12 @@ def run(page: Page, prefix: str) -> None:
     page.wait_for_selector(".tb-robot-card img", timeout=60_000)
     page.wait_for_timeout(1500)
     shot(page, prefix, "gallery")
+    page.locator(".tb-new-card").click()
+    page.locator(".tb-field select").first.wait_for(timeout=30_000)
+    page.wait_for_timeout(600)
+    shot(page, prefix, "new-robot")
+    tab(page, "Gallery")
+    page.wait_for_selector(".tb-robot-card img", timeout=60_000)
 
     page.locator(".tb-robot-card", has_text="Caduceus").first.click()
     page.wait_for_selector(".tb-photo img", timeout=60_000)
