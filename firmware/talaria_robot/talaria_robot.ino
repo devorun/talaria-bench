@@ -15,7 +15,8 @@
 // so a move plays at the timing it was checked at in simulation. Playback is non-blocking, so /stop
 // always answers at once.
 //
-// Libraries (Arduino Library Manager): Adafruit PWM Servo Driver Library, ArduinoJson (v7).
+// Libraries (Arduino Library Manager): Adafruit PWM Servo Driver Library, ArduinoJson (v7), and with a
+// screen (HAS_OLED 1 in robot_config.h) Adafruit SH110X (pulls in Adafruit GFX).
 // Board: ESP32 Dev Module (esp32 by Espressif). Copy secrets.example.h to secrets.h and fill it in.
 
 #include <WiFi.h>
@@ -26,6 +27,27 @@
 #include <ArduinoJson.h>
 #include "robot_config.h"
 #include "secrets.h"
+#if HAS_OLED
+#include <Adafruit_GFX.h>
+#include <Adafruit_SH110X.h>
+Adafruit_SH1106G display(128, 64, &Wire, -1);
+bool oledOk = false;
+#endif
+
+// Two lines on the screen (when there is one) and on the serial monitor.
+void showMessage(const char* title, const char* line) {
+  Serial.printf("%s: %s\n", title, line);
+#if HAS_OLED
+  if (!oledOk) return;
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 8);
+  display.println(title);
+  display.setCursor(0, 32);
+  display.println(line);
+  display.display();
+#endif
+}
 
 #define FIRMWARE_VERSION "talaria-robot/0.1.0"
 #define API_VERSION 1
@@ -383,6 +405,7 @@ void announceAddress() {
   String ip = "http://" + WiFi.localIP().toString();
   Serial.printf("%s ready at %s (also http://%s.local)\n", ROBOT_NAME, ip.c_str(), ROBOT_HOSTNAME);
   Serial.printf("In Hermes: set the Talaria Bench robot URL to %s\n", ip.c_str());
+  showMessage(ROBOT_NAME, ip.c_str());
 }
 
 void connectWifi(unsigned long waitMs) {
@@ -410,6 +433,11 @@ void setup() {
     writtenPose[j] = 9999;
   }
   writePose(true);
+#if HAS_OLED
+  oledOk = display.begin(OLED_ADDR, true);
+  if (oledOk) display.setTextColor(SH110X_WHITE);
+#endif
+  showMessage(ROBOT_NAME, "Connecting to Wi-Fi...");
   connectWifi(20000);
 
   const char* headers[] = {"X-Robot-Token"};

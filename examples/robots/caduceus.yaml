@@ -19,7 +19,7 @@ description: >-
   floor. Powered through a 2-3 m wall cable. Arm gestures are modelled well; walking is not.
 photo: caduceus_front.jpg
 voltage: 5.0                       # 5 V supply through the cable (the cable sag is in torque_scale below)
-controller: {sda: 4, scl: 5, pca9685_addr: 64, hostname: caduceus}   # the original Caduceus board wiring
+controller: {sda: 4, scl: 5, pca9685_addr: 64, hostname: caduceus, oled: 1}   # the original Caduceus board wiring
 
 # Appearance only (viewer and gallery renders; not physics): aluminium tape over foam, the OLED face,
 # standing straight in the gallery.

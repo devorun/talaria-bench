@@ -31,7 +31,7 @@ LOOK_KEYS = {"material", "accent", "badge", "decals", "showcase"}
 LOOK_MATERIALS = ("plastic", "aluminum")
 #: firmware settings for the real robot's controller board (ESP32 + PCA9685)
 CONTROLLER_DEFAULTS = {"sda": 21, "scl": 22, "pca9685_addr": 0x40, "servo_freq_hz": 50, "servo_min_us": 500,
-                       "servo_max_us": 2500, "hostname": ""}
+                       "servo_max_us": 2500, "hostname": "", "oled": 0, "oled_addr": 0x3C}
 BENCH_KEYS = {"walk_move", "flat_min_cm", "seconds", "payload_move", "payload_steps_g"}
 BASES = ("free", "fixed")
 #: what a limitation can cover: scenes that need walking, standing/arm-gesture moves, payload/arm work, or everything

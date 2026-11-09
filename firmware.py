@@ -56,6 +56,10 @@ def robot_config_h(spec: Spec) -> str:
 #define SERVO_MIN_US  {int(ctl["servo_min_us"])}
 #define SERVO_MAX_US  {int(ctl["servo_max_us"])}
 
+// Optional SH1106 128x64 I2C screen on the same bus: shows the robot's address after Wi-Fi connects.
+#define HAS_OLED      {1 if int(ctl.get("oled") or 0) else 0}
+#define OLED_ADDR     0x{int(ctl.get("oled_addr") or 0x3C):02X}
+
 // One row per servo. Angles are degrees from the neutral pose; the firmware never goes outside
 // [min, max] and never turns a joint faster than max_speed (deg/s), whatever it is asked.
 struct JointConfig {{

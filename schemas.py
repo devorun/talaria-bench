@@ -38,7 +38,7 @@ ROBOT_DEFINE = {
                    "body_length), arm (joints 4-7, upper_arm, forearm, base_radius), humanoid (height). All take "
                    "name (lowercase), mass_g (total, optional), servo (SG90, MG90S, MG996R, DS3218), material "
                    "(foam, pla, wood, metal, rubber). Alternative: spec_yaml with a full Talaria spec. photo_path: "
-                   "the local path of the robot's photo (from '[Image attached at: <path>]'); it is copied and "
+                   "the local path of the robot's photo (from '[Image attached at: <path>]' or 'available on disk at <path>'); it is copied and "
                    "shown next to the 3D model. Bundled robot names cannot be replaced.",
     "parameters": {"type": "object", "properties": {
         "template": {"type": "string", "enum": ["block_robot", "biped4", "quadruped", "hexapod", "arm", "humanoid"]},
@@ -103,9 +103,13 @@ MOVE_CHECK = {
     "description": "Preflight a move before it plays: simulate it in randomized worlds on flat ground and report "
                    "the tip chance with a 95% interval, estimated peak servo loads, collisions and speed-limit "
                    "stretches. PASS (upper tip bound <= 10% and no joint above 90% of stall) records an approval for "
-                   "exactly this move, speed and robot spec; robot_play and robot_pose need it. A FAIL explains why "
-                   "and suggests changes. Simulation-based risk screening, not a safety guarantee. Takes a few "
-                   "seconds to a minute.",
+                   "exactly this move, speed and robot spec; robot_play and robot_pose need it. Check a named move "
+                   "(move) or your own frames (frames, loops, easing). When the verdict is fail (BLOCKED): tell the "
+                   "user the tip chance in plain words, then revise the move following the suggestions (one limb at a "
+                   "time, longer ms per frame, or a lower speed) and check the revised frames again; once it passes, "
+                   "play exactly those frames (or save them with move_save and play that name). Never retry the "
+                   "blocked move as it was. Simulation-based risk screening, not a safety guarantee. Takes a few "
+                   "seconds.",
     "parameters": {"type": "object", "properties": {
         "robot": ROBOT, **MOVE_FIELDS,
         "quick": {"type": "boolean", "description": "Start with 30 worlds instead of 60; a clean run is extended "
@@ -133,8 +137,9 @@ MOVE_LIST = {
 
 ROBOT_PLAY = {
     "name": "robot_play",
-    "description": "Play a move on the virtual or the real robot. Only moves with a passing move_check for exactly "
-                   "this move and speed can play; anything else is refused with the reason.",
+    "description": "Play a move on the virtual robot (default) or the real one. It plays only what passed move_check: "
+                   "the same named move or the same frames, at the same speed, on the same robot spec; anything else "
+                   "is refused before it reaches the robot, with the reason and what to change.",
     "parameters": {"type": "object", "properties": {"robot": ROBOT, **MOVE_FIELDS, "target": TARGET},
                    "required": ["robot"]},
 }

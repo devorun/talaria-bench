@@ -447,3 +447,12 @@ def test_robot_define_refuses_bad_photos(rt, tools, tmp_path):
     missing = call(tools, "robot_define", {"template": "biped4", "params": params, "photo_path": "/nope/x.jpg"})
     assert not missing["ok"]
     assert call(tools, "robot_define", {"template": "biped4", "params": {"name": "caduceus"}})["ok"] is False
+
+
+def test_firmware_screen_is_optional_per_robot():
+    cad = firmware.robot_config_h(load_spec(EXAMPLES / "caduceus.yaml"))
+    spider = firmware.robot_config_h(load_spec(EXAMPLES / "spider8.yaml"))
+    assert "#define HAS_OLED      1" in cad and "#define OLED_ADDR     0x3C" in cad
+    assert "#define HAS_OLED      0" in spider
+    ino = (PLUGIN_ROOT / "firmware" / "talaria_robot" / "talaria_robot.ino").read_text(encoding="utf-8")
+    assert "#if HAS_OLED" in ino and "showMessage(ROBOT_NAME, ip.c_str())" in ino

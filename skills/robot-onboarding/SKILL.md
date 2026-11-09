@@ -10,7 +10,8 @@ measured and what is estimated. Keep replies short and friendly.
 
 ## 1. Look first
 
-If there is a photo, look at it (the message contains `[Image attached at: <path>]`; keep that path).
+If there is a photo, look at it and keep its local path: the message says `[Image attached at: <path>]`
+or "available on disk at `<path>`" (Desktop and webapp attachments land in `~/.hermes/attachments/`).
 Say in one or two lines what you see: the family (arm, biped, quadruped, hexapod, humanoid, or a
 Caduceus-like block robot with side arms and middle legs), the main parts, the servos and joints you can
 see. If you are unsure about something, say so instead of guessing silently.
