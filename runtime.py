@@ -37,6 +37,8 @@ DEFAULTS: dict[str, Any] = {
     "check_worlds": 60,
     "max_tip_upper": 0.10,
     "max_load": 0.90,
+    "allow_unauthenticated_robot": False,
+    "allow_firmware_mismatch": False,
 }
 
 
@@ -85,6 +87,13 @@ class Runtime:
             return float(self.setting(key))
         except (TypeError, ValueError):
             return float(DEFAULTS[key])
+
+    def flag(self, key: str) -> bool:
+        """An on/off setting; only an explicit true (or "true", "yes", "on", "1") turns it on."""
+        value = self.setting(key)
+        if isinstance(value, str):
+            return value.strip().lower() in ("true", "yes", "on", "1")
+        return value is True
 
     def token(self) -> Optional[str]:
         if "token" in self.overrides:

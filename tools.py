@@ -5,20 +5,40 @@ from __future__ import annotations
 
 import json
 import logging
+import math
+import time
 from pathlib import Path
 from typing import Any, Callable, Optional
 
 from . import bridge, preflight
 from .hooks import gate, requested_move
 from .jobs import JobManager
-from .motion import MoveError, check_move
-from .runtime import EXAMPLE_REPORTS, Runtime
+from .motion import MAX_FRAME_MS, MoveError, check_move
+from .runtime import EXAMPLE_REPORTS, TOKEN_ENV, Runtime
 from .spec import SpecError
 
 logger = logging.getLogger(__name__)
 
 REPORT_CHARS = 12000
 SIM_NOTE = "Simulation results: risk screening, not a guarantee of how the real robot behaves."
+MAX_VARIANTS = 6
+HOME_SPEED_FRACTION = 0.5       # the return to home turns each joint at half its speed limit
+HOME_MIN_MS = 600
+HOME_TOLERANCE_DEG = 1.0
+HOME_GRACE_S = 2.0
+HOME_POLL_S = 0.05
+HOME_NOTE = ("The robot first eased back to its home pose at half speed (that return is not itself simulated), "
+             "then played the move, so it started from the pose the preflight simulated.")
+
+
+def ignored_move_args(args: dict[str, Any]) -> list[str]:
+    """loops/easing only apply to inline frames; a named move always plays as defined (and as checked)."""
+    extra = [k for k in ("loops", "easing") if args.get(k) is not None]
+    if args.get("frames") is not None or not args.get("move") or not extra:
+        return []
+    return [f"{' and '.join(extra)} ignored: they apply only to inline frames; the named move "
+            f"{args.get('move')!r} plays as defined. To change them, pass its frames with the new {extra[0]} and "
+            "check those."]
 
 
 def _dump(payload: dict[str, Any]) -> str:
@@ -194,7 +214,7 @@ class TalariaTools:
         if not isinstance(raw, list) or not raw:
             raise ValueError("variants must be a non-empty list")
         variants = []
-        for i, v in enumerate(raw[:6], start=1):
+        for i, v in enumerate(raw[:MAX_VARIANTS], start=1):
             if not isinstance(v, dict) or not v.get("name"):
                 raise ValueError(f"variant {i} needs a name")
             if v.get("robot"):
@@ -206,8 +226,13 @@ class TalariaTools:
                 raise ValueError(f"variant {i} needs set: {{path: value}} or robot: <name>")
         job = self.jobs.start_compare(robot, variants, scenes=args.get("scenes") or None, worlds=args.get("worlds"),
                                       quick=bool(args.get("quick")))
-        return {"ok": True, "job_id": job["id"], "robot": robot, "variants": [v["name"] for v in variants],
-                "status": "running", "next": f"bench_status job_id={job['id']}", "note": SIM_NOTE}
+        out = {"ok": True, "job_id": job["id"], "robot": robot, "variants": [v["name"] for v in variants],
+               "status": "running", "next": f"bench_status job_id={job['id']}", "note": SIM_NOTE}
+        if len(raw) > MAX_VARIANTS:
+            dropped = [str(v.get("name") if isinstance(v, dict) else v) for v in raw[MAX_VARIANTS:]]
+            out["warnings"] = [f"only the first {MAX_VARIANTS} of {len(raw)} variants are compared; not run: "
+                               f"{', '.join(dropped)} (start another bench_compare for them)"]
+        return out
 
     # Moves ----------------------------------------------------------------------------------------
 
@@ -221,6 +246,9 @@ class TalariaTools:
         preflight.ApprovalStore(self.rt.folder("approvals")).save(rec)
         out = {"ok": True, "summary": preflight.summary_line(result), **result,
                "approved": result["verdict"] == "pass", "approval_key": key[:16], "checked_at": rec["checked_at"]}
+        ignored = ignored_move_args(args)
+        if ignored:
+            out["warnings"] = ignored
         if result["verdict"] == "pass":
             out["next"] = f"robot_play robot={spec.name} move={name}" + (f" speed={speed:g}" if speed != 1.0 else "")
         return out
@@ -283,18 +311,72 @@ class TalariaTools:
         missing = [n for n in spec.joint_names if n not in names]
         if missing:
             raise bridge.RobotError(f"the robot at {client.url} has no joint(s) {', '.join(missing)}")
-        warnings = []
-        fw_hash = info.get("spec_hash")
-        if fw_hash and fw_hash != spec.hash()[:len(fw_hash)]:
-            warnings.append("the robot's firmware was generated from a different version of this spec; regenerate it "
-                            "with `hermes talaria firmware` so its built-in limits match")
-        return warnings
+        fw_hash = str(info.get("spec_hash") or "")
+        expected = spec.hash()[:16]
+        if fw_hash != expected and not self.rt.flag("allow_firmware_mismatch"):
+            what = (f"reports spec hash {fw_hash!r}, but the checked {spec.name} spec is {expected!r}" if fw_hash
+                    else "does not report which spec its firmware was generated from")
+            raise bridge.RobotError(
+                f"refusing to play on the real robot: its firmware {what}, so its built-in limits and servo mapping "
+                f"may not be the ones the move was checked against. Regenerate and flash the firmware with "
+                f"`hermes talaria firmware {spec.name} <folder>`, or, to accept the mismatch, set "
+                f"plugins.entries.talaria-bench.settings.allow_firmware_mismatch to true.")
+        return [] if fw_hash == expected else ["the firmware's spec hash does not match (allowed by the "
+                                               "allow_firmware_mismatch setting)"]
+
+    def _require_token(self) -> None:
+        """A real robot only moves with a shared token, unless the user explicitly allowed an open robot."""
+        if self.rt.token() or self.rt.flag("allow_unauthenticated_robot"):
+            return
+        raise bridge.RobotError(
+            "refusing to drive the real robot without a token (without one, anything on your network could move "
+            "it). Run `hermes talaria firmware <robot> <folder>`: it writes a random ROBOT_TOKEN into "
+            f"robot_config.h and prints it. Flash that firmware, then store the same value in Hermes with "
+            f"`hermes config set {TOKEN_ENV} <token>` (or Settings > Plugins > Talaria Bench > Robot token). To "
+            "drive a robot without a token anyway, set plugins.entries.talaria-bench.settings."
+            "allow_unauthenticated_robot to true.")
+
+    def _go_home(self, client: bridge.RobotClient, spec) -> int:
+        """Ease to the home pose at a safe speed (half each joint's limit) and wait until the robot is there, so
+        the approved move starts from the pose the preflight simulated. Returns the homing time in ms (0 when
+        the robot already stands still at home)."""
+        limits = spec.joint_limits()
+        state = client.state()
+        pose = state.get("pose") if isinstance(state.get("pose"), dict) else {}
+
+        def angle(name: str) -> Optional[float]:
+            value = pose.get(name)
+            return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+        at_home = all(angle(n) is not None and abs(angle(n) - j["home"]) <= HOME_TOLERANCE_DEG
+                      for n, j in limits.items())
+        if at_home and not state.get("busy"):
+            return 0
+        ms = float(HOME_MIN_MS)
+        for n, j in limits.items():
+            now = angle(n)
+            travel = abs(now - j["home"]) if now is not None else j["max"] - j["min"]   # unknown: assume the worst
+            ms = max(ms, travel / (j["max_speed"] * HOME_SPEED_FRACTION) * 1000.0)
+        ms = int(min(math.ceil(ms), MAX_FRAME_MS))
+        client.pose({n: j["home"] for n, j in limits.items()}, ms=ms)
+        deadline = time.monotonic() + ms / 1000.0 + HOME_GRACE_S
+        while time.monotonic() < deadline:
+            time.sleep(HOME_POLL_S)
+            if not client.state().get("busy"):
+                return ms
+        raise bridge.RobotError("the robot did not reach its home pose in time; the move was not played")
 
     def _gate(self, tool: str, args: dict[str, Any]):
         reason, resolved = gate(self.rt, tool, args)
         if reason:
             raise _Blocked(reason)
         return resolved
+
+    def _connect(self, spec, target: str) -> tuple[bridge.RobotClient, list[str]]:
+        if target == "real":
+            self._require_token()
+        client = self._client(spec, target)
+        return client, (self._check_real(client, spec) if target == "real" else [])
 
     def robot_play(self, args: dict[str, Any]) -> dict[str, Any]:
         try:
@@ -303,13 +385,14 @@ class TalariaTools:
             return {"ok": False, "blocked": True, "error": str(exc)}
         plan = check_move(move, spec.joint_limits(), speed=speed)
         target = args.get("target") or "virtual"
-        client = self._client(spec, target)
-        warnings = self._check_real(client, spec) if target == "real" else []
+        client, warnings = self._connect(spec, target)
+        homing = self._go_home(client, spec)
         frames = [{"ms": f["ms"], "hold": f["hold"], "joints": f["joints"]} for f in plan["frames"]]
         client.play(frames, loops=plan["loops"], easing=plan["easing"], name=name)
         return {"ok": True, "robot": spec.name, "move": name, "target": target, "speed": speed,
-                "duration_s": plan["duration_ms"] / 1000, "warnings": plan["warnings"] + warnings,
-                "address": client.url}
+                "duration_s": plan["duration_ms"] / 1000, "homing_ms": homing,
+                "warnings": plan["warnings"] + warnings + ignored_move_args(args), "address": client.url,
+                "note": HOME_NOTE}
 
     def robot_pose(self, args: dict[str, Any]) -> dict[str, Any]:
         try:
@@ -318,13 +401,12 @@ class TalariaTools:
             return {"ok": False, "blocked": True, "error": str(exc)}
         plan = check_move(move, spec.joint_limits())
         target = args.get("target") or "virtual"
-        client = self._client(spec, target)
-        warnings = self._check_real(client, spec) if target == "real" else []
+        client, warnings = self._connect(spec, target)
+        homing = self._go_home(client, spec)
         frame = plan["frames"][0]
         client.pose(frame["joints"], ms=frame["ms"])
         return {"ok": True, "robot": spec.name, "target": target, "joints": frame["joints"], "ms": frame["ms"],
-                "warnings": plan["warnings"] + warnings,
-                "note": "the check assumed the robot starts from its home pose"}
+                "homing_ms": homing, "warnings": plan["warnings"] + warnings, "note": HOME_NOTE}
 
     def robot_stop(self, args: dict[str, Any]) -> dict[str, Any]:
         spec = self.rt.robot(str(args.get("robot") or self.rt.setting("real_robot")))

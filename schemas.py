@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .motion import MAX_FRAME_MS, MAX_LOOPS, MAX_SPEED_FACTOR, MIN_FRAME_MS, MIN_SPEED_FACTOR
+
 ROBOT = {"type": "string", "description": "Robot name, as listed by robot_list (e.g. caduceus, spider8)."}
 TARGET = {"type": "string", "enum": ["virtual", "real"],
           "description": "virtual = a simulated robot on this computer (default); real = the robot at the robot_url "
@@ -16,10 +18,12 @@ FRAMES = {"type": "array", "description": "Keyframes in order. Each frame: {\"ms
 MOVE_FIELDS = {
     "move": {"type": "string", "description": "Name of a move of this robot (built-in or saved with move_save)."},
     "frames": FRAMES,
-    "loops": {"type": "integer", "minimum": 1, "maximum": 20, "description": "Times to play the frames (default 1)."},
+    "loops": {"type": "integer", "minimum": 1, "maximum": MAX_LOOPS,
+              "description": "Times to play inline frames (default 1); a named move plays as defined."},
     "easing": {"type": "string", "enum": ["smoothstep", "linear"],
-               "description": "smoothstep (default) eases in and out; linear moves at one constant speed."},
-    "speed": {"type": "number", "minimum": 0.1, "maximum": 2.0,
+               "description": "smoothstep (default) eases in and out; linear moves at one constant speed. "
+                              "Inline frames only."},
+    "speed": {"type": "number", "minimum": MIN_SPEED_FACTOR, "maximum": MAX_SPEED_FACTOR,
               "description": "Playback speed factor: 0.5 makes every transition twice as long (default 1)."},
 }
 
@@ -147,7 +151,9 @@ ROBOT_PLAY = {
     "name": "robot_play",
     "description": "Play a move on the virtual robot (default) or the real one. It plays only what passed move_check: "
                    "the same named move or the same frames, at the same speed, on the same robot spec; anything else "
-                   "is refused before it reaches the robot, with the reason and what to change.",
+                   "is refused before it reaches the robot, with the reason and what to change. The robot first eases "
+                   "back to its home pose at half speed, then plays the move, so it starts where the check started. "
+                   "target real also needs the robot token (set up by `hermes talaria firmware`).",
     "parameters": {"type": "object", "properties": {"robot": ROBOT, **MOVE_FIELDS, "target": TARGET},
                    "required": ["robot"]},
 }
@@ -155,11 +161,13 @@ ROBOT_PLAY = {
 ROBOT_POSE = {
     "name": "robot_pose",
     "description": "Move some joints to angles (one frame). Needs a passing move_check of the same single frame "
-                   "(frames: [{ms, joints}]) first.",
+                   "(frames: [{ms, joints}]) first. The robot first eases back to its home pose at half speed, "
+                   "then moves to the pose, as in the check.",
     "parameters": {"type": "object", "properties": {
         "robot": ROBOT,
         "joints": {"type": "object", "description": "joint name -> angle in degrees"},
-        "ms": {"type": "integer", "minimum": 50, "maximum": 10000, "description": "Travel time (default 600)."},
+        "ms": {"type": "integer", "minimum": MIN_FRAME_MS, "maximum": MAX_FRAME_MS,
+               "description": "Travel time (default 600)."},
         "target": TARGET},
         "required": ["robot", "joints"]},
 }

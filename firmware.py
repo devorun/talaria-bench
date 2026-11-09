@@ -8,6 +8,7 @@ plays on the robot at the timing it was checked at.
 
 from __future__ import annotations
 
+import secrets
 import shutil
 from pathlib import Path
 
@@ -21,8 +22,15 @@ def _c_string(text: str) -> str:
     return '"' + str(text).replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def robot_config_h(spec: Spec) -> str:
-    """The C header that describes ``spec`` to the firmware."""
+def new_token() -> str:
+    """A random shared robot token (128 bits, hex, safe in a C string and an HTTP header)."""
+    return secrets.token_hex(16)
+
+
+def robot_config_h(spec: Spec, token: str = "") -> str:
+    """The C header that describes ``spec`` (and the shared token) to the firmware."""
+    if not all(c.isalnum() or c in "-_." for c in token):
+        raise ValueError("the robot token may only use letters, digits, - _ and .")
     hw = spec.hardware_mapping()
     ctl = hw["controller"]
     hostname = ctl.get("hostname") or spec.name.replace("_", "-")[:32]
@@ -47,6 +55,11 @@ def robot_config_h(spec: Spec) -> str:
 #define ROBOT_NAME      {_c_string(spec.name)}
 #define ROBOT_SPEC_HASH {_c_string(spec.hash()[:16])}
 #define ROBOT_HOSTNAME  {_c_string(hostname)}
+
+// Shared token: every request must carry it in X-Robot-Token. Hermes needs the same value
+// (TALARIA_ROBOT_TOKEN); without it Talaria Bench refuses to move the real robot.
+#undef ROBOT_TOKEN
+#define ROBOT_TOKEN     {_c_string(token)}
 
 // I2C bus and PCA9685 servo driver
 #define I2C_SDA       {int(ctl["sda"])}
@@ -81,11 +94,14 @@ static const JointConfig JOINTS[] = {{
 """
 
 
-def export_firmware(spec: Spec, out_dir: Path | str) -> Path:
-    """Write the Arduino sketch folder for ``spec`` into ``out_dir/talaria_robot`` and return it."""
+def export_firmware(spec: Spec, out_dir: Path | str, token: str) -> Path:
+    """Write the Arduino sketch folder for ``spec`` (with the shared ``token``) into ``out_dir/talaria_robot``
+    and return it."""
+    if not token:
+        raise ValueError("the firmware needs a robot token (firmware.new_token() makes one)")
     target = Path(out_dir) / SKETCH_NAME
     target.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(SKETCH_DIR / f"{SKETCH_NAME}.ino", target / f"{SKETCH_NAME}.ino")
     shutil.copyfile(SKETCH_DIR / "secrets.example.h", target / "secrets.example.h")
-    (target / "robot_config.h").write_text(robot_config_h(spec), encoding="utf-8")
+    (target / "robot_config.h").write_text(robot_config_h(spec, token), encoding="utf-8")
     return target

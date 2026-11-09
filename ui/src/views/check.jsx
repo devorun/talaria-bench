@@ -93,12 +93,15 @@ function Result({ res, robot, move, speed }) {
       ) : null}
       <div className="tb-card">
         <div className="tb-card-head"><h3>Play it</h3><span className="tb-muted">through the same approval gate as the robot_play tool</span></div>
+        <p className="tb-small tb-muted">The robot first eases back to its home pose at half speed, then plays the move, so it
+          starts where the preflight started. A real robot also needs its token (from <code>hermes talaria firmware</code>).</p>
         <div className="tb-row tb-gap">
           <Button kind={res.verdict === 'pass' ? 'primary' : 'default'} busy={busy === 'virtual'} onClick={() => doPlay('virtual')}>Play on virtual robot</Button>
           <Button busy={busy === 'real'} onClick={() => doPlay('real')}>Play on real robot</Button>
         </div>
         {play ? (
-          play.ok ? <div className="tb-callout tb-tone-green">Playing {play.move} on the {play.target} robot ({play.duration_s.toFixed(1)} s).</div>
+          play.ok ? <div className="tb-callout tb-tone-green">Playing {play.move} on the {play.target} robot ({play.duration_s.toFixed(1)} s
+            {play.homing_ms ? `, after ${(play.homing_ms / 1000).toFixed(1)} s back to home` : ', from home'}).</div>
             : <div className={'tb-callout ' + (play.blocked ? 'tb-tone-red' : 'tb-tone-amber')}>{play.blocked ? <strong>Gate: </strong> : null}{play.error}</div>
         ) : null}
       </div>

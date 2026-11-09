@@ -159,6 +159,8 @@ def setup_cli(parser: argparse.ArgumentParser) -> None:
     p = sub.add_parser("firmware", help="write the ESP32 firmware for a robot (with its robot_config.h)")
     p.add_argument("robot")
     p.add_argument("out_dir")
+    p.add_argument("--new-token", action="store_true",
+                   help="write a fresh random robot token even if Hermes already has one")
     p = sub.add_parser("sim", help="run a virtual robot with the firmware's HTTP API")
     p.add_argument("robot", nargs="?", default=None)
     p.add_argument("--host", default="127.0.0.1")
@@ -201,11 +203,21 @@ def cli_handler(rt: Runtime, tools: TalariaTools) -> Callable[[argparse.Namespac
         elif cmd == "bench":
             return _bench_foreground(tools, args)
         elif cmd == "firmware":
-            from .firmware import export_firmware
-            folder = export_firmware(rt.robot(args.robot), Path(args.out_dir))
+            from .firmware import export_firmware, new_token
+            existing = None if getattr(args, "new_token", False) else rt.token()
+            token = existing or new_token()
+            folder = export_firmware(rt.robot(args.robot), Path(args.out_dir), token)
             out(f"Firmware for {args.robot} written to {folder}")
-            out(f"Copy secrets.example.h to secrets.h, fill in WiFi and ROBOT_TOKEN (the same value as the "
-                f"{TOKEN_ENV} secret), then build with the ESP32 core and Adafruit PWM Servo Driver library.")
+            if existing:
+                out(f"robot_config.h uses the robot token already stored in Hermes ({TOKEN_ENV}); pass --new-token "
+                    "for a fresh one.")
+            else:
+                out(f"robot_config.h has a new random robot token: {token}")
+                out("Store the same value in Hermes (Talaria Bench refuses to move the real robot without it):")
+                out(f"  hermes config set {TOKEN_ENV} {token}")
+                out("  (or Hermes Desktop: Settings > Plugins > Talaria Bench > Robot token)")
+            out("Copy secrets.example.h to secrets.h and fill in the Wi-Fi, then build with the ESP32 core and the "
+                "Adafruit PWM Servo Driver library.")
         elif cmd == "sim":
             spec = rt.robot(args.robot or str(rt.setting("real_robot")))
             return bridge.serve(spec, host=args.host, port=args.port, token=rt.token(), out=out)

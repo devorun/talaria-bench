@@ -21,6 +21,7 @@ from typing import Any, Optional
 import yaml
 
 from . import preflight
+from .motion import MoveError, check_move
 from .runtime import EXAMPLE_REPORTS, PLUGIN_ROOT, Runtime
 from .spec import Spec, SpecError
 from .tools import TalariaTools, _headline
@@ -41,6 +42,33 @@ class ApiError(Exception):
 
     def payload(self) -> dict[str, Any]:
         return {"ok": False, "error": self.error, **({"problems": self.problems} if self.problems else {})}
+
+
+def _whole(body: dict[str, Any], key: str, lo: int, hi: int) -> Optional[int]:
+    """``body[key]`` as a whole number in [lo, hi], None when absent; anything else is a 400, not a 500."""
+    value = body.get(key)
+    if value is None or value == "":
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        number = math.nan
+    if isinstance(value, bool) or not math.isfinite(number) or number != int(number) or not lo <= number <= hi:
+        raise ApiError(400, f"{key} must be a whole number from {lo} to {hi} (got {value!r})")
+    return int(number)
+
+
+def _real(body: dict[str, Any], key: str, default: float) -> float:
+    value = body.get(key)
+    if value is None or value == "":
+        return default
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        number = math.nan
+    if isinstance(value, bool) or not math.isfinite(number):
+        raise ApiError(400, f"{key} must be a number (got {value!r})")
+    return number
 
 
 def _call(tools: TalariaTools, name: str, args: dict[str, Any]) -> dict[str, Any]:
@@ -299,8 +327,9 @@ class WebAPI:
 
     def start_bench(self, body: dict[str, Any]) -> dict[str, Any]:
         args = {"robot": body.get("robot"), "quick": bool(body.get("quick"))}
-        if body.get("worlds"):
-            args["worlds"] = int(body["worlds"])
+        worlds = _whole(body, "worlds", 1, 10**6)
+        if worlds:
+            args["worlds"] = worlds
         return self._ok_or_raise(_call(self.tools, "bench_run", args))
 
     def start_compare(self, body: dict[str, Any]) -> dict[str, Any]:
@@ -431,11 +460,15 @@ class WebAPI:
 
         spec = self._trace_spec(body)
         scene = body.get("scene")
-        seed = body.get("seed")
-        speed = float(body.get("speed") or 1.0)
+        seed = _whole(body, "seed", 0, 2**31 - 1)
+        speed = _real(body, "speed", 1.0)
         if scene is None:
-            name, move = self.rt.resolve_move(spec, body.get("move"), body.get("frames"), body.get("loops"),
-                                              body.get("easing"))
+            try:
+                name, move = self.rt.resolve_move(spec, body.get("move"), body.get("frames"), body.get("loops"),
+                                                  body.get("easing"))
+                check_move(move, spec.joint_limits(), speed=speed)
+            except MoveError as exc:
+                raise ApiError(400, "the move cannot be played as written", exc.problems) from None
             what: Any = {"move": preflight.canonical_move(move), "speed": speed}
         else:
             what = {"scene": str(scene)}

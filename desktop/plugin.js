@@ -24988,6 +24988,11 @@ function Result({ res, robot, move, speed }) {
         /* @__PURE__ */ jsx7("h3", { children: "Play it" }),
         /* @__PURE__ */ jsx7("span", { className: "tb-muted", children: "through the same approval gate as the robot_play tool" })
       ] }),
+      /* @__PURE__ */ jsxs7("p", { className: "tb-small tb-muted", children: [
+        "The robot first eases back to its home pose at half speed, then plays the move, so it starts where the preflight started. A real robot also needs its token (from ",
+        /* @__PURE__ */ jsx7("code", { children: "hermes talaria firmware" }),
+        ")."
+      ] }),
       /* @__PURE__ */ jsxs7("div", { className: "tb-row tb-gap", children: [
         /* @__PURE__ */ jsx7(Button, { kind: res.verdict === "pass" ? "primary" : "default", busy: busy === "virtual", onClick: () => doPlay("virtual"), children: "Play on virtual robot" }),
         /* @__PURE__ */ jsx7(Button, { busy: busy === "real", onClick: () => doPlay("real"), children: "Play on real robot" })
@@ -24999,7 +25004,9 @@ function Result({ res, robot, move, speed }) {
         play.target,
         " robot (",
         play.duration_s.toFixed(1),
-        " s)."
+        " s",
+        play.homing_ms ? `, after ${(play.homing_ms / 1e3).toFixed(1)} s back to home` : ", from home",
+        ")."
       ] }) : /* @__PURE__ */ jsxs7("div", { className: "tb-callout " + (play.blocked ? "tb-tone-red" : "tb-tone-amber"), children: [
         play.blocked ? /* @__PURE__ */ jsx7("strong", { children: "Gate: " }) : null,
         play.error

@@ -144,7 +144,7 @@ def test_preflight_and_play_go_through_the_gate(client):
     assert st["ok"] and st["simulated"]
     assert post(client, "/stop", {"robot": "caduceus"})[1]["stopped"]
     code, real = post(client, "/play", {"robot": "caduceus", "move": "arms_up_alternating", "target": "real"})
-    assert code == 200 and real["ok"] is False and "robot_url" in real["error"]
+    assert code == 200 and real["ok"] is False and "without a token" in real["error"]     # no token set
 
 
 def test_edit_saves_a_user_copy(client):
@@ -234,3 +234,19 @@ def test_templates_new_robot_and_photo_upload(client):
     assert not big["ok"]
     bundled = post(client, "/robots/caduceus/photo", {"data": base64.b64encode(jpg).decode()})[1]
     assert not bundled["ok"] and "bundled" in bundled["error"]
+
+
+@pytest.mark.parametrize("path,body,needle", [
+    ("/trace", {"robot": "caduceus", "move": "wave", "seed": "abc"}, "seed must be a whole number"),
+    ("/trace", {"robot": "caduceus", "move": "wave", "seed": -1}, "seed must be a whole number"),
+    ("/trace", {"robot": "caduceus", "move": "wave", "seed": 1.5}, "seed must be a whole number"),
+    ("/trace", {"robot": "caduceus", "move": "wave", "speed": "fast"}, "speed must be a number"),
+    ("/trace", {"robot": "caduceus", "frames": [{"ms": 400, "joints": {"tail": 5}}]}, "cannot be played"),
+    ("/trace", {"robot": "caduceus", "scene": "flat", "seed": "x"}, "seed must be a whole number"),
+    ("/bench", {"robot": "spider8", "worlds": "many"}, "worlds must be a whole number"),
+])
+def test_non_numeric_input_is_an_answer_not_a_server_error(client, path, body, needle):
+    r = client.post(PREFIX + path, json=body)
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["ok"] is False and needle in data["error"] + " ".join(data.get("problems", []))

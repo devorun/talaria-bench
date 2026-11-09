@@ -17,7 +17,8 @@
 //
 // Libraries (Arduino Library Manager): Adafruit PWM Servo Driver Library, ArduinoJson (v7), and with a
 // screen (HAS_OLED 1 in robot_config.h) Adafruit SH110X (pulls in Adafruit GFX).
-// Board: ESP32 Dev Module (esp32 by Espressif). Copy secrets.example.h to secrets.h and fill it in.
+// Board: ESP32 Dev Module (esp32 by Espressif). Copy secrets.example.h to secrets.h and fill in the Wi-Fi.
+// The shared ROBOT_TOKEN comes from robot_config.h (a random one per `hermes talaria firmware` run).
 
 #include <WiFi.h>
 #include <WebServer.h>
@@ -25,8 +26,11 @@
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include <ArduinoJson.h>
-#include "robot_config.h"
 #include "secrets.h"
+#include "robot_config.h"   // after secrets.h: its ROBOT_TOKEN wins over one an old secrets.h defines
+#ifndef ROBOT_TOKEN
+#define ROBOT_TOKEN ""
+#endif
 #if HAS_OLED
 #include <Adafruit_GFX.h>
 #include <Adafruit_SH110X.h>

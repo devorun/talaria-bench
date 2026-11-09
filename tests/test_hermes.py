@@ -319,6 +319,7 @@ def test_quick_check_extends_a_clean_move_so_it_can_pass(rt, tools):
 def test_real_target_checks_address_token_and_identity(rt, tools):
     spec = rt.robot("caduceus")
     approve(rt, "caduceus", spec.moves["wave"])
+    rt.overrides["token"] = "tok"
     no_url = call(tools, "robot_play", {"robot": "caduceus", "move": "wave", "target": "real"})
     assert not no_url["ok"] and "robot_url" in no_url["error"]
     server = bridge.start_virtual(spec, token="tok")
@@ -399,7 +400,7 @@ def test_firmware_header_for_every_example(path, tmp_path):
     assert f'"{spec.name}"' in header and spec.hash()[:16] in header
     for name in spec.joint_names:
         assert f'"{name}"' in header
-    folder = firmware.export_firmware(spec, tmp_path)
+    folder = firmware.export_firmware(spec, tmp_path, "t0ken")
     assert {p.name for p in folder.iterdir()} >= {"talaria_robot.ino", "robot_config.h", "secrets.example.h"}
     ino = (folder / "talaria_robot.ino").read_text(encoding="utf-8")
     assert ino.count("readPrescale") == 1                             # once in setup, never per servo write

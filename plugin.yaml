@@ -41,7 +41,7 @@ config_schema:
     type: secret
     env: TALARIA_ROBOT_TOKEN
     label: Robot token
-    description: "Optional shared token; the same value as ROBOT_TOKEN in the firmware's secrets.h."
+    description: "Shared token: the ROBOT_TOKEN that `hermes talaria firmware` writes into robot_config.h. Required for target 'real' unless allow_unauthenticated_robot is on."
   real_robot:
     type: str
     default: caduceus
@@ -56,3 +56,13 @@ config_schema:
     default: 60
     label: Preflight worlds
     description: "Randomized worlds per full move_check (60 to 500; a quick check starts with 30 and extends a clean run to 60)."
+  allow_unauthenticated_robot:
+    type: bool
+    default: false
+    label: Allow a real robot without a token
+    description: "Off (default): moves are refused on a real robot when no robot token is set, because anything on the network could then move it."
+  allow_firmware_mismatch:
+    type: bool
+    default: false
+    label: Allow firmware from another spec version
+    description: "Off (default): moves are refused on a real robot whose firmware reports a different spec hash than the checked robot spec, or none."
