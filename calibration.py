@@ -25,7 +25,6 @@ import ast
 import copy
 import operator
 import os
-from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Optional
@@ -365,11 +364,9 @@ def calibrate(config: Config, samples: Optional[int] = None, workers: int = 1, s
     sets = latin_hypercube(samples or config.samples, config.params, config.seed if seed is None else seed)
     rows: list[dict[str, Any]] = []
     if workers > 1:
-        import multiprocessing as mp
+        from .procpool import pool as make_pool
 
-        ctx = mp.get_context("fork") if "fork" in mp.get_all_start_methods() else None
-        with ProcessPoolExecutor(max_workers=workers, mp_context=ctx, initializer=_init_worker,
-                                 initargs=(str(config.path),)) as pool:
+        with make_pool(workers, "calibration", "_init_worker", str(config.path)) as pool:
             for i, row in enumerate(pool.map(_worker, sets, chunksize=4)):
                 rows.append(row)
                 if progress and (i + 1) % 50 == 0:

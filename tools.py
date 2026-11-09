@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from . import bridge, preflight
-from .hooks import block_reason, requested_move
+from .hooks import gate, requested_move
 from .jobs import JobManager
 from .motion import MoveError, check_move
 from .runtime import EXAMPLE_REPORTS, Runtime
@@ -38,6 +38,10 @@ def _guarded(fn: Callable[[dict[str, Any]], dict[str, Any]]) -> Callable[..., st
             return _dump({"ok": False, "error": str(exc),
                           "hint": "The robot did not answer: it may be off, on another network or at another "
                                   "address (robot_url setting). target 'virtual' works without hardware."})
+        except ImportError as exc:
+            return _dump({"ok": False, "error": f"a simulation dependency is missing or failed to import ({exc})",
+                          "hint": "Install the plugin's Python dependencies (mujoco, numpy, pyyaml): "
+                                  "hermes plugins install talaria-bench --install-deps"})
         except (bridge.RobotError, KeyError, ValueError) as exc:
             return _dump({"ok": False, "error": str(exc.args[0]) if isinstance(exc, KeyError) and exc.args else str(exc)})
         except Exception as exc:  # a tool must never raise into the agent loop
@@ -286,17 +290,17 @@ class TalariaTools:
                             "with `hermes talaria firmware` so its built-in limits match")
         return warnings
 
-    def _gate(self, tool: str, args: dict[str, Any]) -> None:
-        reason = block_reason(self.rt, tool, args)
+    def _gate(self, tool: str, args: dict[str, Any]):
+        reason, resolved = gate(self.rt, tool, args)
         if reason:
             raise _Blocked(reason)
+        return resolved
 
     def robot_play(self, args: dict[str, Any]) -> dict[str, Any]:
         try:
-            self._gate("robot_play", args)
+            spec, name, move, speed = self._gate("robot_play", args)
         except _Blocked as exc:
             return {"ok": False, "blocked": True, "error": str(exc)}
-        spec, name, move, speed = requested_move(self.rt, "robot_play", args)
         plan = check_move(move, spec.joint_limits(), speed=speed)
         target = args.get("target") or "virtual"
         client = self._client(spec, target)
@@ -309,10 +313,9 @@ class TalariaTools:
 
     def robot_pose(self, args: dict[str, Any]) -> dict[str, Any]:
         try:
-            self._gate("robot_pose", args)
+            spec, _, move, _ = self._gate("robot_pose", args)
         except _Blocked as exc:
             return {"ok": False, "blocked": True, "error": str(exc)}
-        spec, _, move, _ = requested_move(self.rt, "robot_pose", args)
         plan = check_move(move, spec.joint_limits())
         target = args.get("target") or "virtual"
         client = self._client(spec, target)

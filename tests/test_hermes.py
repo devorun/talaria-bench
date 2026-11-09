@@ -366,8 +366,13 @@ def test_background_job_lifecycle(rt, tools):
     assert not (PLUGIN_ROOT / "cache").exists()
 
 
-def test_failed_job_reports_failure(tools):
-    started = call(tools, "bench_run", {"robot": "arm6", "scenes": ["no_such_scene"]})
+def test_failed_job_reports_failure(tools, tmp_path, monkeypatch):
+    refused = call(tools, "bench_run", {"robot": "arm6", "scenes": ["no_such_scene"]})
+    assert not refused["ok"] and "unknown scene" in refused["error"]     # refused before any job starts
+    crash = tmp_path / "crash.py"
+    crash.write_text("import sys\nprint('worker crashed')\nsys.exit(3)\n", encoding="utf-8")
+    monkeypatch.setattr("talaria_bench.jobs.DEVCLI", crash)
+    started = call(tools, "bench_run", {"robot": "arm6", "quick": True})
     job = _wait(tools, started["job_id"])
     assert job["status"] == "failed" and job["log_tail"]
     assert call(tools, "bench_report", {"job_id": started["job_id"]})["ok"] is False

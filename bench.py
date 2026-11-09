@@ -10,7 +10,7 @@ import hashlib
 import json
 import os
 import time
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional
@@ -84,6 +84,11 @@ def _cache_put(cache_dir: Optional[Path], key: str, job: dict) -> None:
     os.replace(tmp, path)
 
 
+def _init_worker(spec: Spec) -> None:
+    global _WORKER_SPEC
+    _WORKER_SPEC = spec
+
+
 def _worker(task: tuple[str, int]) -> dict:
     return run_scene(_WORKER_SPEC, task[0], task[1])
 
@@ -111,7 +116,6 @@ def run_benchmark(spec: Spec, scenes: Optional[list[str]] = None, worlds: int = 
 
     ``quick`` uses 10 worlds. ``cache_dir=None`` disables the result cache. ``progress(done, total,
     scene)`` is called as jobs finish; ``progress_file`` gets the same as JSON (for the dashboard)."""
-    global _WORKER_SPEC
     t_start = time.perf_counter()
     if quick:
         worlds = QUICK_WORLDS
@@ -162,13 +166,11 @@ def run_benchmark(spec: Spec, scenes: Optional[list[str]] = None, worlds: int = 
 
     n_workers = workers or default_workers()
     if todo and n_workers > 1 and len(todo) > 2:
-        import multiprocessing as mp
+        from .procpool import pool as make_pool
 
-        _WORKER_SPEC = spec
-        ctx = mp.get_context("fork") if "fork" in mp.get_all_start_methods() else None
         # push jobs are the slowest: start them first so the pool stays busy to the end
         order = sorted(todo, key=lambda t: 0 if t[0] == "push" else 1)
-        with ProcessPoolExecutor(max_workers=n_workers, mp_context=ctx) as pool:
+        with make_pool(n_workers, "bench", "_init_worker", spec) as pool:
             futures = {pool.submit(_worker, t): t for t in order}
             for fut in as_completed(futures):
                 finished(futures[fut], fut.result())

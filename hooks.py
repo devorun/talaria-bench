@@ -39,16 +39,30 @@ def requested_move(rt: Runtime, tool_name: str, args: dict[str, Any]):
 
 def block_reason(rt: Runtime, tool_name: str, args: dict[str, Any]) -> Optional[str]:
     """None when the call may run, else a plain-words reason."""
+    return gate(rt, tool_name, args)[0]
+
+
+def gate(rt: Runtime, tool_name: str, args: dict[str, Any]):
+    """(reason, None) when blocked, else (None, (spec, name, move, speed)): the handler plays exactly the move
+    this check approved, without resolving the robot spec or a saved move a second time."""
     try:
-        spec, name, move, speed = requested_move(rt, tool_name, args)
+        resolved = requested_move(rt, tool_name, args)
     except KeyError as exc:
-        return f"Blocked: {exc.args[0] if exc.args else exc}."
+        return f"Blocked: {exc.args[0] if exc.args else exc}.", None
     except MoveError as exc:
-        return "Blocked: the move cannot be played as written: " + "; ".join(exc.problems)
+        return "Blocked: the move cannot be played as written: " + "; ".join(exc.problems), None
     except (TypeError, ValueError) as exc:
-        return f"Blocked: {exc}"
+        return f"Blocked: {exc}", None
+    spec, name, move, speed = resolved
     key = preflight.approval_key(spec, move, speed)
     record = preflight.ApprovalStore(rt.folder("approvals")).get(key)
+    if record is not None and record.get("verdict") == "pass":
+        return None, resolved
+    return _blocked_text(spec, name, move, speed, tool_name, record), None
+
+
+def _blocked_text(spec, name: str, move: dict[str, Any], speed: float, tool_name: str,
+                  record: Optional[dict[str, Any]]) -> str:
     what = f"{spec.name} / {name}" + (f" at speed {speed:g}" if speed != 1.0 else "")
     if tool_name == "robot_pose":
         how = ("run move_check with robot " + spec.name + " and frames [{\"ms\": " + str(move["frames"][0]["ms"])
@@ -58,8 +72,6 @@ def block_reason(rt: Runtime, tool_name: str, args: dict[str, Any]) -> Optional[
     if record is None:
         return (f"Blocked: {what} has no preflight for this exact move, speed and robot spec; {how}. "
                 "Any change to the frames, timing, speed or the robot spec needs a new check.")
-    if record.get("verdict") == "pass":
-        return None
     t = record.get("tip") or {}
     pct = preflight._pct
     head = f"Blocked: {what} did not pass preflight ({record.get('verdict')})"

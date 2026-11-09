@@ -55,4 +55,4 @@ config_schema:
     type: int
     default: 60
     label: Preflight worlds
-    description: "Randomized worlds per move_check (30 to 500). Below 60, a move with no tips cannot get under the 10% bound."
+    description: "Randomized worlds per full move_check (60 to 500; a quick check starts with 30 and extends a clean run to 60)."
