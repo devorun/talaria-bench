@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Stage } from './stage.js'
 
+const TIP_FLASH_S = 0.8
+
 // When a recorded run tips: the simulator's fall time if it gave one, else the first frame whose body
 // (the first part) is tilted more than 50 degrees from upright.
 export function tipTime(trace, result) {
@@ -15,8 +17,18 @@ export function tipTime(trace, result) {
   return (trace.frames.length - 1) / trace.fps
 }
 
-export function Viewer3D({ parts, frames, pose, meta, look, frameIndex = 0, time = 0, label, sublabel, tone, height = 340,
-  interactive = true, onStage, tipAt = null }) {
+// Timeline marks for the runs on screen: where each one tips.
+export function tipMarks(...runs) {
+  const marks = []
+  for (const [trace, result, label] of runs) {
+    const t = tipTime(trace, result)
+    if (t != null && !marks.some((m) => Math.abs(m.t - t) < 0.02)) marks.push({ t, label: label || 'tips', tone: 'red' })
+  }
+  return marks
+}
+
+export function Viewer3D({ parts, frames, pose, meta, look, time = 0, fps = 30, label, sublabel, tone, height = 340,
+  interactive = true, onStage, tipAt = null, tipWhy = null, turntable = false }) {
   const box = useRef(null)
   const stage = useRef(null)
   const [error, setError] = useState(null)
@@ -39,18 +51,25 @@ export function Viewer3D({ parts, frames, pose, meta, look, frameIndex = 0, time
     const s = stage.current
     if (!s || !parts) return
     s.setRobot(parts, look || {})
-    s.setMeta(meta || {})
     s.setPose(frames ? frames[0] : pose)
+    s.setMeta(meta || {}) // after the first pose: the course is laid out around the robot
     s.frame(true)
   }, [parts, meta, frames, pose, look])
 
   useEffect(() => {
     const s = stage.current
     if (!s || !frames || !frames.length) return
-    s.setPose(frames[Math.min(frameIndex, frames.length - 1)])
+    // Blend between recorded frames so the replay is smooth at any display rate and in slow motion.
+    const f = Math.max(0, Math.min(frames.length - 1, time * fps))
+    const i = Math.floor(f)
+    s.setPoseBlend(frames[i], frames[Math.min(i + 1, frames.length - 1)], f - i)
     s.setTime(time)
-    s.setTip(tipAt != null && time >= tipAt && time < tipAt + 0.8)
-  }, [frameIndex, time, frames, tipAt])
+    s.setTip(tipAt != null && time >= tipAt ? (time < tipAt + TIP_FLASH_S ? 1 : 2) : 0, tipWhy)
+  }, [time, frames, tipAt, tipWhy, fps])
+
+  useEffect(() => {
+    if (stage.current) stage.current.setTurntable(turntable && !frames)
+  }, [turntable, frames, parts])
 
   return (
     <div className="tb-viewer" style={{ height }}>
@@ -63,8 +82,11 @@ export function Viewer3D({ parts, frames, pose, meta, look, frameIndex = 0, time
           {sublabel ? <small>{sublabel}</small> : null}
         </div>
       ) : null}
-      <button type="button" className="tb-viewer-reset" title="Reset view"
-        onClick={() => stage.current && stage.current.frame(true)}>⟲</button>
+      <button type="button" className="tb-viewer-reset" title="Reset view" aria-label="Reset view"
+        onClick={() => stage.current && stage.current.frame(true)}>
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 8a5 5 0 1 0 1.6-3.7M3 2.5v2.3h2.3"
+          fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </button>
       {error ? <div className="tb-viewer-error">{error}</div> : null}
     </div>
   )
@@ -103,28 +125,38 @@ export function frameAt(trace, t) {
   return Math.max(0, Math.min(trace.frames.length - 1, Math.floor(t * trace.fps)))
 }
 
+const RATES = [0.25, 0.5, 1, 2]
+
 export function Timeline({ player, marks = [] }) {
   const { t, playing, setPlaying, rate, setRate, seek, duration } = player
   if (!duration) return null
+  const at = (v) => `${(Math.min(Math.max(v, 0), duration) / duration) * 100}%`
   return (
     <div className="tb-timeline">
       <button type="button" className="tb-icon-btn" onClick={() => setPlaying(!playing)}
-        aria-label={playing ? 'Pause' : 'Play'}>{playing ? '❚❚' : '▶'}</button>
+        aria-label={playing ? 'Pause' : 'Play'}>
+        <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+          {playing ? <path d="M2.5 1.5h2.4v9H2.5zM7.1 1.5h2.4v9H7.1z" fill="currentColor" />
+            : <path d="M3 1.3v9.4L10.4 6z" fill="currentColor" />}
+        </svg>
+      </button>
       <div className="tb-scrub">
-        <input type="range" min={0} max={duration} step={1 / 60} value={t}
-          onChange={(e) => { setPlaying(false); seek(parseFloat(e.target.value)) }} />
+        <div className="tb-scrub-track"><div className="tb-scrub-fill" style={{ width: at(t) }} /></div>
         {marks.map((m) => (
-          <span key={m.label} className="tb-mark" title={m.label}
-            style={{ left: `${(Math.min(m.t, duration) / duration) * 100}%` }} />
+          <span key={m.label + m.t} className={'tb-mark tb-mark-' + (m.tone || 'accent')} style={{ left: at(m.t) }}>
+            <i>{m.label}</i>
+          </span>
+        ))}
+        <input type="range" min={0} max={duration} step={1 / 120} value={t} aria-label="Replay position"
+          onChange={(e) => { setPlaying(false); seek(parseFloat(e.target.value)) }} />
+      </div>
+      <span className="tb-time">{t.toFixed(2)} <small>/ {duration.toFixed(2)} s</small></span>
+      <div className="tb-seg tb-rates" role="group" aria-label="Playback speed">
+        {RATES.map((r) => (
+          <button key={r} type="button" className={'tb-seg-btn' + (rate === r ? ' tb-active' : '')} aria-pressed={rate === r}
+            title={r < 1 ? 'Slow motion' : r > 1 ? 'Fast' : 'Real time'} onClick={() => setRate(r)}>{r}×</button>
         ))}
       </div>
-      <span className="tb-time">{t.toFixed(2)} / {duration.toFixed(2)} s</span>
-      <select className="tb-select tb-select-sm" value={rate} onChange={(e) => setRate(parseFloat(e.target.value))}>
-        <option value={0.25}>0.25×</option>
-        <option value={0.5}>0.5×</option>
-        <option value={1}>1×</option>
-        <option value={2}>2×</option>
-      </select>
     </div>
   )
 }

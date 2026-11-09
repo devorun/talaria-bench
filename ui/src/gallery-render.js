@@ -11,6 +11,7 @@ window.renderRobot = async function renderRobot(data, { label = true } = {}) {
   stage.follow = false
   stage.setRobot(data.parts, data.look || {})
   stage.setPose(data.parts.map((p) => p.pose))
+  stage.setMeta({ mark: 'front' })
   stage.frame(true, { distance: 1.75, azimuth: [0.82, 0.42, 0.7] })
   const info = document.getElementById('info')
   info.style.display = label ? 'block' : 'none'

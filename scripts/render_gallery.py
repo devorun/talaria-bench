@@ -66,7 +66,8 @@ def robots() -> list[dict]:
             continue
         spec = load_spec(path)
         pose = api.render(spec, (spec.look.get("showcase") or {}).get("joints"))
-        out.append({"name": spec.name, "title": spec.title or spec.name, "look": spec.look, "parts": pose["parts"],
+        look = api.look(spec)
+        out.append({"name": spec.name, "title": spec.title or spec.name, "look": look, "parts": pose["parts"],
                     "sub": f"{spec.name} · {len(spec.joint_parts)} servos · {round(spec.total_mass_g)} g"})
     return out
 
