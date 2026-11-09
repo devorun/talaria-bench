@@ -23631,7 +23631,7 @@ var Stage = class {
     let color = new Color(p.color || "#9aa4b2");
     if (look.accent && !decalParts.has(p.name)) color = color.lerp(new Color(look.accent), 0.78);
     const { bevel, ...pbr } = finish;
-    if (finish === FOIL) color.lerp(new Color(16777215), 0.12);
+    if (finish === FOIL) color.lerp(new Color(16777215), 0.28);
     return new MeshPhysicalMaterial({ color, ...pbr });
   }
   _decorate(mesh, part, kind, look) {
@@ -24574,7 +24574,7 @@ function RobotPage({ robot, go }) {
             tipAt: tr ? tipTime(tr, trace.result) : null,
             tipWhy: tr ? trace.result.fall_reason : null,
             time: player.t,
-            turntable: true,
+            turntable: !detail.has_photo,
             label: playing ? `move: ${playing}` : "showcase pose",
             sublabel: tr ? trace.result.fell ? `tipped at ${trace.result.fell_at_s?.toFixed(2)} s` : "nominal world, stays up" : "standing on the floor",
             tone: tr ? trace.result.fell ? "red" : "green" : null,

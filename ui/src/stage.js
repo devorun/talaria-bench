@@ -342,7 +342,7 @@ export class Stage {
     let color = new Color(p.color || '#9aa4b2')
     if (look.accent && !decalParts.has(p.name)) color = color.lerp(new Color(look.accent), 0.78)
     const { bevel, ...pbr } = finish
-    if (finish === FOIL) color.lerp(new Color(0xffffff), 0.12) // foil is a little brighter than the board under it
+    if (finish === FOIL) color.lerp(new Color(0xffffff), 0.28) // foil is a little brighter than the board under it
     return new MeshPhysicalMaterial({ color, ...pbr })
   }
 

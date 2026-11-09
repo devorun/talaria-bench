@@ -156,7 +156,7 @@ export function RobotPage({ robot, go }) {
           <Viewer3D parts={tr ? tr.parts : rest.parts} frames={tr ? tr.frames : null} pose={tr ? null : restPose}
             fps={tr ? tr.fps : 30} meta={trace && trace.ok ? trace.meta : null} look={detail.look}
             tipAt={tr ? tipTime(tr, trace.result) : null} tipWhy={tr ? trace.result.fall_reason : null}
-            time={player.t} turntable
+            time={player.t} turntable={!detail.has_photo}
             label={playing ? `move: ${playing}` : 'showcase pose'}
             sublabel={tr ? (trace.result.fell ? `tipped at ${trace.result.fell_at_s?.toFixed(2)} s` : 'nominal world, stays up') : 'standing on the floor'}
             tone={tr ? (trace.result.fell ? 'red' : 'green') : null} height={440} />
