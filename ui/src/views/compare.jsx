@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Viewer3D, Timeline, usePlayer, frameAt, tipTime, traceDuration } from '../viewer.jsx'
+import { Viewer3D, Timeline, usePlayer, tipMarks, tipTime, traceDuration } from '../viewer.jsx'
 import { Button, Chip, ErrorBox, Progress, STATUS, human, pct, useApi, useJob, useTrace } from '../ui.jsx'
 
 function parseCustom(text) {
@@ -21,8 +21,12 @@ function parseCustom(text) {
 function Delta({ d }) {
   if (d == null) return null
   const pts = Math.round(d * 100)
-  if (!pts) return <span className="tb-delta">±0</span>
-  return <span className={'tb-delta ' + (pts > 0 ? 'tb-up' : 'tb-down')}>{pts > 0 ? '+' : ''}{pts} pts</span>
+  if (!pts) return <span className="tb-delta" title="same pass rate as the base design">= same</span>
+  return (
+    <span className={'tb-delta ' + (pts > 0 ? 'tb-up' : 'tb-down')} title="pass rate against the base design, in percentage points">
+      {pts > 0 ? '▲ +' : '▼ −'}{Math.abs(pts)} pts
+    </span>
+  )
 }
 
 // Worlds where the designs disagree (base failing first), worlds where every design fails, and the median.
@@ -77,17 +81,17 @@ function Synced({ robot, jobId, row, names, result }) {
       <div className={'tb-grid-views tb-views-' + Math.min(names.length, 3)}>
         {names.map((n, i) => {
           const d = ok[i]
-          if (!d) return <div key={n} className="tb-viewer tb-viewer-wait" style={{ height: 300 }}><span className="tb-spinner" /> {n}…</div>
+          if (!d) return <div key={n} className="tb-viewer tb-viewer-wait" style={{ height: 320 }}><span className="tb-spinner" /> {n}…</div>
           const r = d.result || {}
           return (
-            <Viewer3D key={n} parts={d.trace.parts} frames={d.trace.frames} meta={d.meta} look={d.look}
-              tipAt={tipTime(d.trace, r)} frameIndex={frameAt(d.trace, player.t)} time={player.t} height={300}
+            <Viewer3D key={n} parts={d.trace.parts} frames={d.trace.frames} fps={d.trace.fps} meta={d.meta} look={d.look}
+              tipAt={tipTime(d.trace, r)} tipWhy={r.reason} time={player.t} height={320}
               label={n} sublabel={r.passed ? `passed · ${human(row.scene, r.metric)}` : `${r.reason || 'failed'} · ${human(row.scene, r.metric)}`}
               tone={r.passed ? 'green' : 'red'} />
           )
         })}
       </div>
-      <Timeline player={player} />
+      <Timeline player={player} marks={tipMarks(...ok.map((d, i) => [d && d.trace, d && d.result, `${names[i]} tips`]))} />
     </div>
   )
 }
@@ -149,8 +153,9 @@ export function ComparePage({ robot }) {
               <tbody>
                 {result.rows.map((r) => (
                   <tr key={r.scene} className={(row && row.scene === r.scene ? 'tb-active ' : '') + 'tb-clickable'}
-                    onClick={() => setRow(r)}>
-                    <td>{r.title}</td>
+                    tabIndex={0} aria-selected={!!row && row.scene === r.scene} onClick={() => setRow(r)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setRow(r) } }}>
+                    <th scope="row">{r.title}</th>
                     {names.map((n) => {
                       const c = r.cells[n]
                       const st = STATUS[c.status] || STATUS['n/a']

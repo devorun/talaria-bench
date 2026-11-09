@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, notify } from '../platform.js'
-import { Viewer3D, Timeline, usePlayer, frameAt, tipTime, traceDuration } from '../viewer.jsx'
+import { Viewer3D, Timeline, usePlayer, tipMarks, tipTime, traceDuration } from '../viewer.jsx'
 import { Button, Chip, ErrorBox, Loading, useApi, useTrace } from '../ui.jsx'
 
 function Photo({ robot, version }) {
@@ -154,12 +154,13 @@ export function RobotPage({ robot, go }) {
       <div className={'tb-split' + (detail.has_photo || detail.source === 'user' ? '' : ' tb-split-single')}>
         <div className="tb-card tb-card-flush">
           <Viewer3D parts={tr ? tr.parts : rest.parts} frames={tr ? tr.frames : null} pose={tr ? null : restPose}
-            meta={trace && trace.ok ? trace.meta : null} look={detail.look} tipAt={tr ? tipTime(tr, trace.result) : null}
-            frameIndex={frameAt(tr, player.t)} time={player.t}
+            fps={tr ? tr.fps : 30} meta={trace && trace.ok ? trace.meta : null} look={detail.look}
+            tipAt={tr ? tipTime(tr, trace.result) : null} tipWhy={tr ? trace.result.fall_reason : null}
+            time={player.t} turntable
             label={playing ? `move: ${playing}` : 'showcase pose'}
             sublabel={tr ? (trace.result.fell ? `tipped at ${trace.result.fell_at_s?.toFixed(2)} s` : 'nominal world, stays up') : 'standing on the floor'}
-            tone={tr ? (trace.result.fell ? 'red' : 'green') : null} height={420} />
-          {tr ? <Timeline player={player} /> : null}
+            tone={tr ? (trace.result.fell ? 'red' : 'green') : null} height={440} />
+          {tr ? <Timeline player={player} marks={tipMarks([tr, trace.result])} /> : null}
           {traceLoading ? <div className="tb-overlay-note"><span className="tb-spinner" /> simulating {playing}…</div> : null}
         </div>
         {detail.has_photo ? (
@@ -188,7 +189,7 @@ export function RobotPage({ robot, go }) {
                   <div className="tb-muted">{m.description || ''}{m.duration_s ? ` · ${m.duration_s.toFixed(1)} s` : ''}</div>
                 </div>
                 <div className="tb-row tb-gap-sm">
-                  <Button onClick={() => setPlaying(m.name)}>▶ Simulate</Button>
+                  <Button onClick={() => setPlaying(m.name)}>Simulate</Button>
                   <Button onClick={() => go('check', robot, m.name)}>Check</Button>
                 </div>
               </div>

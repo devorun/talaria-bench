@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../platform.js'
-import { Viewer3D, Timeline, usePlayer, frameAt, tipTime, traceDuration } from '../viewer.jsx'
+import { Viewer3D, Timeline, usePlayer, tipMarks, tipTime, traceDuration } from '../viewer.jsx'
 import { Bar, Button, Chip, ErrorBox, useApi, useTrace } from '../ui.jsx'
 
 const VERDICT = {
@@ -8,14 +8,18 @@ const VERDICT = {
   fail: { word: 'BLOCKED', tone: 'red', line: 'robot_play will refuse this move until a changed version passes.' },
   inconclusive: { word: 'INCONCLUSIVE', tone: 'grey', line: 'No tips, but too few worlds to bound the chance under 10%.' },
 }
+const LOAD_LIMIT = 90 // % of stall torque, 90th percentile across worlds (the preflight's own limit)
 
 function Interval({ tip, limit }) {
   const L = (x) => `${Math.min(100, x * 100)}%`
   return (
-    <div className="tb-interval">
+    <div className="tb-interval" role="img"
+      aria-label={`Tip chance ${(tip.rate * 100).toFixed(0)}%, 95% interval ${(tip.low * 100).toFixed(0)} to ${(tip.high * 100).toFixed(0)}%, limit ${Math.round(limit * 100)}%`}>
       <div className="tb-interval-track">
+        <div className="tb-interval-ok" style={{ width: L(limit) }} />
         <div className="tb-interval-limit" style={{ left: L(limit) }}><span>limit {Math.round(limit * 100)}%</span></div>
-        <div className="tb-interval-range" style={{ left: L(tip.low), width: `calc(${L(tip.high)} - ${L(tip.low)})` }} />
+        <div className={'tb-interval-range' + (tip.high <= limit ? ' tb-ok' : '')}
+          style={{ left: L(tip.low), width: `calc(${L(tip.high)} - ${L(tip.low)})` }} />
         <div className="tb-interval-point" style={{ left: L(tip.rate) }} />
       </div>
       <div className="tb-interval-scale"><span>0%</span><span>50%</span><span>100%</span></div>
@@ -33,6 +37,7 @@ function Result({ res, robot, move, speed }) {
   const [busy, setBusy] = useState(null)
   useEffect(() => setPlay(null), [res])
   const joints = Object.entries(res.joints).sort((a, b) => b[1].peak_pct_p90 - a[1].peak_pct_p90)
+  const loaded = joints.filter(([, l]) => l.peak_pct_p90 >= LOAD_LIMIT)
   const doPlay = async (target) => {
     setBusy(target)
     setPlay(await api('/play', { method: 'POST', body: { robot, move, speed, target } }))
@@ -40,70 +45,78 @@ function Result({ res, robot, move, speed }) {
   }
   return (
     <>
-      <div className={'tb-verdict tb-verdict-' + v.tone}>
+      <div className={'tb-verdict tb-verdict-' + v.tone} role="status">
         <div className="tb-verdict-word">{v.word}</div>
         <div className="tb-verdict-body">
           <div className="tb-verdict-title">{robot} / {move}{speed !== 1 ? ` at speed ${speed}` : ''}</div>
           <div>{v.line}</div>
+          {loaded.length ? (
+            <div>Servo load over {LOAD_LIMIT}% of stall (estimate): {loaded.map(([j, l]) => `${j} ${l.peak_pct_p90.toFixed(0)}%`).join(', ')}</div>
+          ) : null}
           <div className="tb-small tb-muted-on">{res.label}</div>
         </div>
         <div className="tb-verdict-stat">
-          <div className="tb-big">{(res.tip.rate * 100).toFixed(0)}%</div>
-          <div>tipped in {res.tip.falls}/{res.worlds} {res.official ? '' : 'quick '}worlds</div>
+          <div className="tb-big">{(res.tip.rate * 100).toFixed(0)}%<small>tip chance</small></div>
+          <div className="tb-verdict-worlds">tipped in <b>{res.tip.falls} of {res.worlds}</b> simulated worlds{res.official ? '' : ' (quick)'}</div>
           <div className="tb-small">95% interval {(res.tip.low * 100).toFixed(0)}–{(res.tip.high * 100).toFixed(0)}%</div>
         </div>
       </div>
       <div className="tb-two">
-        <div className="tb-card">
-          <div className="tb-card-head"><h3>Tip chance</h3>
-            <div className="tb-row tb-gap-sm">
-              {res.official ? <Chip tone="accent" title="the same 60 fixed-seed worlds the report card and gallery use">official · 60 fixed worlds</Chip>
-                : <Chip tone="amber">quick · {res.worlds} worlds</Chip>}
-              {res.extended ? <Chip>clean at 30, extended to 60</Chip> : null}
+        <div className="tb-stack">
+          <div className="tb-card">
+            <div className="tb-card-head"><h3>Tip chance</h3>
+              <div className="tb-row tb-gap-sm tb-wrap">
+                {res.official ? <Chip tone="accent" title="the same 60 fixed-seed worlds the report card and gallery use">official · 60 fixed worlds</Chip>
+                  : <Chip tone="amber">quick · {res.worlds} worlds</Chip>}
+                {res.extended ? <Chip>clean at 30, extended to 60</Chip> : null}
+              </div>
             </div>
+            <Interval tip={res.tip} limit={0.1} />
+            <p className="tb-small tb-muted">A move passes when the upper end of the 95% Wilson interval is at most 10% and
+              no servo peaks above 90% of stall torque (90th percentile across worlds).</p>
+            {res.tip.fall_frame ? <p>Most tips start during <b>frame {res.tip.fall_frame}</b>.</p> : null}
+            <h4>Servo load <Chip>estimate</Chip></h4>
+            {joints.map(([j, l]) => <Bar key={j} label={j} value={l.peak_pct_p90} mark={LOAD_LIMIT} right={`${l.peak_pct_p90.toFixed(0)}%`} />)}
+            <p className="tb-small tb-muted">Peak torque as a share of datasheet stall torque; the mark is the {LOAD_LIMIT}% limit.</p>
           </div>
-          <Interval tip={res.tip} limit={0.1} />
-          <p className="tb-small tb-muted">A move passes when the upper end of the 95% Wilson interval is at most 10% and
-            no servo peaks above 90% of stall torque (90th percentile across worlds).</p>
-          {res.tip.fall_frame ? <p>Most tips start during <b>frame {res.tip.fall_frame}</b>.</p> : null}
-          <h4>Servo load <Chip>estimate</Chip></h4>
-          {joints.map(([j, l]) => <Bar key={j} label={j} value={l.peak_pct_p90} mark={90} right={`${l.peak_pct_p90.toFixed(0)}%`} />)}
+          {res.suggestions && res.suggestions.length ? (
+            <div className="tb-card tb-suggest">
+              <div className="tb-card-head"><h3>What to change</h3><span className="tb-muted">derived from the move and the numbers</span></div>
+              <ol>{res.suggestions.map((s) => <li key={s}>{s}</li>)}</ol>
+            </div>
+          ) : null}
+          {res.speed_limit_stretches && res.speed_limit_stretches.length ? (
+            <div className="tb-callout tb-tone-amber">{res.speed_limit_stretches.map((w) => <div key={w}>{w}</div>)}</div>
+          ) : null}
         </div>
-        <div className="tb-card tb-card-flush">
-          {tr ? (
-            <>
-              <Viewer3D parts={tr.parts} frames={tr.frames} meta={trace.meta} look={trace.look}
-                tipAt={tipTime(tr, trace.result)} frameIndex={frameAt(tr, player.t)} time={player.t}
-                height={360} label={seed != null ? `a world where it tipped (${seed})` : 'nominal world'}
-                sublabel={trace.result.fell ? `tips at ${trace.result.fell_at_s?.toFixed(2)} s` : 'stays up'}
-                tone={trace.result.fell ? 'red' : 'green'} />
-              <Timeline player={player} />
-            </>
-          ) : <div className="tb-viewer tb-viewer-wait" style={{ height: 360 }}>{tl ? <><span className="tb-spinner" /> recording replay…</> : null}</div>}
+        <div className="tb-stack">
+          <div className="tb-card tb-card-flush">
+            {tr ? (
+              <>
+                <Viewer3D parts={tr.parts} frames={tr.frames} fps={tr.fps} meta={trace.meta} look={trace.look}
+                  tipAt={tipTime(tr, trace.result)} tipWhy={trace.result.fall_reason} time={player.t}
+                  height={400} label={seed != null ? `a world where it tipped (${seed})` : 'nominal world'}
+                  sublabel={trace.result.fell ? `tips at ${trace.result.fell_at_s?.toFixed(2)} s` : 'stays up'}
+                  tone={trace.result.fell ? 'red' : 'green'} />
+                <Timeline player={player} marks={tipMarks([tr, trace.result])} />
+              </>
+            ) : <div className="tb-viewer tb-viewer-wait" style={{ height: 400 }}>{tl ? <><span className="tb-spinner" /> recording replay…</> : null}</div>}
+          </div>
+          <div className="tb-card">
+            <div className="tb-card-head"><h3>Play it</h3><span className="tb-muted">through the same approval gate as the robot_play tool</span></div>
+            <p className="tb-small tb-muted">The robot first eases back to its home pose at half speed, then plays the move, so it
+              starts where the preflight started. A real robot also needs its token (from <code>hermes talaria firmware</code>).</p>
+            <div className="tb-row tb-gap tb-wrap">
+              <Button kind={res.verdict === 'pass' ? 'primary' : 'default'} busy={busy === 'virtual'} onClick={() => doPlay('virtual')}>Play on virtual robot</Button>
+              <Button busy={busy === 'real'} onClick={() => doPlay('real')}>Play on real robot</Button>
+            </div>
+            {play ? (
+              play.ok ? <div className="tb-callout tb-tone-green">Playing {play.move} on the {play.target} robot ({play.duration_s.toFixed(1)} s
+                {play.homing_ms ? `, after ${(play.homing_ms / 1000).toFixed(1)} s back to home` : ', from home'}).</div>
+                : <div className={'tb-callout ' + (play.blocked ? 'tb-tone-red' : 'tb-tone-amber')}>{play.blocked ? <strong>Gate: </strong> : null}{play.error}</div>
+            ) : null}
+          </div>
         </div>
-      </div>
-      {res.suggestions && res.suggestions.length ? (
-        <div className="tb-card tb-suggest">
-          <div className="tb-card-head"><h3>What to change</h3><span className="tb-muted">derived from the move and the numbers</span></div>
-          <ol>{res.suggestions.map((s) => <li key={s}>{s}</li>)}</ol>
-        </div>
-      ) : null}
-      {res.speed_limit_stretches && res.speed_limit_stretches.length ? (
-        <div className="tb-callout tb-tone-amber">{res.speed_limit_stretches.map((w) => <div key={w}>{w}</div>)}</div>
-      ) : null}
-      <div className="tb-card">
-        <div className="tb-card-head"><h3>Play it</h3><span className="tb-muted">through the same approval gate as the robot_play tool</span></div>
-        <p className="tb-small tb-muted">The robot first eases back to its home pose at half speed, then plays the move, so it
-          starts where the preflight started. A real robot also needs its token (from <code>hermes talaria firmware</code>).</p>
-        <div className="tb-row tb-gap">
-          <Button kind={res.verdict === 'pass' ? 'primary' : 'default'} busy={busy === 'virtual'} onClick={() => doPlay('virtual')}>Play on virtual robot</Button>
-          <Button busy={busy === 'real'} onClick={() => doPlay('real')}>Play on real robot</Button>
-        </div>
-        {play ? (
-          play.ok ? <div className="tb-callout tb-tone-green">Playing {play.move} on the {play.target} robot ({play.duration_s.toFixed(1)} s
-            {play.homing_ms ? `, after ${(play.homing_ms / 1000).toFixed(1)} s back to home` : ', from home'}).</div>
-            : <div className={'tb-callout ' + (play.blocked ? 'tb-tone-red' : 'tb-tone-amber')}>{play.blocked ? <strong>Gate: </strong> : null}{play.error}</div>
-        ) : null}
       </div>
     </>
   )
@@ -135,7 +148,7 @@ export function CheckPage({ robot, initialMove }) {
         </div>
       </div>
       <div className="tb-card">
-        <div className="tb-row tb-gap tb-wrap">
+        <div className="tb-row tb-gap tb-wrap tb-end">
           <label className="tb-field">Move
             <select className="tb-select" value={move} onChange={(e) => { setMove(e.target.value); setRes(null) }}>
               {list.map((m) => <option key={m.name} value={m.name}>{m.name}</option>)}

@@ -83,7 +83,7 @@ export function Bar({ value, max = 100, mark, tone, label, right, note }) {
       <div className="tb-barrow-label">{label}</div>
       <div className="tb-bar">
         <div className={'tb-bar-fill tb-fill-' + t} style={{ width: pct + '%' }} />
-        {mark != null ? <div className="tb-bar-mark" style={{ left: (mark / max) * 100 + '%' }} /> : null}
+        {mark != null ? <div className="tb-bar-mark" style={{ left: (mark / max) * 100 + '%' }} title={`limit ${mark}%`} /> : null}
       </div>
       <div className="tb-barrow-right">{right}</div>
       {note ? <div className="tb-barrow-note">{note}</div> : null}
@@ -135,22 +135,26 @@ export function pct(x, digits = 0) {
 
 export function fmt(v, unit) {
   if (v == null) return '–'
-  if (unit === 'x weight' && v >= 9) return '>1'
+  if (unit === 'x weight' && v > PUSH_MAX) return '>1'
   const s = Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2)
   return s.replace(/\.?0+$/, '') || '0'
 }
 
+// One format per unit, everywhere: distances with one decimal, angles and grams as short numbers.
+const PUSH_MAX = 1 // the largest push the bench applies, in body weights; a larger value means "never tipped"
+const cm = (v) => Math.abs(v).toFixed(1)
+const short = (v) => (Math.round(v * 10) / 10).toFixed(1).replace(/\.0$/, '')
+
 // A scene's main metric in plain words; negative distances say what actually happened.
 export function human(sceneId, v, unit) {
   if (v == null) return '–'
-  const n = (x) => fmt(Math.abs(x), unit)
   const id = sceneId || ''
-  if (id.startsWith('obstacle')) return v >= 0 ? `${n(v)} cm past the bar` : `stopped ${n(v)} cm before the bar`
-  if (id.startsWith('ramp')) return v >= 0 ? `climbed ${n(v)} cm` : `slid ${n(v)} cm back down`
-  if (id === 'flat' || id === 'slippery') return v >= 0 ? `${n(v)} cm forward` : `${n(v)} cm backwards`
-  if (id === 'push') return v >= 9 ? 'no tip up to 1× weight' : `tips at ${fmt(v)}× weight`
-  if (id === 'payload') return v < 0 ? 'no safe payload' : `${fmt(v)} g safe payload`
-  if (id.startsWith('move:')) return `${fmt(v)}° body tilt`
+  if (id.startsWith('obstacle')) return v >= 0 ? `${cm(v)} cm past the bar` : `stopped ${cm(v)} cm before the bar`
+  if (id.startsWith('ramp')) return v >= 0 ? `climbed ${cm(v)} cm` : `slid ${cm(v)} cm back down`
+  if (id === 'flat' || id === 'slippery') return v >= 0 ? `${cm(v)} cm forward` : `${cm(v)} cm backwards`
+  if (id === 'push') return v > PUSH_MAX ? 'no tip up to 1× weight' : `tips at ${fmt(v)}× weight`
+  if (id === 'payload') return v < 0 ? 'no safe payload' : `${short(v)} g safe payload`
+  if (id.startsWith('move:')) return `${short(v)}° body tilt`
   return `${fmt(v, unit)} ${unit || ''}`.trim()
 }
 
