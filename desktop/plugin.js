@@ -13,7 +13,7 @@ var STYLES = `
 .tb-root {
   --tb-fg: var(--ui-text-primary, var(--color-foreground, currentColor));
   --tb-fg2: var(--ui-text-secondary, var(--color-muted-foreground, color-mix(in srgb, currentColor 75%, transparent)));
-  --tb-fg3: var(--ui-text-tertiary, var(--color-muted-foreground, color-mix(in srgb, currentColor 55%, transparent)));
+  --tb-fg3: color-mix(in srgb, var(--ui-text-tertiary, var(--color-muted-foreground, color-mix(in srgb, currentColor 55%, transparent))) 68%, var(--tb-fg));
   --tb-line: var(--ui-stroke-secondary, var(--color-border, color-mix(in srgb, currentColor 14%, transparent)));
   --tb-card: color-mix(in srgb, currentColor 3.5%, transparent);
   --tb-card-hi: color-mix(in srgb, currentColor 7%, transparent);
@@ -22,9 +22,9 @@ var STYLES = `
   --tb-amber: var(--ui-warning, #e0a12d);
   --tb-red: var(--ui-danger, var(--color-destructive, #e5544b));
   --tb-grey: color-mix(in srgb, currentColor 42%, transparent);
-  --tb-green-ink: color-mix(in srgb, var(--tb-green) 62%, var(--tb-fg));
-  --tb-amber-ink: color-mix(in srgb, var(--tb-amber) 62%, var(--tb-fg));
-  --tb-red-ink: color-mix(in srgb, var(--tb-red) 66%, var(--tb-fg));
+  --tb-green-ink: color-mix(in srgb, var(--tb-green) 46%, var(--tb-fg));
+  --tb-amber-ink: color-mix(in srgb, var(--tb-amber) 46%, var(--tb-fg));
+  --tb-red-ink: color-mix(in srgb, var(--tb-red) 56%, var(--tb-fg));
   --tb-accent-ink: color-mix(in srgb, var(--tb-accent) 70%, var(--tb-fg));
   --tb-radius: 14px;
   color: var(--tb-fg);
@@ -330,9 +330,9 @@ var STYLES = `
 /* Move check */
 .tb-verdict { display: grid; grid-template-columns: auto 1fr auto; gap: 30px; align-items: center; padding: 26px 32px;
   border-radius: 18px; color: #fff; position: relative; overflow: hidden; box-shadow: 0 18px 40px -28px #000; }
-.tb-verdict::after { content: ""; position: absolute; inset: 0; background: radial-gradient(80% 140% at 100% 0%, rgba(255,255,255,.18), transparent 60%); pointer-events: none; }
-.tb-verdict-green { background: linear-gradient(135deg, color-mix(in srgb, var(--tb-green) 70%, #000), color-mix(in srgb, var(--tb-green) 50%, #000)); }
-.tb-verdict-red { background: linear-gradient(135deg, color-mix(in srgb, var(--tb-red) 78%, #000), color-mix(in srgb, var(--tb-red) 56%, #000)); }
+.tb-verdict::after { content: ""; position: absolute; inset: 0; background: radial-gradient(80% 140% at 100% 0%, rgba(255,255,255,.10), transparent 60%); pointer-events: none; }
+.tb-verdict-green { background: linear-gradient(135deg, color-mix(in srgb, var(--tb-green) 58%, #000), color-mix(in srgb, var(--tb-green) 40%, #000)); }
+.tb-verdict-red { background: linear-gradient(135deg, color-mix(in srgb, var(--tb-red) 66%, #000), color-mix(in srgb, var(--tb-red) 46%, #000)); }
 .tb-verdict-grey { background: linear-gradient(135deg, #59606c, #3f454e); }
 .tb-verdict-word { font-size: clamp(44px, 6.6cqi, 92px); font-weight: 850; letter-spacing: .03em; line-height: .95; }
 .tb-verdict-title { font-weight: 720; font-size: 17px; margin-bottom: 2px; }
