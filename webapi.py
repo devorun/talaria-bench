@@ -111,7 +111,8 @@ class WebAPI:
                 "has_photo": self.photo_path(spec.name) is not None, "render": self.render(spec), "look": spec.look,
                 "showcase": self.render(spec, (spec.look.get("showcase") or {}).get("joints")),
                 "variants": self.variants(spec.name)["variants"], "servos": self._servo_names(),
-                "editable": bool(raw), "headline": _headline(spec.name)}
+                "editable": bool(raw), "headline": _headline(spec.name),
+                "source": self.rt.robot_paths()[spec.name][1]}
 
     @staticmethod
     def _servo_names() -> list[str]:
@@ -233,6 +234,43 @@ class WebAPI:
         if not defined.get("ok"):
             raise ApiError(400, defined.get("error", "the edited robot is not valid"), defined.get("problems"))
         return defined
+
+    def templates(self) -> dict[str, Any]:
+        from . import servos, templates
+
+        return {"ok": True, "templates": [{"name": n, "help": h,
+                                           "fields": [{"key": k, "label": lab, "default": d,
+                                                       **({"options": u} if isinstance(u, list) else {"unit": u})}
+                                                      for k, lab, d, u in templates.FIELDS[n]],
+                                           "servo": templates.SERVO_DEFAULT[n]}
+                                          for n, h in templates.describe().items()],
+                "servos": servos.names(), "materials": list(templates.DENSITY)}
+
+    def new_robot(self, body: dict[str, Any]) -> dict[str, Any]:
+        return self._ok_or_raise(_call(self.tools, "robot_define", {"template": body.get("template"),
+                                                                   "params": body.get("params") or {}}))
+
+    def upload_photo(self, name: str, body: dict[str, Any]) -> dict[str, Any]:
+        """A photo for one of the user's robots (base64 JPEG/PNG/WebP, at most 10 MB); bundled robots keep theirs."""
+        spec = self._spec(name)
+        paths = self.rt.robot_paths()
+        if paths[spec.name][1] != "user":
+            raise ApiError(400, "bundled robots keep their photo; save your own copy first (edit the parts)")
+        try:
+            data = base64.b64decode(str(body.get("data") or "").split(",")[-1], validate=True)
+        except (ValueError, TypeError):
+            raise ApiError(400, "photo: send the image as base64") from None
+        try:
+            rel = self.rt.store_photo(spec.name, data)
+        except SpecError as exc:
+            raise ApiError(400, "the photo was refused", getattr(exc, "problems", [str(exc)])) from None
+        raw = self._raw(spec) or {}
+        raw["photo"] = rel
+        try:
+            self.rt.define_robot(yaml.safe_dump(raw, sort_keys=False, allow_unicode=True))
+        except SpecError as exc:
+            raise ApiError(400, "the robot could not be saved with the photo", getattr(exc, "problems", [])) from None
+        return {"ok": True, "robot": spec.name, "photo": rel}
 
     # Reports and jobs -----------------------------------------------------------------------------
 
@@ -540,6 +578,18 @@ def make_router(api: WebAPI):
     @router.post("/robots/{name}/edit")
     def edit(name: str, body: dict = Body(default_factory=dict)):
         return guard(api.edit, name, body)
+
+    @router.get("/templates")
+    def templates_route():
+        return guard(api.templates)
+
+    @router.post("/robots/new")
+    def new_robot(body: dict = Body(default_factory=dict)):
+        return guard(api.new_robot, body)
+
+    @router.post("/robots/{name}/photo")
+    def upload_photo(name: str, body: dict = Body(default_factory=dict)):
+        return guard(api.upload_photo, name, body)
 
     @router.post("/bench")
     def bench(body: dict = Body(default_factory=dict)):

@@ -6,7 +6,7 @@
 import { ROUTES_AREA, SIDEBAR_NAV_AREA, host } from "@hermes/plugin-sdk";
 
 // src/app.jsx
-import { useState as useState8 } from "react";
+import { useState as useState9 } from "react";
 
 // src/styles.js
 var STYLES = `
@@ -196,6 +196,14 @@ var STYLES = `
 .tb-photo figcaption { position: absolute; left: 10px; bottom: 10px; display: flex; gap: 6px; align-items: center; font-size: 11.5px;
   color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
 .tb-photo-empty { display: grid; place-items: center; }
+
+.tb-photo-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tb-photo-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  padding: 20px; border-style: dashed; text-align: center; }
+.tb-new-card { align-items: center; justify-content: center; padding: 24px; text-align: center; gap: 8px; min-height: 260px;
+  border-style: dashed; }
+.tb-new-plus { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; font-size: 30px;
+  color: var(--tb-accent); background: color-mix(in srgb, var(--tb-accent) 12%, transparent); }
 
 /* Lists and tables */
 .tb-list { display: flex; flex-direction: column; }
@@ -521,7 +529,7 @@ function Thumb({ robot }) {
     robot.look && robot.look.badge ? /* @__PURE__ */ jsx2("span", { className: "tb-badge", style: { "--tb-badge": robot.look.accent }, children: robot.look.badge }) : null
   ] });
 }
-function Gallery({ robots, loading, open }) {
+function Gallery({ robots, loading, open, create }) {
   if (loading && !robots) return /* @__PURE__ */ jsx2(Loading, { what: "Loading robots" });
   if (!robots || !robots.length) return /* @__PURE__ */ jsx2(Empty, { children: "No robots yet." });
   const bundled = robots.filter((r) => r.source === "bundled");
@@ -555,7 +563,14 @@ function Gallery({ robots, loading, open }) {
       /* @__PURE__ */ jsx2("h2", { children: "Robot gallery" }),
       /* @__PURE__ */ jsx2("p", { children: "Hobby servo robots described in a YAML spec and tested in MuJoCo across many randomized worlds. Every number on these cards is a simulation result." })
     ] }) }),
-    /* @__PURE__ */ jsx2("div", { className: "tb-grid-cards", children: bundled.map(card) }),
+    /* @__PURE__ */ jsxs2("div", { className: "tb-grid-cards", children: [
+      bundled.map(card),
+      /* @__PURE__ */ jsxs2("button", { type: "button", className: "tb-card tb-robot-card tb-new-card", onClick: create, children: [
+        /* @__PURE__ */ jsx2("div", { className: "tb-new-plus", children: "+" }),
+        /* @__PURE__ */ jsx2("div", { className: "tb-robot-card-title", children: "New robot from a template" }),
+        /* @__PURE__ */ jsx2("p", { className: "tb-robot-card-role", children: "Block robot, biped, quadruped, hexapod, arm or humanoid from a few numbers. Or ask Hermes: share a photo and say “add my robot to Talaria”." })
+      ] })
+    ] }),
     mine.length ? /* @__PURE__ */ jsxs2(Fragment, { children: [
       /* @__PURE__ */ jsx2("h3", { className: "tb-section-title", children: "Your robots" }),
       /* @__PURE__ */ jsx2("div", { className: "tb-grid-cards", children: mine.map(card) })
@@ -564,7 +579,7 @@ function Gallery({ robots, loading, open }) {
 }
 
 // src/views/robot.jsx
-import { useEffect as useEffect4, useMemo, useState as useState4 } from "react";
+import { useEffect as useEffect4, useMemo, useRef as useRef3, useState as useState4 } from "react";
 
 // src/viewer.jsx
 import { useEffect as useEffect3, useRef as useRef2, useState as useState3, useCallback as useCallback2 } from "react";
@@ -24085,7 +24100,7 @@ function traceDuration(...traces) {
 
 // src/views/robot.jsx
 import { jsx as jsx4, jsxs as jsxs4 } from "react/jsx-runtime";
-function Photo({ robot }) {
+function Photo({ robot, version }) {
   const [src, setSrc] = useState4(null);
   useEffect4(() => {
     let live = true;
@@ -24096,7 +24111,7 @@ function Photo({ robot }) {
     return () => {
       live = false;
     };
-  }, [robot]);
+  }, [robot, version]);
   if (!src) return /* @__PURE__ */ jsx4("div", { className: "tb-photo tb-photo-empty", children: /* @__PURE__ */ jsx4("span", { className: "tb-spinner" }) });
   return /* @__PURE__ */ jsxs4("figure", { className: "tb-photo", children: [
     /* @__PURE__ */ jsx4("img", { src, alt: `${robot}, photo` }),
@@ -24104,6 +24119,38 @@ function Photo({ robot }) {
       /* @__PURE__ */ jsx4(Chip, { tone: "green", children: "REAL" }),
       " photo of the robot"
     ] })
+  ] });
+}
+function AddPhoto({ robot, onDone, compact }) {
+  const input = useRef3(null);
+  const [busy, setBusy] = useState4(false);
+  const [res, setRes] = useState4(null);
+  const pick = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setRes({ ok: false, error: "The photo is larger than 10 MB." });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      setBusy(true);
+      const r = await api(`/robots/${robot}/photo`, { method: "POST", body: { data: String(reader.result) } });
+      setBusy(false);
+      setRes(r);
+      if (r.ok) {
+        notify("Photo added");
+        onDone();
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+  return /* @__PURE__ */ jsxs4("div", { className: compact ? "" : "tb-photo tb-photo-add", children: [
+    /* @__PURE__ */ jsx4("input", { ref: input, type: "file", accept: "image/jpeg,image/png,image/webp", hidden: true, onChange: pick }),
+    /* @__PURE__ */ jsx4(Button, { busy, onClick: () => input.current && input.current.click(), children: compact ? "Replace photo" : "＋ Add a photo" }),
+    !compact ? /* @__PURE__ */ jsx4("p", { className: "tb-muted tb-small", children: "Shown next to the 3D model. JPEG, PNG or WebP, up to 10 MB." }) : null,
+    /* @__PURE__ */ jsx4(ErrorBox, { data: res })
   ] });
 }
 function PartsEditor({ detail, onSaved }) {
@@ -24201,6 +24248,7 @@ function PartsEditor({ detail, onSaved }) {
 function RobotPage({ robot, go }) {
   const [detail, loading, reload] = useApi(robot ? `/robots/${robot}` : null);
   const [playing, setPlaying] = useState4(null);
+  const [photoVersion, setPhotoVersion] = useState4(0);
   useEffect4(() => setPlaying(null), [robot]);
   const [trace, traceLoading] = useTrace(playing ? { robot, move: playing } : null);
   const tr = trace && trace.ok ? trace.trace : null;
@@ -24242,7 +24290,7 @@ function RobotPage({ robot, go }) {
         /* @__PURE__ */ jsx4(Button, { kind: "primary", onClick: () => go("check", robot), children: "Check a move" })
       ] })
     ] }),
-    /* @__PURE__ */ jsxs4("div", { className: "tb-split" + (detail.has_photo ? "" : " tb-split-single"), children: [
+    /* @__PURE__ */ jsxs4("div", { className: "tb-split" + (detail.has_photo || detail.source === "user" ? "" : " tb-split-single"), children: [
       /* @__PURE__ */ jsxs4("div", { className: "tb-card tb-card-flush", children: [
         /* @__PURE__ */ jsx4(
           Viewer3D,
@@ -24269,7 +24317,16 @@ function RobotPage({ robot, go }) {
           "…"
         ] }) : null
       ] }),
-      detail.has_photo ? /* @__PURE__ */ jsx4(Photo, { robot }) : null
+      detail.has_photo ? /* @__PURE__ */ jsxs4("div", { className: "tb-photo-col", children: [
+        /* @__PURE__ */ jsx4(Photo, { robot, version: photoVersion }),
+        detail.source === "user" ? /* @__PURE__ */ jsx4(AddPhoto, { robot, compact: true, onDone: () => {
+          setPhotoVersion((v) => v + 1);
+          reload();
+        } }) : null
+      ] }) : detail.source === "user" ? /* @__PURE__ */ jsx4(AddPhoto, { robot, onDone: () => {
+        setPhotoVersion((v) => v + 1);
+        reload();
+      } }) : null
     ] }),
     /* @__PURE__ */ jsxs4("div", { className: "tb-two", children: [
       /* @__PURE__ */ jsxs4("div", { className: "tb-card", children: [
@@ -25021,8 +25078,106 @@ function CheckPage({ robot, initialMove }) {
   ] });
 }
 
-// src/app.jsx
+// src/views/newrobot.jsx
+import { useEffect as useEffect8, useState as useState8 } from "react";
 import { jsx as jsx8, jsxs as jsxs8 } from "react/jsx-runtime";
+function NewRobot({ go }) {
+  const [data] = useApi("/templates");
+  const list = data && data.ok ? data.templates : [];
+  const [tpl, setTpl] = useState8("block_robot");
+  const [vals, setVals] = useState8({});
+  const [name, setName] = useState8("my_robot");
+  const [mass, setMass] = useState8("");
+  const [servo, setServo] = useState8("");
+  const [busy, setBusy] = useState8(false);
+  const [res, setRes] = useState8(null);
+  const cur = list.find((t) => t.name === tpl);
+  useEffect8(() => {
+    if (!cur) return;
+    setVals(Object.fromEntries(cur.fields.map((f) => [f.key, f.default])));
+    setServo(cur.servo);
+  }, [tpl, cur && cur.name]);
+  if (!data) return /* @__PURE__ */ jsx8(Loading, { what: "Loading templates" });
+  const create = async () => {
+    const params = { name, servo };
+    for (const f of cur.fields) params[f.key] = Number(vals[f.key]);
+    if (mass !== "") params.mass_g = Number(mass);
+    setBusy(true);
+    const r = await api("/robots/new", { method: "POST", body: { template: tpl, params } });
+    setBusy(false);
+    setRes(r);
+    if (r.ok) {
+      notify(`Created ${r.robot}`);
+      go("robot", r.robot);
+    }
+  };
+  return /* @__PURE__ */ jsxs8("div", { className: "tb-page", children: [
+    /* @__PURE__ */ jsx8("div", { className: "tb-hero", children: /* @__PURE__ */ jsxs8("div", { children: [
+      /* @__PURE__ */ jsx8("h2", { children: "New robot from a template" }),
+      /* @__PURE__ */ jsx8("p", { children: "A few numbers give a valid model that stands in simulation. Leave the mass empty if you do not know it: it is estimated from the part sizes and the bench varies it by ±30%." })
+    ] }) }),
+    /* @__PURE__ */ jsxs8("div", { className: "tb-card", children: [
+      /* @__PURE__ */ jsxs8("div", { className: "tb-row tb-gap tb-wrap", children: [
+        /* @__PURE__ */ jsxs8("label", { className: "tb-field", children: [
+          "Template",
+          /* @__PURE__ */ jsx8("select", { className: "tb-select", value: tpl, onChange: (e) => {
+            setTpl(e.target.value);
+            setRes(null);
+          }, children: list.map((t) => /* @__PURE__ */ jsx8("option", { value: t.name, children: t.name.replace("_", " ") }, t.name)) })
+        ] }),
+        /* @__PURE__ */ jsxs8("label", { className: "tb-field", children: [
+          "Name",
+          /* @__PURE__ */ jsx8("input", { className: "tb-input", value: name, onChange: (e) => setName(e.target.value.toLowerCase()) })
+        ] }),
+        cur ? cur.fields.map((f) => /* @__PURE__ */ jsxs8("label", { className: "tb-field", children: [
+          f.label,
+          f.unit ? ` (${f.unit})` : "",
+          f.options ? /* @__PURE__ */ jsx8(
+            "select",
+            {
+              className: "tb-select",
+              value: vals[f.key] ?? f.default,
+              onChange: (e) => setVals({ ...vals, [f.key]: e.target.value }),
+              children: f.options.map((o) => /* @__PURE__ */ jsx8("option", { value: o, children: o }, o))
+            }
+          ) : /* @__PURE__ */ jsx8(
+            "input",
+            {
+              className: "tb-input tb-input-xs",
+              type: "number",
+              step: "0.5",
+              value: vals[f.key] ?? f.default,
+              onChange: (e) => setVals({ ...vals, [f.key]: e.target.value })
+            }
+          )
+        ] }, f.key)) : null,
+        /* @__PURE__ */ jsxs8("label", { className: "tb-field", children: [
+          "Servo",
+          /* @__PURE__ */ jsx8("select", { className: "tb-select", value: servo, onChange: (e) => setServo(e.target.value), children: data.servos.map((s) => /* @__PURE__ */ jsx8("option", { value: s, children: s }, s)) })
+        ] }),
+        /* @__PURE__ */ jsxs8("label", { className: "tb-field", children: [
+          "Total mass (g, optional)",
+          /* @__PURE__ */ jsx8(
+            "input",
+            {
+              className: "tb-input tb-input-xs",
+              type: "number",
+              value: mass,
+              placeholder: "estimate",
+              onChange: (e) => setMass(e.target.value)
+            }
+          )
+        ] })
+      ] }),
+      cur ? /* @__PURE__ */ jsx8("p", { className: "tb-muted tb-small", children: cur.help }) : null,
+      /* @__PURE__ */ jsx8("div", { className: "tb-row tb-gap", children: /* @__PURE__ */ jsx8(Button, { kind: "primary", busy, onClick: create, children: "Create robot" }) }),
+      /* @__PURE__ */ jsx8(ErrorBox, { data: res })
+    ] })
+  ] });
+}
+
+// src/app.jsx
+import { jsx as jsx9, jsxs as jsxs9 } from "react/jsx-runtime";
 var TABS = [
   ["gallery", "Gallery"],
   ["robot", "Robot"],
@@ -25033,20 +25188,20 @@ var TABS = [
 function App({ initial } = {}) {
   const [robots, loading] = useApi("/robots");
   const list = robots && robots.ok ? robots.robots : null;
-  const [nav, setNav] = useState8(initial || { view: "gallery", robot: "caduceus", move: null });
+  const [nav, setNav] = useState9(initial || { view: "gallery", robot: "caduceus", move: null });
   const go = (view, robot2, move = null) => setNav({ view, robot: robot2 || nav.robot, move });
   const robot = nav.robot;
-  return /* @__PURE__ */ jsxs8("div", { className: "tb-root tb-surface-" + surface(), children: [
-    /* @__PURE__ */ jsx8("style", { children: STYLES }),
-    /* @__PURE__ */ jsxs8("header", { className: "tb-header", children: [
-      /* @__PURE__ */ jsxs8("div", { className: "tb-brand", children: [
-        /* @__PURE__ */ jsx8("div", { className: "tb-logo", "aria-hidden": "true", children: /* @__PURE__ */ jsx8("svg", { viewBox: "0 0 24 24", width: "22", height: "22", children: /* @__PURE__ */ jsx8("path", { d: "M4 18 L12 4 L20 18 M8 12 H16", fill: "none", stroke: "currentColor", strokeWidth: "2.2", strokeLinecap: "round", strokeLinejoin: "round" }) }) }),
-        /* @__PURE__ */ jsxs8("div", { children: [
-          /* @__PURE__ */ jsx8("div", { className: "tb-title", children: "Talaria Bench" }),
-          /* @__PURE__ */ jsx8("div", { className: "tb-tagline", children: "Test before it moves · simulation" })
+  return /* @__PURE__ */ jsxs9("div", { className: "tb-root tb-surface-" + surface(), children: [
+    /* @__PURE__ */ jsx9("style", { children: STYLES }),
+    /* @__PURE__ */ jsxs9("header", { className: "tb-header", children: [
+      /* @__PURE__ */ jsxs9("div", { className: "tb-brand", children: [
+        /* @__PURE__ */ jsx9("div", { className: "tb-logo", "aria-hidden": "true", children: /* @__PURE__ */ jsx9("svg", { viewBox: "0 0 24 24", width: "22", height: "22", children: /* @__PURE__ */ jsx9("path", { d: "M4 18 L12 4 L20 18 M8 12 H16", fill: "none", stroke: "currentColor", strokeWidth: "2.2", strokeLinecap: "round", strokeLinejoin: "round" }) }) }),
+        /* @__PURE__ */ jsxs9("div", { children: [
+          /* @__PURE__ */ jsx9("div", { className: "tb-title", children: "Talaria Bench" }),
+          /* @__PURE__ */ jsx9("div", { className: "tb-tagline", children: "Test before it moves · simulation" })
         ] })
       ] }),
-      /* @__PURE__ */ jsx8("nav", { className: "tb-tabs", role: "tablist", children: TABS.map(([id, label]) => /* @__PURE__ */ jsx8(
+      /* @__PURE__ */ jsx9("nav", { className: "tb-tabs", role: "tablist", children: TABS.map(([id, label]) => /* @__PURE__ */ jsx9(
         "button",
         {
           type: "button",
@@ -25058,20 +25213,29 @@ function App({ initial } = {}) {
         },
         id
       )) }),
-      nav.view !== "gallery" ? /* @__PURE__ */ jsx8("div", { className: "tb-picker", children: /* @__PURE__ */ jsx8(RobotPicker, { robots: list, value: robot, onChange: (r) => go(nav.view, r) }) }) : null
+      nav.view !== "gallery" && nav.view !== "new" ? /* @__PURE__ */ jsx9("div", { className: "tb-picker", children: /* @__PURE__ */ jsx9(RobotPicker, { robots: list, value: robot, onChange: (r) => go(nav.view, r) }) }) : null
     ] }),
-    /* @__PURE__ */ jsxs8("main", { className: "tb-main", children: [
-      nav.view === "gallery" ? /* @__PURE__ */ jsx8(Gallery, { robots: list, loading, open: (r) => go("robot", r) }) : null,
-      nav.view === "robot" ? /* @__PURE__ */ jsx8(RobotPage, { robot, go }) : null,
-      nav.view === "bench" ? /* @__PURE__ */ jsx8(BenchPage, { robot }) : null,
-      nav.view === "compare" ? /* @__PURE__ */ jsx8(ComparePage, { robot }) : null,
-      nav.view === "check" ? /* @__PURE__ */ jsx8(CheckPage, { robot, initialMove: nav.move }) : null
+    /* @__PURE__ */ jsxs9("main", { className: "tb-main", children: [
+      nav.view === "gallery" ? /* @__PURE__ */ jsx9(
+        Gallery,
+        {
+          robots: list,
+          loading,
+          open: (r) => go("robot", r),
+          create: () => go("new", robot)
+        }
+      ) : null,
+      nav.view === "new" ? /* @__PURE__ */ jsx9(NewRobot, { go }) : null,
+      nav.view === "robot" ? /* @__PURE__ */ jsx9(RobotPage, { robot, go }) : null,
+      nav.view === "bench" ? /* @__PURE__ */ jsx9(BenchPage, { robot }) : null,
+      nav.view === "compare" ? /* @__PURE__ */ jsx9(ComparePage, { robot }) : null,
+      nav.view === "check" ? /* @__PURE__ */ jsx9(CheckPage, { robot, initialMove: nav.move }) : null
     ] })
   ] });
 }
 
 // src/desktop.jsx
-import { jsx as jsx9 } from "react/jsx-runtime";
+import { jsx as jsx10 } from "react/jsx-runtime";
 var desktop_default = {
   id: "talaria-bench",
   name: "Talaria Bench",
@@ -25082,7 +25246,7 @@ var desktop_default = {
       notify: (message, kind) => host.notify({ kind: kind === "error" ? "error" : "info", message })
     });
     ctx.registerMany([
-      { id: "page", area: ROUTES_AREA, data: { path: "/talaria" }, render: () => /* @__PURE__ */ jsx9(App, {}) },
+      { id: "page", area: ROUTES_AREA, data: { path: "/talaria" }, render: () => /* @__PURE__ */ jsx10(App, {}) },
       { id: "nav", area: SIDEBAR_NAV_AREA, data: { path: "/talaria", label: "Talaria Bench", codicon: "beaker" } }
     ]);
   }

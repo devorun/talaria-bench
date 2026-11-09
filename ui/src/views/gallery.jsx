@@ -20,7 +20,7 @@ function Thumb({ robot }) {
   )
 }
 
-export function Gallery({ robots, loading, open }) {
+export function Gallery({ robots, loading, open, create }) {
   if (loading && !robots) return <Loading what="Loading robots" />
   if (!robots || !robots.length) return <Empty>No robots yet.</Empty>
   const bundled = robots.filter((r) => r.source === 'bundled')
@@ -54,7 +54,15 @@ export function Gallery({ robots, loading, open }) {
             Every number on these cards is a simulation result.</p>
         </div>
       </div>
-      <div className="tb-grid-cards">{bundled.map(card)}</div>
+      <div className="tb-grid-cards">
+        {bundled.map(card)}
+        <button type="button" className="tb-card tb-robot-card tb-new-card" onClick={create}>
+          <div className="tb-new-plus">+</div>
+          <div className="tb-robot-card-title">New robot from a template</div>
+          <p className="tb-robot-card-role">Block robot, biped, quadruped, hexapod, arm or humanoid from a few
+            numbers. Or ask Hermes: share a photo and say “add my robot to Talaria”.</p>
+        </button>
+      </div>
       {mine.length ? (
         <>
           <h3 className="tb-section-title">Your robots</h3>

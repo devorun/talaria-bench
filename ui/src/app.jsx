@@ -7,6 +7,7 @@ import { RobotPage } from './views/robot.jsx'
 import { BenchPage } from './views/bench.jsx'
 import { ComparePage } from './views/compare.jsx'
 import { CheckPage } from './views/check.jsx'
+import { NewRobot } from './views/newrobot.jsx'
 
 const TABS = [
   ['gallery', 'Gallery'],
@@ -41,12 +42,14 @@ export function App({ initial } = {}) {
               className={'tb-tab' + (nav.view === id ? ' tb-active' : '')} onClick={() => go(id, robot)}>{label}</button>
           ))}
         </nav>
-        {nav.view !== 'gallery' ? (
+        {nav.view !== 'gallery' && nav.view !== 'new' ? (
           <div className="tb-picker"><RobotPicker robots={list} value={robot} onChange={(r) => go(nav.view, r)} /></div>
         ) : null}
       </header>
       <main className="tb-main">
-        {nav.view === 'gallery' ? <Gallery robots={list} loading={loading} open={(r) => go('robot', r)} /> : null}
+        {nav.view === 'gallery' ? <Gallery robots={list} loading={loading} open={(r) => go('robot', r)}
+          create={() => go('new', robot)} /> : null}
+        {nav.view === 'new' ? <NewRobot go={go} /> : null}
         {nav.view === 'robot' ? <RobotPage robot={robot} go={go} /> : null}
         {nav.view === 'bench' ? <BenchPage robot={robot} /> : null}
         {nav.view === 'compare' ? <ComparePage robot={robot} /> : null}

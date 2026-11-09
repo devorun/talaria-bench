@@ -17,6 +17,8 @@ without Hermes, and pytest can collect the plugin directory without a parent pac
 
 from __future__ import annotations
 
+from pathlib import Path
+
 TOOLSET = "talaria"
 _RUNTIME = None
 _TOOLS = None
@@ -46,6 +48,11 @@ def register(ctx) -> None:
     ctx.register_hook("pre_tool_call", make_pre_tool_call(runtime))
     ctx.register_command("talaria", slash_handler(runtime, tools), description="Talaria Bench: " + SLASH_HELP,
                          args_hint="[status|gallery|bench|report|check|play|demo]")
+    skill = Path(__file__).resolve().parent / "skills" / "robot-onboarding" / "SKILL.md"
+    if skill.is_file() and hasattr(ctx, "register_skill"):
+        ctx.register_skill("robot-onboarding", skill,
+                           description="Add a user's servo robot to Talaria Bench from a photo and/or a description, "
+                                       "then show it in 3D, benchmark it and check its moves.")
     ctx.register_cli_command("talaria", help="Talaria Bench: test DIY servo robots in simulation",
                              setup_fn=setup_cli, handler_fn=cli_handler(runtime, tools),
                              description="Benchmark robots, preflight moves, write firmware, run a virtual robot.")

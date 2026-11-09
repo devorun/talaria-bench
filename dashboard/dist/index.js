@@ -207,6 +207,14 @@
   color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
 .tb-photo-empty { display: grid; place-items: center; }
 
+.tb-photo-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tb-photo-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  padding: 20px; border-style: dashed; text-align: center; }
+.tb-new-card { align-items: center; justify-content: center; padding: 24px; text-align: center; gap: 8px; min-height: 260px;
+  border-style: dashed; }
+.tb-new-plus { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; font-size: 30px;
+  color: var(--tb-accent); background: color-mix(in srgb, var(--tb-accent) 12%, transparent); }
+
 /* Lists and tables */
 .tb-list { display: flex; flex-direction: column; }
 .tb-list-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 4px; border-top: 1px solid var(--tb-line); }
@@ -535,7 +543,7 @@
       robot.look && robot.look.badge ? /* @__PURE__ */ jsx("span", { className: "tb-badge", style: { "--tb-badge": robot.look.accent }, children: robot.look.badge }) : null
     ] });
   }
-  function Gallery({ robots, loading, open }) {
+  function Gallery({ robots, loading, open, create }) {
     if (loading && !robots) return /* @__PURE__ */ jsx(Loading, { what: "Loading robots" });
     if (!robots || !robots.length) return /* @__PURE__ */ jsx(Empty, { children: "No robots yet." });
     const bundled = robots.filter((r) => r.source === "bundled");
@@ -569,7 +577,14 @@
         /* @__PURE__ */ jsx("h2", { children: "Robot gallery" }),
         /* @__PURE__ */ jsx("p", { children: "Hobby servo robots described in a YAML spec and tested in MuJoCo across many randomized worlds. Every number on these cards is a simulation result." })
       ] }) }),
-      /* @__PURE__ */ jsx("div", { className: "tb-grid-cards", children: bundled.map(card) }),
+      /* @__PURE__ */ jsxs("div", { className: "tb-grid-cards", children: [
+        bundled.map(card),
+        /* @__PURE__ */ jsxs("button", { type: "button", className: "tb-card tb-robot-card tb-new-card", onClick: create, children: [
+          /* @__PURE__ */ jsx("div", { className: "tb-new-plus", children: "+" }),
+          /* @__PURE__ */ jsx("div", { className: "tb-robot-card-title", children: "New robot from a template" }),
+          /* @__PURE__ */ jsx("p", { className: "tb-robot-card-role", children: "Block robot, biped, quadruped, hexapod, arm or humanoid from a few numbers. Or ask Hermes: share a photo and say “add my robot to Talaria”." })
+        ] })
+      ] }),
       mine.length ? /* @__PURE__ */ jsxs(Fragment2, { children: [
         /* @__PURE__ */ jsx("h3", { className: "tb-section-title", children: "Your robots" }),
         /* @__PURE__ */ jsx("div", { className: "tb-grid-cards", children: mine.map(card) })
@@ -24091,7 +24106,7 @@ void main() {
   }
 
   // src/views/robot.jsx
-  function Photo({ robot }) {
+  function Photo({ robot, version }) {
     const [src, setSrc] = useState(null);
     useEffect(() => {
       let live = true;
@@ -24102,7 +24117,7 @@ void main() {
       return () => {
         live = false;
       };
-    }, [robot]);
+    }, [robot, version]);
     if (!src) return /* @__PURE__ */ jsx("div", { className: "tb-photo tb-photo-empty", children: /* @__PURE__ */ jsx("span", { className: "tb-spinner" }) });
     return /* @__PURE__ */ jsxs("figure", { className: "tb-photo", children: [
       /* @__PURE__ */ jsx("img", { src, alt: `${robot}, photo` }),
@@ -24110,6 +24125,38 @@ void main() {
         /* @__PURE__ */ jsx(Chip, { tone: "green", children: "REAL" }),
         " photo of the robot"
       ] })
+    ] });
+  }
+  function AddPhoto({ robot, onDone, compact }) {
+    const input = useRef(null);
+    const [busy, setBusy] = useState(false);
+    const [res, setRes] = useState(null);
+    const pick = (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) {
+        setRes({ ok: false, error: "The photo is larger than 10 MB." });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = async () => {
+        setBusy(true);
+        const r = await api(`/robots/${robot}/photo`, { method: "POST", body: { data: String(reader.result) } });
+        setBusy(false);
+        setRes(r);
+        if (r.ok) {
+          notify("Photo added");
+          onDone();
+        }
+      };
+      reader.readAsDataURL(file);
+      e.target.value = "";
+    };
+    return /* @__PURE__ */ jsxs("div", { className: compact ? "" : "tb-photo tb-photo-add", children: [
+      /* @__PURE__ */ jsx("input", { ref: input, type: "file", accept: "image/jpeg,image/png,image/webp", hidden: true, onChange: pick }),
+      /* @__PURE__ */ jsx(Button, { busy, onClick: () => input.current && input.current.click(), children: compact ? "Replace photo" : "＋ Add a photo" }),
+      !compact ? /* @__PURE__ */ jsx("p", { className: "tb-muted tb-small", children: "Shown next to the 3D model. JPEG, PNG or WebP, up to 10 MB." }) : null,
+      /* @__PURE__ */ jsx(ErrorBox, { data: res })
     ] });
   }
   function PartsEditor({ detail, onSaved }) {
@@ -24207,6 +24254,7 @@ void main() {
   function RobotPage({ robot, go }) {
     const [detail, loading, reload] = useApi(robot ? `/robots/${robot}` : null);
     const [playing, setPlaying] = useState(null);
+    const [photoVersion, setPhotoVersion] = useState(0);
     useEffect(() => setPlaying(null), [robot]);
     const [trace, traceLoading] = useTrace(playing ? { robot, move: playing } : null);
     const tr = trace && trace.ok ? trace.trace : null;
@@ -24248,7 +24296,7 @@ void main() {
           /* @__PURE__ */ jsx(Button, { kind: "primary", onClick: () => go("check", robot), children: "Check a move" })
         ] })
       ] }),
-      /* @__PURE__ */ jsxs("div", { className: "tb-split" + (detail.has_photo ? "" : " tb-split-single"), children: [
+      /* @__PURE__ */ jsxs("div", { className: "tb-split" + (detail.has_photo || detail.source === "user" ? "" : " tb-split-single"), children: [
         /* @__PURE__ */ jsxs("div", { className: "tb-card tb-card-flush", children: [
           /* @__PURE__ */ jsx(
             Viewer3D,
@@ -24275,7 +24323,16 @@ void main() {
             "…"
           ] }) : null
         ] }),
-        detail.has_photo ? /* @__PURE__ */ jsx(Photo, { robot }) : null
+        detail.has_photo ? /* @__PURE__ */ jsxs("div", { className: "tb-photo-col", children: [
+          /* @__PURE__ */ jsx(Photo, { robot, version: photoVersion }),
+          detail.source === "user" ? /* @__PURE__ */ jsx(AddPhoto, { robot, compact: true, onDone: () => {
+            setPhotoVersion((v) => v + 1);
+            reload();
+          } }) : null
+        ] }) : detail.source === "user" ? /* @__PURE__ */ jsx(AddPhoto, { robot, onDone: () => {
+          setPhotoVersion((v) => v + 1);
+          reload();
+        } }) : null
       ] }),
       /* @__PURE__ */ jsxs("div", { className: "tb-two", children: [
         /* @__PURE__ */ jsxs("div", { className: "tb-card", children: [
@@ -25021,6 +25078,102 @@ void main() {
     ] });
   }
 
+  // src/views/newrobot.jsx
+  function NewRobot({ go }) {
+    const [data] = useApi("/templates");
+    const list = data && data.ok ? data.templates : [];
+    const [tpl, setTpl] = useState("block_robot");
+    const [vals, setVals] = useState({});
+    const [name, setName] = useState("my_robot");
+    const [mass, setMass] = useState("");
+    const [servo, setServo] = useState("");
+    const [busy, setBusy] = useState(false);
+    const [res, setRes] = useState(null);
+    const cur = list.find((t) => t.name === tpl);
+    useEffect(() => {
+      if (!cur) return;
+      setVals(Object.fromEntries(cur.fields.map((f) => [f.key, f.default])));
+      setServo(cur.servo);
+    }, [tpl, cur && cur.name]);
+    if (!data) return /* @__PURE__ */ jsx(Loading, { what: "Loading templates" });
+    const create = async () => {
+      const params = { name, servo };
+      for (const f of cur.fields) params[f.key] = Number(vals[f.key]);
+      if (mass !== "") params.mass_g = Number(mass);
+      setBusy(true);
+      const r = await api("/robots/new", { method: "POST", body: { template: tpl, params } });
+      setBusy(false);
+      setRes(r);
+      if (r.ok) {
+        notify(`Created ${r.robot}`);
+        go("robot", r.robot);
+      }
+    };
+    return /* @__PURE__ */ jsxs("div", { className: "tb-page", children: [
+      /* @__PURE__ */ jsx("div", { className: "tb-hero", children: /* @__PURE__ */ jsxs("div", { children: [
+        /* @__PURE__ */ jsx("h2", { children: "New robot from a template" }),
+        /* @__PURE__ */ jsx("p", { children: "A few numbers give a valid model that stands in simulation. Leave the mass empty if you do not know it: it is estimated from the part sizes and the bench varies it by ±30%." })
+      ] }) }),
+      /* @__PURE__ */ jsxs("div", { className: "tb-card", children: [
+        /* @__PURE__ */ jsxs("div", { className: "tb-row tb-gap tb-wrap", children: [
+          /* @__PURE__ */ jsxs("label", { className: "tb-field", children: [
+            "Template",
+            /* @__PURE__ */ jsx("select", { className: "tb-select", value: tpl, onChange: (e) => {
+              setTpl(e.target.value);
+              setRes(null);
+            }, children: list.map((t) => /* @__PURE__ */ jsx("option", { value: t.name, children: t.name.replace("_", " ") }, t.name)) })
+          ] }),
+          /* @__PURE__ */ jsxs("label", { className: "tb-field", children: [
+            "Name",
+            /* @__PURE__ */ jsx("input", { className: "tb-input", value: name, onChange: (e) => setName(e.target.value.toLowerCase()) })
+          ] }),
+          cur ? cur.fields.map((f) => /* @__PURE__ */ jsxs("label", { className: "tb-field", children: [
+            f.label,
+            f.unit ? ` (${f.unit})` : "",
+            f.options ? /* @__PURE__ */ jsx(
+              "select",
+              {
+                className: "tb-select",
+                value: vals[f.key] ?? f.default,
+                onChange: (e) => setVals({ ...vals, [f.key]: e.target.value }),
+                children: f.options.map((o) => /* @__PURE__ */ jsx("option", { value: o, children: o }, o))
+              }
+            ) : /* @__PURE__ */ jsx(
+              "input",
+              {
+                className: "tb-input tb-input-xs",
+                type: "number",
+                step: "0.5",
+                value: vals[f.key] ?? f.default,
+                onChange: (e) => setVals({ ...vals, [f.key]: e.target.value })
+              }
+            )
+          ] }, f.key)) : null,
+          /* @__PURE__ */ jsxs("label", { className: "tb-field", children: [
+            "Servo",
+            /* @__PURE__ */ jsx("select", { className: "tb-select", value: servo, onChange: (e) => setServo(e.target.value), children: data.servos.map((s) => /* @__PURE__ */ jsx("option", { value: s, children: s }, s)) })
+          ] }),
+          /* @__PURE__ */ jsxs("label", { className: "tb-field", children: [
+            "Total mass (g, optional)",
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                className: "tb-input tb-input-xs",
+                type: "number",
+                value: mass,
+                placeholder: "estimate",
+                onChange: (e) => setMass(e.target.value)
+              }
+            )
+          ] })
+        ] }),
+        cur ? /* @__PURE__ */ jsx("p", { className: "tb-muted tb-small", children: cur.help }) : null,
+        /* @__PURE__ */ jsx("div", { className: "tb-row tb-gap", children: /* @__PURE__ */ jsx(Button, { kind: "primary", busy, onClick: create, children: "Create robot" }) }),
+        /* @__PURE__ */ jsx(ErrorBox, { data: res })
+      ] })
+    ] });
+  }
+
   // src/app.jsx
   var TABS = [
     ["gallery", "Gallery"],
@@ -25057,10 +25210,19 @@ void main() {
           },
           id
         )) }),
-        nav.view !== "gallery" ? /* @__PURE__ */ jsx("div", { className: "tb-picker", children: /* @__PURE__ */ jsx(RobotPicker, { robots: list, value: robot, onChange: (r) => go(nav.view, r) }) }) : null
+        nav.view !== "gallery" && nav.view !== "new" ? /* @__PURE__ */ jsx("div", { className: "tb-picker", children: /* @__PURE__ */ jsx(RobotPicker, { robots: list, value: robot, onChange: (r) => go(nav.view, r) }) }) : null
       ] }),
       /* @__PURE__ */ jsxs("main", { className: "tb-main", children: [
-        nav.view === "gallery" ? /* @__PURE__ */ jsx(Gallery, { robots: list, loading, open: (r) => go("robot", r) }) : null,
+        nav.view === "gallery" ? /* @__PURE__ */ jsx(
+          Gallery,
+          {
+            robots: list,
+            loading,
+            open: (r) => go("robot", r),
+            create: () => go("new", robot)
+          }
+        ) : null,
+        nav.view === "new" ? /* @__PURE__ */ jsx(NewRobot, { go }) : null,
         nav.view === "robot" ? /* @__PURE__ */ jsx(RobotPage, { robot, go }) : null,
         nav.view === "bench" ? /* @__PURE__ */ jsx(BenchPage, { robot }) : null,
         nav.view === "compare" ? /* @__PURE__ */ jsx(ComparePage, { robot }) : null,

@@ -421,3 +421,29 @@ def test_full_check_is_the_official_number_the_report_shows(rt, tools):
     jobs = res["scenes"]["move:arms_up_both"]
     assert len(jobs) == 60 and [j["seed"] for j in jobs] == list(range(5000, 5060))
     assert sum(1 for j in jobs if j["fell"]) == check["tip"]["falls"]
+
+
+def test_robot_define_from_template_with_photo(rt, tools):
+    photo = EXAMPLES / "caduceus_front.jpg"
+    data = call(tools, "robot_define", {"template": "block_robot", "photo_path": str(photo),
+                                        "params": {"name": "my_bot", "arm_length": 23.5, "leg_length": 16,
+                                                   "body_width": 16.5, "mass_g": 400, "servo": "MG90S"}})
+    assert data["ok"] and data["robot"] == "my_bot" and data["photo"] == "photos/my_bot.jpg"
+    assert (rt.data_dir() / "robots" / "photos" / "my_bot.jpg").read_bytes() == photo.read_bytes()
+    spec = rt.robot("my_bot")
+    assert spec.photo and len(spec.joint_parts) == 4 and abs(spec.total_mass_g - 400) < 1
+    est = call(tools, "robot_define", {"template": "quadruped", "params": {"name": "crawler"}})
+    assert est["ok"] and any("estimate" in n for n in est["estimates_and_notes"])
+
+
+def test_robot_define_refuses_bad_photos(rt, tools, tmp_path):
+    params = {"name": "p_bot"}
+    outside = call(tools, "robot_define", {"template": "biped4", "params": params, "photo_path": "/etc/hostname"})
+    assert not outside["ok"] and "home folder" in " ".join(outside["problems"])
+    fake = rt.data_dir() / "fake.jpg"
+    fake.write_text("not an image")
+    bad = call(tools, "robot_define", {"template": "biped4", "params": params, "photo_path": str(fake)})
+    assert not bad["ok"] and "JPEG, PNG or WebP" in " ".join(bad["problems"])
+    missing = call(tools, "robot_define", {"template": "biped4", "params": params, "photo_path": "/nope/x.jpg"})
+    assert not missing["ok"]
+    assert call(tools, "robot_define", {"template": "biped4", "params": {"name": "caduceus"}})["ok"] is False

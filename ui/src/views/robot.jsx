@@ -1,22 +1,52 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, notify } from '../platform.js'
 import { Viewer3D, Timeline, usePlayer, frameAt, tipTime, traceDuration } from '../viewer.jsx'
 import { Button, Chip, ErrorBox, Loading, useApi, useTrace } from '../ui.jsx'
 
-function Photo({ robot }) {
+function Photo({ robot, version }) {
   const [src, setSrc] = useState(null)
   useEffect(() => {
     let live = true
     setSrc(null)
     api(`/robots/${robot}/photo.json`).then((r) => { if (live && r.ok) setSrc(r.data_url) })
     return () => { live = false }
-  }, [robot])
+  }, [robot, version])
   if (!src) return <div className="tb-photo tb-photo-empty"><span className="tb-spinner" /></div>
   return (
     <figure className="tb-photo">
       <img src={src} alt={`${robot}, photo`} />
       <figcaption><Chip tone="green">REAL</Chip> photo of the robot</figcaption>
     </figure>
+  )
+}
+
+// "Add photo": JPEG/PNG/WebP up to 10 MB, checked again by the backend; only for the user's own robots.
+function AddPhoto({ robot, onDone, compact }) {
+  const input = useRef(null)
+  const [busy, setBusy] = useState(false)
+  const [res, setRes] = useState(null)
+  const pick = (e) => {
+    const file = e.target.files && e.target.files[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setRes({ ok: false, error: 'The photo is larger than 10 MB.' }); return }
+    const reader = new FileReader()
+    reader.onload = async () => {
+      setBusy(true)
+      const r = await api(`/robots/${robot}/photo`, { method: 'POST', body: { data: String(reader.result) } })
+      setBusy(false)
+      setRes(r)
+      if (r.ok) { notify('Photo added'); onDone() }
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+  return (
+    <div className={compact ? '' : 'tb-photo tb-photo-add'}>
+      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={pick} />
+      <Button busy={busy} onClick={() => input.current && input.current.click()}>{compact ? 'Replace photo' : '＋ Add a photo'}</Button>
+      {!compact ? <p className="tb-muted tb-small">Shown next to the 3D model. JPEG, PNG or WebP, up to 10 MB.</p> : null}
+      <ErrorBox data={res} />
+    </div>
   )
 }
 
@@ -87,6 +117,7 @@ function PartsEditor({ detail, onSaved }) {
 export function RobotPage({ robot, go }) {
   const [detail, loading, reload] = useApi(robot ? `/robots/${robot}` : null)
   const [playing, setPlaying] = useState(null)
+  const [photoVersion, setPhotoVersion] = useState(0)
   useEffect(() => setPlaying(null), [robot])
   const [trace, traceLoading] = useTrace(playing ? { robot, move: playing } : null)
   const tr = trace && trace.ok ? trace.trace : null
@@ -120,7 +151,7 @@ export function RobotPage({ robot, go }) {
         </div>
       </div>
 
-      <div className={'tb-split' + (detail.has_photo ? '' : ' tb-split-single')}>
+      <div className={'tb-split' + (detail.has_photo || detail.source === 'user' ? '' : ' tb-split-single')}>
         <div className="tb-card tb-card-flush">
           <Viewer3D parts={tr ? tr.parts : rest.parts} frames={tr ? tr.frames : null} pose={tr ? null : restPose}
             meta={trace && trace.ok ? trace.meta : null} look={detail.look} tipAt={tr ? tipTime(tr, trace.result) : null}
@@ -131,7 +162,12 @@ export function RobotPage({ robot, go }) {
           {tr ? <Timeline player={player} /> : null}
           {traceLoading ? <div className="tb-overlay-note"><span className="tb-spinner" /> simulating {playing}…</div> : null}
         </div>
-        {detail.has_photo ? <Photo robot={robot} /> : null}
+        {detail.has_photo ? (
+          <div className="tb-photo-col">
+            <Photo robot={robot} version={photoVersion} />
+            {detail.source === 'user' ? <AddPhoto robot={robot} compact onDone={() => { setPhotoVersion((v) => v + 1); reload() }} /> : null}
+          </div>
+        ) : detail.source === 'user' ? <AddPhoto robot={robot} onDone={() => { setPhotoVersion((v) => v + 1); reload() }} /> : null}
       </div>
 
       <div className="tb-two">

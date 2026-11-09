@@ -83,14 +83,40 @@ class TalariaTools:
         return {"ok": True, "robots": robots, **({"invalid": broken} if broken else {})}
 
     def robot_define(self, args: dict[str, Any]) -> dict[str, Any]:
-        text = args.get("spec_yaml")
-        if not isinstance(text, str) or not text.strip():
-            raise ValueError("spec_yaml must be the robot spec as YAML text")
-        if len(text) > 200_000:
-            raise ValueError("spec_yaml is too long (200 kB at most)")
-        spec, path = self.rt.define_robot(text)
-        return {"ok": True, "robot": spec.name, "saved_to": str(path), "summary": spec.summary(),
-                "warnings": spec.warnings, "next": f"bench_run robot={spec.name} quick=true for a first look"}
+        """A robot from a template + params (the reliable path) or full spec YAML, optionally with a photo."""
+        import yaml
+
+        from . import templates
+
+        template, text, photo = args.get("template"), args.get("spec_yaml"), args.get("photo_path")
+        notes: list[str] = []
+        if template:
+            params = args.get("params") or {}
+            if not isinstance(params, dict):
+                raise ValueError("params must be an object of template parameters")
+            raw, notes = templates.build(str(template), params)
+        elif isinstance(text, str) and text.strip():
+            if len(text) > 200_000:
+                raise ValueError("spec_yaml is too long (200 kB at most)")
+            try:
+                raw = yaml.safe_load(text)
+            except yaml.YAMLError as exc:
+                raise SpecError([f"not valid YAML: {getattr(exc, 'problem', None) or exc}"]) from None
+            if not isinstance(raw, dict):
+                raise SpecError(["the spec must be a YAML mapping (talaria: 1, name: ..., parts: [...])"])
+        else:
+            raise ValueError("give template + params (preferred) or spec_yaml")
+        name = str(raw.get("name") or "")
+        bundled = {n for n, (_, kind) in self.rt.robot_paths().items() if kind == "bundled"}
+        if name in bundled:
+            raise SpecError([f"name {name!r} belongs to a bundled robot; choose another name"])
+        photo_rel = self.rt.photo_from_path(name, photo) if photo else None
+        spec, path = self.rt.define_robot_data(raw, photo_rel)
+        return {"ok": True, "robot": spec.name, "template": template, "summary": spec.summary(),
+                "estimates_and_notes": notes, "photo": photo_rel, "warnings": spec.warnings,
+                "next": (f"Tell the user to open Talaria Bench → Robot → {spec.name} to see the 3D model"
+                         + (" next to the photo" if photo_rel else "") + ", and ask what to correct; then offer "
+                         f"bench_run robot={spec.name} quick=true and a move_check.")}
 
     def robot_show(self, args: dict[str, Any]) -> dict[str, Any]:
         spec = self.rt.robot(str(args.get("robot")))

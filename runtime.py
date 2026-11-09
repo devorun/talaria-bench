@@ -40,6 +40,20 @@ DEFAULTS: dict[str, Any] = {
 }
 
 
+PHOTO_MAX_BYTES = 10 * 1024 * 1024
+
+
+def image_type(data: bytes) -> Optional[str]:
+    """The file extension for JPEG, PNG or WebP bytes (by their magic numbers), else None."""
+    if data[:3] == b"\xff\xd8\xff":
+        return ".jpg"
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return ".png"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return ".webp"
+    return None
+
+
 class Runtime:
     """One per loaded plugin. ``ctx`` is Hermes's plugin context; tests pass ``overrides`` instead."""
 
@@ -130,6 +144,60 @@ class Runtime:
         with self._lock:
             self._specs[str(path)] = (mtime, spec)
         return spec
+
+    # Photos ---------------------------------------------------------------------------------------
+
+    def _photo_roots(self) -> list[Path]:
+        """Where a photo may be read from: the user's home (chat attachments land in the Hermes image cache
+        under HERMES_HOME, CLI users point at their own files) and the plugin data folder."""
+        import os
+
+        roots = [Path.home(), Path(os.environ.get("HERMES_HOME") or Path.home() / ".hermes"), self.data_dir()]
+        out = []
+        for r in roots:
+            try:
+                out.append(r.resolve())
+            except OSError:
+                continue
+        return out
+
+    def store_photo(self, robot: str, data: bytes) -> str:
+        """Validate image bytes and keep them as ``robots/photos/<robot>.<ext>``; returns the spec-relative path."""
+        if not _NAME_RE.match(robot or ""):
+            raise SpecError(["photo: the robot needs a valid name first"])
+        if not data or len(data) > PHOTO_MAX_BYTES:
+            raise SpecError([f"photo: must be a non-empty image of at most {PHOTO_MAX_BYTES // (1024 * 1024)} MB"])
+        ext = image_type(data)
+        if ext is None:
+            raise SpecError(["photo: only JPEG, PNG or WebP images are accepted"])
+        folder = self.folder("robots") / "photos"
+        folder.mkdir(parents=True, exist_ok=True)
+        for old in folder.glob(f"{robot}.*"):
+            old.unlink()
+        (folder / f"{robot}{ext}").write_bytes(data)
+        return f"photos/{robot}{ext}"
+
+    def photo_from_path(self, robot: str, source: str) -> str:
+        """Copy a local image (e.g. a chat attachment's ``[Image attached at: <path>]``) for ``robot``."""
+        try:
+            path = Path(str(source)).expanduser().resolve(strict=True)
+        except (OSError, RuntimeError):
+            raise SpecError([f"photo_path: no such file: {source}"]) from None
+        if not path.is_file():
+            raise SpecError(["photo_path: must be a file"])
+        if not any(root == path or root in path.parents for root in self._photo_roots()):
+            raise SpecError(["photo_path: the image must be in your home folder or the Hermes folder"])
+        if path.stat().st_size > PHOTO_MAX_BYTES:
+            raise SpecError([f"photo_path: larger than {PHOTO_MAX_BYTES // (1024 * 1024)} MB"])
+        return self.store_photo(robot, path.read_bytes())
+
+    def define_robot_data(self, data: dict[str, Any], photo: Optional[str] = None) -> tuple[Spec, Path]:
+        import yaml
+
+        data = dict(data)
+        if photo:
+            data["photo"] = photo
+        return self.define_robot(yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
 
     def define_robot(self, text: str) -> tuple[Spec, Path]:
         import yaml

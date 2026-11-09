@@ -190,6 +190,14 @@ export const STYLES = `
   color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
 .tb-photo-empty { display: grid; place-items: center; }
 
+.tb-photo-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tb-photo-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  padding: 20px; border-style: dashed; text-align: center; }
+.tb-new-card { align-items: center; justify-content: center; padding: 24px; text-align: center; gap: 8px; min-height: 260px;
+  border-style: dashed; }
+.tb-new-plus { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; font-size: 30px;
+  color: var(--tb-accent); background: color-mix(in srgb, var(--tb-accent) 12%, transparent); }
+
 /* Lists and tables */
 .tb-list { display: flex; flex-direction: column; }
 .tb-list-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 4px; border-top: 1px solid var(--tb-line); }

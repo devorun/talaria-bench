@@ -29,12 +29,23 @@ ROBOT_LIST = {
 
 ROBOT_DEFINE = {
     "name": "robot_define",
-    "description": "Validate and save a new robot from a Talaria spec (YAML text, `talaria: 1`; parts with sizes in "
-                   "cm and masses in g, joints with hobby servo models). Returns the problems if it is not valid. "
-                   "Bundled robot names cannot be replaced.",
+    "description": "Add (or update) a user robot. Preferred: template + params, which builds a valid, standing "
+                   "model from a few numbers (cm, g); leave unknown values out and the template uses documented "
+                   "estimates (returned in estimates_and_notes - tell the user which values are estimates). "
+                   "Templates: block_robot (box body + side arms + middle legs on pitch hinges, like Caduceus; "
+                   "body_width, body_height, body_depth, arm_length, leg_length, limb_width, limb_depth, arms, "
+                   "legs), biped4 (body_width), quadruped (servos 8|12, body_length), hexapod (servos 12|18, "
+                   "body_length), arm (joints 4-7, upper_arm, forearm, base_radius), humanoid (height). All take "
+                   "name (lowercase), mass_g (total, optional), servo (SG90, MG90S, MG996R, DS3218), material "
+                   "(foam, pla, wood, metal, rubber). Alternative: spec_yaml with a full Talaria spec. photo_path: "
+                   "the local path of the robot's photo (from '[Image attached at: <path>]'); it is copied and "
+                   "shown next to the 3D model. Bundled robot names cannot be replaced.",
     "parameters": {"type": "object", "properties": {
-        "spec_yaml": {"type": "string", "description": "The full spec as YAML text."}},
-        "required": ["spec_yaml"]},
+        "template": {"type": "string", "enum": ["block_robot", "biped4", "quadruped", "hexapod", "arm", "humanoid"]},
+        "params": {"type": "object", "description": "Template parameters, e.g. {\"name\": \"my_bot\", "
+                                                    "\"arm_length\": 23.5, \"mass_g\": 400, \"servo\": \"MG90S\"}"},
+        "spec_yaml": {"type": "string", "description": "Full spec as YAML (instead of template)."},
+        "photo_path": {"type": "string", "description": "Local path of a JPEG/PNG/WebP photo of the robot."}}},
 }
 
 ROBOT_SHOW = {

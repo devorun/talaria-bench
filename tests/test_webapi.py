@@ -214,3 +214,23 @@ def test_variant_trace_is_not_the_base_trace_when_only_the_walk_changes(client):
                                                 "set": {"bench.walk_move": "walk_high"}}).json()
     assert base["trace"]["frames"] != high["trace"]["frames"]
     assert base["result"]["passed"] is False and high["result"]["passed"] is True
+
+
+def test_templates_new_robot_and_photo_upload(client):
+    import base64
+
+    code, tpl = get(client, "/templates")
+    assert {t["name"] for t in tpl["templates"]} == {"block_robot", "biped4", "quadruped", "hexapod", "arm", "humanoid"}
+    code, made = post(client, "/robots/new", {"template": "arm", "params": {"name": "desk_arm", "joints": 5}})
+    assert made["ok"] and made["robot"] == "desk_arm"
+    code, detail = get(client, "/robots/desk_arm")
+    assert detail["source"] == "user" and not detail["has_photo"]
+    jpg = (PLUGIN_ROOT / "examples" / "robots" / "caduceus_front.jpg").read_bytes()
+    up = post(client, "/robots/desk_arm/photo", {"data": "data:image/jpeg;base64," + base64.b64encode(jpg).decode()})[1]
+    assert up["ok"] and get(client, "/robots/desk_arm")[1]["has_photo"]
+    junk = post(client, "/robots/desk_arm/photo", {"data": base64.b64encode(b"hello").decode()})[1]
+    assert not junk["ok"] and junk["problems"]
+    big = post(client, "/robots/desk_arm/photo", {"data": base64.b64encode(b"\xff\xd8\xff" + b"0" * (10 * 1024 * 1024)).decode()})[1]
+    assert not big["ok"]
+    bundled = post(client, "/robots/caduceus/photo", {"data": base64.b64encode(jpg).decode()})[1]
+    assert not bundled["ok"] and "bundled" in bundled["error"]
