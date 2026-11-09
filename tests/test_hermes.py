@@ -472,3 +472,11 @@ def test_robot_names_accept_a_unique_prefix(rt, tools):
     assert ambiguous["ok"] is False and "several robots" in ambiguous["error"]
     started = call(tools, "bench_run", {"robot": "arm", "scenes": ["move:home"], "quick": True})
     assert started["ok"] and started["robot"] == "arm6"
+
+
+def test_frames_under_a_stock_name_are_labelled_revised(rt, tools):
+    frames = [{"ms": 900, "joints": {"right_arm": 40}}, {"ms": 900, "joints": {"right_arm": 0}}]
+    approve(rt, "caduceus", {"frames": frames})
+    out = call(tools, "robot_play", {"robot": "caduceus", "move": "arms_up_both", "frames": frames})
+    assert out["ok"] and out["move"] == "arms_up_both (revised)"
+    assert "same sign" in call(tools, "robot_show", {"robot": "caduceus"})["angle_convention"]

@@ -8,7 +8,10 @@ TARGET = {"type": "string", "enum": ["virtual", "real"],
                          "setting. Use real only when the user asks for the real robot."}
 FRAMES = {"type": "array", "description": "Keyframes in order. Each frame: {\"ms\": travel time, \"hold\": optional "
                                           "pause in ms, \"joints\": {joint name: angle in degrees}}. Joints left out "
-                                          "keep their angle.",
+                                          "keep their angle. Angles are degrees from the home pose and mean the same "
+                                          "direction on the left and the right side (the spec handles the mirrored "
+                                          "servos): to raise both arms forward give both the same positive angle; "
+                                          "never flip the sign for one side.",
           "items": {"type": "object"}}
 MOVE_FIELDS = {
     "move": {"type": "string", "description": "Name of a move of this robot (built-in or saved with move_save)."},

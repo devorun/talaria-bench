@@ -125,6 +125,9 @@ class TalariaTools:
                   for n, j in spec.joint_limits().items()]
         report = self.jobs.latest_report(spec.name)
         return {"ok": True, "robot": spec.name, "summary": spec.summary(), "joints": joints,
+                "angle_convention": "degrees from the home pose; the same sign moves the left and the right part the "
+                                    "same way (for pitch joints positive swings the part forward), the hardware "
+                                    "mapping handles mirrored servos",
                 "moves": {n: kind for n, (_, kind) in self.rt.all_moves(spec).items()},
                 "limitations": spec.limitations, "hardware": spec.hardware_mapping(),
                 "spec_hash": spec.hash()[:16], "latest_report": str(report) if report else None,

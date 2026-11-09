@@ -267,6 +267,10 @@ class Runtime:
                 move["loops"] = loops
             if easing is not None:
                 move["easing"] = easing
+            # Frames under an existing move's name are a revision of it, not that move: say so, so a passing
+            # check of new frames never reads as the stock move passing.
+            if name and name in self.all_moves(spec):
+                name = f"{name} (revised)"
             return name or "custom", move
         if not name:
             raise MoveError(["give a move name or frames"])
