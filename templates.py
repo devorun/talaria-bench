@@ -144,7 +144,8 @@ def _from_example(example: str) -> dict:
 def _finish(spec: dict, params: dict, family: str, title: str, notes: list[str]) -> dict:
     spec["talaria"] = 1
     spec["name"] = params["name"]
-    spec["title"] = params.get("title") or title
+    # The user's own name reads better than the template's ("my_caduceus" -> "My Caduceus").
+    spec["title"] = params.get("title") or params["name"].replace("_", " ").replace("-", " ").title()
     spec["family"] = family
     spec["description"] = params.get("description") or (
         f"Made from the {params['_template']} template. " + " ".join(n[0].upper() + n[1:] + "." for n in notes))

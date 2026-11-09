@@ -14,7 +14,9 @@ If there is a photo, look at it and keep its local path: the message says `[Imag
 or "available on disk at `<path>`" (Desktop and webapp attachments land in `~/.hermes/attachments/`).
 Say in one or two lines what you see: the family (arm, biped, quadruped, hexapod, humanoid, or a
 Caduceus-like block robot with side arms and middle legs), the main parts, the servos and joints you can
-see. If you are unsure about something, say so instead of guessing silently.
+see. If you are unsure about something, say so instead of guessing silently. Count where the limbs
+attach, not how many touch the floor: long outer arms plus short middle legs on a box body, all standing
+on the floor, is a `block_robot` (like Caduceus), not a quadruped.
 
 ## 2. Pick a template and draft numbers
 
