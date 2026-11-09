@@ -1,7 +1,10 @@
-"""Render every gallery robot with the app's own three.js stage (rounded parts, materials, soft shadows, the
-same lights) in its showcase pose (spec look.showcase), at 2x device pixels, through headless Chromium.
-Writes docs/img/gallery/<robot>.png (labelled), docs/img/gallery/thumbs/<robot>.png (for the app's gallery
-cards) and the combined sheet docs/img/gallery.png. Dev tool: needs Playwright + Pillow and a UI build.
+"""Render every gallery robot with the app's own three.js stage (the same parts, materials, servo horns,
+lights and 10 cm scale mark as the 3D viewer) in its showcase pose (spec look.showcase), through headless
+Chromium. Rendered at 2x device pixels and saved smaller (supersampled, so edges stay clean and files stay
+small). Writes docs/img/gallery/<robot>.png (960x720, labelled), docs/img/gallery/thumbs/<robot>.png
+(560x420, for the app's gallery cards and the README table) and the combined sheet docs/img/gallery.png.
+The thumbnails the app shows stay lossless; the labelled renders and the sheet (docs only) are saved with a
+dithered 256-colour palette to keep the repository small. Dev tool: needs Playwright + Pillow and a UI build.
 
     (cd talaria-bench/ui && npm run build)
     python talaria-bench/scripts/render_gallery.py
@@ -58,6 +61,13 @@ html, body { margin: 0; background: transparent; font-family: system-ui, -apple-
 </body></html>"""
 
 
+def save(im: Image.Image, path: Path, palette: bool) -> None:
+    im = im.convert("RGB")
+    if palette:
+        im = im.quantize(colors=256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.FLOYDSTEINBERG)
+    im.save(path, optimize=True)
+
+
 def robots() -> list[dict]:
     api = WebAPI(Runtime(overrides={"data_dir": tempfile.mkdtemp()}))
     out = []
@@ -82,7 +92,8 @@ def main() -> int:
     data = robots()
     with sync_playwright() as pw:
         browser = pw.chromium.launch(args=["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"])
-        for kind, (w, h), folder, label in (("image", (800, 600), OUT, True), ("thumb", (480, 360), THUMBS, False)):
+        for kind, (w, h), folder, label, keep in (("image", (800, 600), OUT, True, (960, 720)),
+                                                  ("thumb", (480, 360), THUMBS, False, (560, 420))):
             page = browser.new_page(viewport={"width": w, "height": h}, device_scale_factor=SCALE)
             errors = []
             page.on("pageerror", lambda e: errors.append(str(e)))
@@ -91,21 +102,23 @@ def main() -> int:
             for robot in data:
                 page.evaluate("([d, l]) => window.renderRobot(d, { label: l })", [robot, label])
                 page.wait_for_timeout(400)
-                page.locator("#frame").screenshot(path=str(folder / f"{robot['name']}.png"))
-                print(kind, robot["name"], f"{w * SCALE}x{h * SCALE}")
+                path = folder / f"{robot['name']}.png"
+                page.locator("#frame").screenshot(path=str(path))
+                save(Image.open(path).convert("RGB").resize(keep, Image.LANCZOS), path, palette=label)
+                print(kind, robot["name"], f"{keep[0]}x{keep[1]}", f"{path.stat().st_size // 1024} KB")
             if errors:
                 raise SystemExit(f"render errors: {errors[:3]}")
             page.close()
         browser.close()
-    tiles = [Image.open(OUT / f"{r['name']}.png") for r in data]
-    cols, gap = 4, 24
-    tw, th = tiles[0].width // 2, tiles[0].height // 2
+    tiles = [Image.open(OUT / f"{r['name']}.png").convert("RGB") for r in data]
+    cols, gap = 4, 16
+    tw, th = 520, 390
     rows = math.ceil(len(tiles) / cols)
     sheet = Image.new("RGB", (cols * tw + (cols + 1) * gap, rows * th + (rows + 1) * gap), (255, 255, 255))
     for i, t in enumerate(tiles):
         r, c = divmod(i, cols)
         sheet.paste(t.convert("RGB").resize((tw, th), Image.LANCZOS), (gap + c * (tw + gap), gap + r * (th + gap)))
-    sheet.save(OUT.parent / "gallery.png", optimize=True)
+    save(sheet, OUT.parent / "gallery.png", palette=True)
     print("sheet", (OUT.parent / "gallery.png").relative_to(ROOT), sheet.size)
     json.dumps(len(data))
     return 0
