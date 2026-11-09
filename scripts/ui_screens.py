@@ -1,9 +1,12 @@
-"""Drive the real Talaria Bench UI with Playwright: smoke-test every view, collect console errors and save
-screenshots under docs/img/screens/. Dev tool (Playwright is not a plugin dependency).
+"""Drive the real Talaria Bench UI with Playwright: smoke-test the main views, collect console errors and save
+the README screenshots under docs/img/screens/. Dev tool (Playwright is not a plugin dependency).
 
-    python talaria-bench/scripts/ui_screens.py dashboard            # hermes dashboard on 127.0.0.1:9119
+    python talaria-bench/scripts/ui_screens.py dashboard [url]      # hermes dashboard, default 127.0.0.1:9119
+    python talaria-bench/scripts/ui_screens.py webapp <link> [dark] # Desktop workspace: `hermes webapp --no-open`
     python talaria-bench/scripts/ui_screens.py desktop [cdp_url]    # Hermes Desktop started with
                                                                     # --remote-debugging-port=9222
+
+Use a temporary HERMES_HOME for published screenshots, so no chat titles, user name or paths can appear.
 """
 
 from __future__ import annotations
@@ -52,7 +55,9 @@ def shot(page: Page, prefix: str, name: str, full: bool = False) -> None:
 
 def scrub(page: Page, seconds: float) -> None:
     """Pause the last timeline and move it to ``seconds`` (a range input driven by React's input events)."""
-    page.locator(".tb-timeline .tb-icon-btn").last.click()
+    button = page.locator(".tb-timeline .tb-icon-btn").last
+    if button.get_attribute("aria-label") == "Pause":
+        button.click()
     page.locator(".tb-timeline input[type=range]").last.evaluate(
         """(el, v) => { const set = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), 'value').set;
                         set.call(el, String(v)); el.dispatchEvent(new Event('input', { bubbles: true })) }""",
@@ -63,7 +68,7 @@ def scrub(page: Page, seconds: float) -> None:
 def tip_seconds(page: Page) -> float | None:
     import re
     for text in page.locator(".tb-viewer-label small").all_inner_texts():
-        m = re.search(r"tips at ([0-9.]+) s", text)
+        m = re.search(r"tip(?:s|ped) at ([0-9.]+) s", text)
         if m:
             return float(m.group(1))
     return None
@@ -75,21 +80,11 @@ def run(page: Page, prefix: str) -> None:
     page.wait_for_selector(".tb-robot-card img", timeout=60_000)
     page.wait_for_timeout(1500)
     shot(page, prefix, "gallery")
-    page.locator(".tb-new-card").click()
-    page.locator(".tb-field select").first.wait_for(timeout=30_000)
-    page.wait_for_timeout(600)
-    shot(page, prefix, "new-robot")
-    tab(page, "Gallery")
-    page.wait_for_selector(".tb-robot-card img", timeout=60_000)
 
     page.locator(".tb-robot-card", has_text="Caduceus").first.click()
     page.wait_for_selector(".tb-photo img", timeout=60_000)
     settle(page)
     shot(page, prefix, "robot-caduceus")
-    page.locator(".tb-list-row", has_text="arms_up_alternating").get_by_role("button", name="Simulate").click()
-    page.wait_for_selector(".tb-timeline", timeout=120_000)
-    page.wait_for_timeout(1800)
-    shot(page, prefix, "robot-caduceus-replay")
 
     tab(page, "Report card")
     pick_robot(page, "spider8")
@@ -99,14 +94,10 @@ def run(page: Page, prefix: str) -> None:
     page.locator(".tb-tile", has_text="Ramp 10 deg").click()
     page.wait_for_selector(".tb-timeline", timeout=180_000)
     settle(page, 3500)
+    scrub(page, 3.0)
     page.locator(".tb-timeline").last.scroll_into_view_if_needed()
     page.wait_for_timeout(500)
     shot(page, prefix, "report-spider8-replay")
-    page.locator(".tb-tile", has_text="Bar 2 cm").click()
-    page.locator(".tb-root .tb-viewer canvas").nth(1).wait_for(timeout=180_000)
-    settle(page, 3500)
-    page.locator(".tb-timeline").last.scroll_into_view_if_needed()
-    shot(page, prefix, "report-spider8-bar")
 
     tab(page, "Compare")
     page.wait_for_selector(".tb-check", timeout=60_000)
@@ -121,11 +112,10 @@ def run(page: Page, prefix: str) -> None:
     page.locator(".tb-table-compare tr", has_text="Bar 2 cm").click()
     page.wait_for_selector(".tb-grid-views canvas", timeout=180_000)
     settle(page, 4000)
-    page.locator(".tb-table-compare").scroll_into_view_if_needed()
-    shot(page, prefix, "compare-spider8-high-step")
-    page.locator(".tb-grid-views").scroll_into_view_if_needed()
+    scrub(page, 4.0)
+    page.locator(".tb-table-compare tr", has_text="Ramp 15 deg").scroll_into_view_if_needed()
     page.wait_for_timeout(500)
-    shot(page, prefix, "compare-spider8-high-step-replay")
+    shot(page, prefix, "compare-spider8-high-step")
 
     tab(page, "Move check")
     pick_robot(page, "caduceus")
@@ -137,10 +127,27 @@ def run(page: Page, prefix: str) -> None:
         t = tip_seconds(page)
         if t is not None:
             scrub(page, t + 0.25)                 # the red tip flash and the TIPPED tag
-        page.get_by_role("button", name="Play on virtual robot").click()
-        page.wait_for_timeout(900)
         page.locator(".tb-verdict").scroll_into_view_if_needed()
+        page.wait_for_timeout(500)
         shot(page, prefix, name)
+
+
+def skip_onboarding(page: Page) -> None:
+    """A fresh Hermes home opens the Desktop workspace with "connect a model provider": choose "later"."""
+    try:
+        page.get_by_text("choose a provider later").first.click(timeout=6000)
+        page.wait_for_timeout(1500)
+    except Exception:
+        pass
+
+
+def close_notice(page: Page) -> None:
+    """A fresh dashboard shows a one-time "Help improve Hermes?" bar above every page: decline it."""
+    try:
+        page.get_by_role("button", name="No thanks").click(timeout=3000)
+        page.wait_for_timeout(600)
+    except Exception:
+        pass
 
 
 def main() -> int:
@@ -162,7 +169,9 @@ def main() -> int:
             page.goto(sys.argv[2])
             page.wait_for_url("**/#/**", timeout=60_000)
             base = page.url.split("#")[0]
+            skip_onboarding(page)
             page.goto(base + "#/capabilities?tab=plugins")
+            skip_onboarding(page)
             page.get_by_placeholder("Search plugins").fill("Talaria Bench")
             page.wait_for_timeout(1500)
             switch = page.get_by_role("switch", name="Talaria Bench")
@@ -183,7 +192,9 @@ def main() -> int:
             page = browser.new_page(viewport={"width": 1440, "height": 960}, device_scale_factor=1)
             page.on("console", lambda m: ERRORS.append(m.text) if m.type == "error" else None)
             page.on("pageerror", lambda e: ERRORS.append(str(e)))
-            page.goto("http://127.0.0.1:9119/talaria", wait_until="networkidle")
+            url = sys.argv[2] if len(sys.argv) > 2 else "http://127.0.0.1:9119"
+            page.goto(url.rstrip("/") + "/talaria", wait_until="networkidle")
+            close_notice(page)
             run(page, "dashboard")
             browser.close()
     print("console errors:", len(ERRORS))
