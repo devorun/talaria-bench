@@ -1,7 +1,7 @@
 {
   "name": "talaria-bench-ui",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Shared UI source for the Talaria Bench Desktop page and dashboard tab",
   "scripts": {
     "build": "node build.mjs"

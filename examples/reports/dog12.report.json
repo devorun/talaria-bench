@@ -3,7 +3,7 @@
  "version": 1,
  "simulation": true,
  "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
- "created": "2026-11-08T22:53:59+00:00",
+ "created": "2026-11-09T12:59:14+00:00",
  "robot": {
   "name": "dog12",
   "title": "Robot dog (12 servos)",
@@ -1162,11 +1162,11 @@
  "limitations": [],
  "timing": {
   "jobs": 360,
-  "computed": 120,
-  "cached": 240,
+  "computed": 360,
+  "cached": 0,
   "workers": 8,
-  "seconds_jobs": 2.49,
-  "seconds_total": 12.56
+  "seconds_jobs": 29.81,
+  "seconds_total": 39.99
  },
  "summary": "On flat ground it covers the target distance in 97% of worlds (median 45.1 cm). Climbs the 5 deg ramp in 90% of worlds but slid back on the 10 deg ramp in 70% of worlds. Clears the bar 1 cm in 97% of worlds. Clears the bar 2 cm in 50% of worlds. Survives a nudge from every side in 100% of worlds; does not tip even at the largest push. Standing moves that never or almost never tip it: stand, sit. On a slippery floor its feet skate and it glides out of control in 73% of worlds. The thigh hr servo is near its limit (peak 100% of stall, estimate) during the ramp 5 deg test."
 }

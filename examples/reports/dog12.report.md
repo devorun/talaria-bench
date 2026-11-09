@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `dog12` (1600 g, 12 servos, spec `433d3b55949e`), 30 worlds per scene (seeds 0..29), 13 s.
+Robot `dog12` (1600 g, 12 servos, spec `433d3b55949e`), 30 worlds per scene (seeds 0..29), 40 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|

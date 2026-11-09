@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `caduceus_v2` (437 g, 4 servos, spec `b87fbcae7048`), 30 worlds per scene (seeds 0..29), 11 s.
+Robot `caduceus_v2` (437 g, 4 servos, spec `b87fbcae7048`), 30 worlds per scene (seeds 0..29), 25 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|

@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `humanoid16` (802 g, 16 servos, spec `a009b4e9f5fa`), 30 worlds per scene (seeds 0..29), 10 s.
+Robot `humanoid16` (802 g, 16 servos, spec `a009b4e9f5fa`), 30 worlds per scene (seeds 0..29), 17 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|

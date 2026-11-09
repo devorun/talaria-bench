@@ -3,7 +3,7 @@
  "version": 1,
  "simulation": true,
  "label": "Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.",
- "created": "2026-11-08T22:53:24+00:00",
+ "created": "2026-11-09T12:57:39+00:00",
  "robot": {
   "name": "caduceus",
   "title": "Caduceus",
@@ -812,11 +812,11 @@
  ],
  "timing": {
   "jobs": 420,
-  "computed": 180,
-  "cached": 240,
+  "computed": 420,
+  "cached": 0,
   "workers": 8,
-  "seconds_jobs": 3.93,
-  "seconds_total": 10.74
+  "seconds_jobs": 16.13,
+  "seconds_total": 23.4
  },
  "summary": "Survives a nudge from every side in 100% of worlds; a push of 0.2 x body weight from the front tips it (median). Standing moves that never or almost never tip it: wave, arms_up_alternating. Move 'arms_up_both' tips the robot in 42% of 60 preflight worlds. The right leg servo is near its limit (peak 100% of stall, estimate) during the move 'arms_up_both' test. 7 walking scene(s) are outside this model's scope for this robot and are not scored: This rigid-body model does not simulate soft foam feet; the bench does not guess here."
 }

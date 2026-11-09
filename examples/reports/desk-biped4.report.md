@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `desk-biped4` (166 g, 4 servos, spec `59d3d9d765e3`), 30 worlds per scene (seeds 0..29), 7 s.
+Robot `desk-biped4` (166 g, 4 servos, spec `59d3d9d765e3`), 30 worlds per scene (seeds 0..29), 22 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|

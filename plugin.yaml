@@ -1,5 +1,5 @@
 name: talaria-bench
-version: 0.1.0
+version: 1.0.0
 manifest_version: 2
 description: >-
   A physics test bench for DIY servo robots. Describe your robot (parts, sizes, masses, hobby servos)

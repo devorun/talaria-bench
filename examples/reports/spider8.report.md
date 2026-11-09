@@ -2,7 +2,7 @@
 
 *Simulation results (MuJoCo, randomized worlds). Simulation-based risk screening, not a guarantee.*
 
-Robot `spider8` (250 g, 8 servos, spec `6ffd18ca18bc`), 30 worlds per scene (seeds 0..29), 8 s.
+Robot `spider8` (250 g, 8 servos, spec `6ffd18ca18bc`), 30 worlds per scene (seeds 0..29), 30 s.
 
 | Scene | Status | Pass | Main metric: median (p10) | Worst | Top failure reasons |
 |---|---|---|---|---|---|

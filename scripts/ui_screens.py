@@ -41,7 +41,12 @@ def settle(page: Page, ms: int = 2500) -> None:
 def shot(page: Page, prefix: str, name: str, full: bool = False) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / f"{prefix}-{name}.png"
-    page.screenshot(path=str(path), full_page=full)
+    clip = None
+    if prefix.startswith("desktop") and not full:
+        # Leave out the Desktop session list: it shows the user's own chat titles and user name.
+        size = page.viewport_size or {"width": 1440, "height": 960}
+        clip = {"x": 261, "y": 0, "width": size["width"] - 261, "height": size["height"]}
+    page.screenshot(path=str(path), full_page=full, clip=clip)
     print("saved", path.relative_to(ROOT))
 
 
