@@ -345,7 +345,7 @@ def test_real_target_checks_address_token_and_identity(rt, tools):
 
 def _wait(tools, job_id, limit=180):
     for _ in range(limit * 4):
-        job = call(tools, "bench_status", {"job_id": job_id})["job"]
+        job = call(tools, "bench_status", {"job_id": job_id, "wait_s": 0})["job"]
         if job["status"] != "running":
             return job
         time.sleep(0.25)
@@ -456,3 +456,9 @@ def test_firmware_screen_is_optional_per_robot():
     assert "#define HAS_OLED      0" in spider
     ino = (PLUGIN_ROOT / "firmware" / "talaria_robot" / "talaria_robot.ino").read_text(encoding="utf-8")
     assert "#if HAS_OLED" in ino and "showMessage(ROBOT_NAME, ip.c_str())" in ino
+
+
+def test_bench_status_waits_for_the_job(tools):
+    started = call(tools, "bench_run", {"robot": "arm6", "scenes": ["move:home"], "quick": True})
+    data = call(tools, "bench_status", {"job_id": started["job_id"]})       # one call, no polling loop
+    assert data["job"]["status"] == "done" and data["next"].startswith("bench_report")

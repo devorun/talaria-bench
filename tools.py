@@ -142,8 +142,21 @@ class TalariaTools:
 
     def bench_status(self, args: dict[str, Any]) -> dict[str, Any]:
         if args.get("job_id"):
+            # Wait on the server (up to wait_s, default 90 s) instead of making the model poll in a loop.
+            import time
+
+            wait = max(0.0, min(float(args.get("wait_s", 90) or 0), 300.0))
+            deadline = time.monotonic() + wait
             job = self.jobs.job(str(args["job_id"]))
-            return {"ok": True, "job": _public_job(job)}
+            while job["status"] == "running" and time.monotonic() < deadline:
+                time.sleep(1.0)
+                job = self.jobs.job(str(args["job_id"]))
+            out = {"ok": True, "job": _public_job(job)}
+            if job["status"] == "done":
+                out["next"] = f"bench_report job_id={job['id']}"
+            elif job["status"] == "running":
+                out["next"] = "still running; call bench_status again (it waits up to 90 s)"
+            return out
         return {"ok": True, "jobs": [_public_job(j) for j in self.jobs.jobs()[:10]]}
 
     def bench_report(self, args: dict[str, Any]) -> dict[str, Any]:

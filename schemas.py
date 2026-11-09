@@ -72,8 +72,13 @@ BENCH_RUN = {
 
 BENCH_STATUS = {
     "name": "bench_status",
-    "description": "Progress of a benchmark or comparison job, or the recent jobs when no id is given.",
-    "parameters": {"type": "object", "properties": {"job_id": {"type": "string"}}},
+    "description": "Status of a benchmark or comparison job, or the recent jobs when no id is given. With a job_id it "
+                   "waits until the job finishes (up to wait_s, 90 s by default) and then says what to call next, so "
+                   "one call is usually enough.",
+    "parameters": {"type": "object", "properties": {
+        "job_id": {"type": "string"},
+        "wait_s": {"type": "number", "minimum": 0, "maximum": 300,
+                   "description": "Seconds to wait for the job to finish (default 90; 0 returns at once)."}}},
 }
 
 BENCH_REPORT = {
