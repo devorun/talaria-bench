@@ -3,7 +3,9 @@
 # Talaria Bench
 
 [![tests](https://github.com/devorun/talaria-bench/actions/workflows/tests.yml/badge.svg)](https://github.com/devorun/talaria-bench/actions/workflows/tests.yml)
-![licence: MIT](https://img.shields.io/badge/licence-MIT-blue)
+[![Hermes Agent plugin](https://img.shields.io/badge/Hermes%20Agent-plugin%20%E2%89%A5%200.22-0b6b63)](https://github.com/NousResearch/hermes-agent)
+![physics: MuJoCo, CPU only](https://img.shields.io/badge/physics-MuJoCo%20%C2%B7%20CPU%20only-4c6ef5)
+[![licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
 **Talaria Bench tests your DIY robot in physics before it moves. No GPU, no CAD.**
 
@@ -16,7 +18,8 @@ makes him move.
 - Compare design variants (longer legs, stronger servos) before you build or print anything.
 - Every move Hermes sends to your real robot is screened in simulation first.
 
-<p align="center"><img src="docs/img/tour.gif" alt="Gallery, report card, design comparison, a blocked move and a passing move" width="90%"></p>
+<p align="center"><img src="docs/img/tour.gif" alt="Gallery, a robot next to its photo, report card, replay, design comparison, a blocked move and a passing move" width="92%"></p>
+<p align="center"><sub>The Talaria Bench tab in the Hermes web dashboard (simulation).</sub></p>
 
 Every number Talaria Bench shows comes from simulation and is labelled that way. It is
 simulation-based risk screening, not a safety guarantee.
@@ -40,22 +43,42 @@ environment and enables it. Without `--yes-deps` Hermes asks before installing t
 Or just ask Hermes: *"Benchmark the spider and tell me where it fails"*, *"Add my robot"* (with a photo),
 *"Write a dance for Caduceus and check it"*.
 
+## A two-minute tour
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/img/screens/desktop-robot-caduceus.png" alt="Robot page: the 3D model of Caduceus next to its photo"><br>
+      <sub><b>Your robot in 3D, next to its photo.</b> Hermes Desktop, light theme. Moves replay in simulation.</sub></td>
+    <td width="50%"><img src="docs/img/screens/dashboard-report-spider8.png" alt="Report card of the spider: one tile per scene"><br>
+      <sub><b>One click, one report card.</b> A tile per scene: pass rate, median, worst world.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/img/screens/dashboard-report-spider8-replay.png" alt="Replay of the 10 degree ramp: median world next to the worst world"><br>
+      <sub><b>See why it fails.</b> The median and the worst world replay side by side; the scene shows its own numbers.</sub></td>
+    <td><img src="docs/img/screens/dashboard-compare-spider8-high-step.png" alt="Design comparison of the spider with a higher step"><br>
+      <sub><b>Compare designs before you build.</b> Variants on the same worlds, with the change in pass rate.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/img/screens/desktop-check-arms_up_both-blocked.png" alt="Move check: arms_up_both is BLOCKED, it tips in 25 of 60 simulated worlds"><br>
+      <sub><b>BLOCKED.</b> The move tips the robot in 25 of 60 simulated worlds; the gate refuses it and says what to change.</sub></td>
+    <td><img src="docs/img/screens/dashboard-check-arms_up_alternating-pass.png" alt="Move check: arms_up_alternating passes, 0 of 60 simulated worlds tip"><br>
+      <sub><b>PASS.</b> The revised move is approved for exactly this move, speed and robot spec.</sub></td>
+  </tr>
+</table>
+
 ## How it works
 
-```
- robot spec (YAML)  ->  MuJoCo model  ->  randomized worlds  ->  scenes  ->  report card
- parts, cm, g,          soft contacts,     friction, mass,        flat, ramps,     pass rate, median,
- servo models           servo free play,   torque, latency,       bars, pushes,    worst case and the
-                        servo torque       offsets, floor tilt,   slippery floor,  reason for each
-                                           cable pull             payload, moves   failure
+<p align="center"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/diagram-pipeline-dark.svg">
+  <img src="docs/img/diagram-pipeline-light.svg" alt="Robot spec and photo, MuJoCo model, randomized worlds, arena scenes, report card" width="100%">
+</picture></p>
+<p align="center"><sub>From a robot spec to a report card.</sub></p>
 
- Hermes writes a move  ->  move_check (preflight)  ->  approval for exactly that move, speed and spec
-                                    |                                   |
-                             BLOCKED: reasons and                pre_tool_call gate lets
-                             suggestions go back to              robot_play / robot_pose through
-                             Hermes, which revises               -> virtual robot or real robot
-                                                                    (firmware clamps limits again)
-```
+<p align="center"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/diagram-gate-dark.svg">
+  <img src="docs/img/diagram-gate-light.svg" alt="The motion gate: a move is checked in 60 fixed simulated worlds; only an approved move passes the pre_tool_call hook to the virtual or real robot" width="100%">
+</picture></p>
+<p align="center"><sub>The motion gate: only a move that passed its check reaches a robot.</sub></p>
 
 - **Robot spec.** Parts (box, cylinder, sphere), sizes in cm, masses in g, joints with ranges
   and hobby servo models from a small servo catalog. See [docs/robot-spec.md](docs/robot-spec.md).
@@ -80,17 +103,18 @@ Or just ask Hermes: *"Benchmark the spider and tell me where it fails"*, *"Add m
 Seven robots ship in `examples/robots/`. Headlines from the arena benchmark (simulation, 30 worlds per
 scene; full cards in [examples/reports/](examples/reports/), more in [docs/gallery.md](docs/gallery.md)):
 
-| Robot | Servos | Mass | Benchmark headline (simulation) |
-|---|---|---|---|
-| `spider8` Spider | 8 | 250 g | Covers the flat-ground target distance in 100% of worlds (median 23.3 cm); climbs 10 deg in 73%, slides back on 15 deg. |
-| `dog12` Robot dog | 12 | 1600 g | Trots the flat target in 97% of worlds (median 45.1 cm); on the slippery floor its feet skate. |
-| `desk-biped4` Desk biped | 4 | 166 g | Walks the flat target in 100% of worlds (median 18.9 cm); stuck at both bars. |
-| `humanoid16` Small humanoid | 16 | 802 g | `dance_safe` stays upright; `dance_risky` tips it in 95% of 60 preflight worlds. |
-| `arm6` Desk arm (fixed base) | 6 | 758 g | Max safe payload median 100 g (p10 95 g); at 200 g the upper arm reaches stall (estimate). |
-| `caduceus` Caduceus | 4 | 437 g | `arms_up_both` tips it in 42% of 60 preflight worlds; `arms_up_alternating` passes. Walking is out of model scope. |
-| `caduceus_v2` Caduceus v2 (design variant) | 4 | 437 g | Tighter joints and a lower centre of mass: survives a nudge from every side in 100% of worlds. |
+| Simulation&nbsp;render | Robot | Servos | Mass | Benchmark headline (simulation) |
+|---|---|---|---|---|
+| <img src="docs/img/gallery/thumbs/spider8.png" alt="spider8 (simulation render)" width="120"> | `spider8` Spider | 8 | 250 g | Covers the flat-ground target distance in 100% of worlds (median 23.3 cm); climbs 10 deg in 73%, slides back on 15 deg. |
+| <img src="docs/img/gallery/thumbs/dog12.png" alt="dog12 (simulation render)" width="120"> | `dog12` Robot dog | 12 | 1600 g | Trots the flat target in 97% of worlds (median 45.1 cm); on the slippery floor its feet skate. |
+| <img src="docs/img/gallery/thumbs/desk-biped4.png" alt="desk-biped4 (simulation render)" width="120"> | `desk-biped4` Desk biped | 4 | 166 g | Walks the flat target in 100% of worlds (median 18.9 cm); stuck at both bars. |
+| <img src="docs/img/gallery/thumbs/humanoid16.png" alt="humanoid16 (simulation render)" width="120"> | `humanoid16` Small humanoid | 16 | 802 g | `dance_safe` stays upright; `dance_risky` tips it in 95% of 60 preflight worlds. |
+| <img src="docs/img/gallery/thumbs/arm6.png" alt="arm6 (simulation render)" width="120"> | `arm6` Desk arm (fixed base) | 6 | 758 g | Max safe payload median 100 g (p10 95 g); at 200 g the upper arm reaches stall (estimate). |
+| <img src="docs/img/gallery/thumbs/caduceus.png" alt="caduceus (simulation render)" width="120"> | `caduceus` Caduceus | 4 | 437 g | `arms_up_both` tips it in 42% of 60 preflight worlds; `arms_up_alternating` passes. Walking is out of model scope. |
+| <img src="docs/img/gallery/thumbs/caduceus_v2.png" alt="caduceus_v2 (simulation render)" width="120"> | `caduceus_v2` Caduceus v2 (design variant) | 4 | 437 g | Tighter joints and a lower centre of mass: survives a nudge from every side in 100% of worlds. |
 
 <p align="center"><img src="docs/img/gallery.png" alt="The seven bundled robots rendered in 3D (simulation)" width="100%"></p>
+<p align="center"><sub>The seven bundled robots, drawn by the same renderer as the app. The bar on the floor is 10 cm.</sub></p>
 
 ## Bring your own robot
 
@@ -104,6 +128,12 @@ scene; full cards in [examples/reports/](examples/reports/), more in [docs/galle
   stored in the plugin data folder; the bundled examples are never modified (edits make your own copy).
 
 ## Real hardware
+
+<p align="center"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/diagram-hardware-dark.svg">
+  <img src="docs/img/diagram-hardware-light.svg" alt="Hermes sends a checked move over LAN HTTP with a token to an ESP32, which drives hobby servos through a PCA9685" width="100%">
+</picture></p>
+<p align="center"><sub>The hardware path. Moves travel as data; the firmware never needs reflashing for a new move.</sub></p>
 
 - **Firmware.** `firmware/talaria_robot/` is an ESP32 + PCA9685 sketch. `hermes talaria firmware <robot>
   <folder>` writes the sketch plus a `robot_config.h` generated from the robot spec (I2C pins, servo
@@ -196,6 +226,9 @@ python -m pytest -q -m "not slow"    # what CI runs on every OS
 - CI (`.github/workflows/tests.yml`): pytest on Ubuntu, macOS and Windows with Python 3.11, 3.13 and 3.14,
   plus the full suite with the `spawn` start method.
 - `hermes plugins validate . --install-deps` checks the plugin the way the catalog does.
+- README media: `scripts/render_gallery.py` (robot renders with the app's renderer), `scripts/ui_screens.py`
+  (screenshots through Playwright; use a temporary `HERMES_HOME`), `scripts/readme_media.py` (banner, tour GIF)
+  and `scripts/diagrams.py` (the SVG diagrams). They need Playwright and Pillow, which the plugin does not.
 
 Licence: [MIT](LICENSE). The UI bundles include three.js (MIT); see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). MuJoCo (Apache-2.0) is installed as a dependency, not
