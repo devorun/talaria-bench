@@ -462,3 +462,13 @@ def test_bench_status_waits_for_the_job(tools):
     started = call(tools, "bench_run", {"robot": "arm6", "scenes": ["move:home"], "quick": True})
     data = call(tools, "bench_status", {"job_id": started["job_id"]})       # one call, no polling loop
     assert data["job"]["status"] == "done" and data["next"].startswith("bench_report")
+
+
+def test_robot_names_accept_a_unique_prefix(rt, tools):
+    assert rt.robot("spider").name == "spider8" and rt.robot("dog").name == "dog12"
+    assert call(tools, "robot_show", {"robot": "caduceus_"})["robot"] == "caduceus_v2"
+    assert rt.robot("caduceus").name == "caduceus"                        # an exact name always wins
+    ambiguous = call(tools, "robot_show", {"robot": "cad"})               # caduceus or caduceus_v2
+    assert ambiguous["ok"] is False and "several robots" in ambiguous["error"]
+    started = call(tools, "bench_run", {"robot": "arm", "scenes": ["move:home"], "quick": True})
+    assert started["ok"] and started["robot"] == "arm6"

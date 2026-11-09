@@ -133,8 +133,7 @@ class TalariaTools:
     # Benchmarks -----------------------------------------------------------------------------------
 
     def bench_run(self, args: dict[str, Any]) -> dict[str, Any]:
-        robot = str(args.get("robot"))
-        self.rt.robot(robot)
+        robot = self.rt.robot(str(args.get("robot"))).name
         scenes = args.get("scenes") or None
         job = self.jobs.start_bench(robot, scenes=scenes, worlds=args.get("worlds"), quick=bool(args.get("quick")))
         return {"ok": True, "job_id": job["id"], "robot": robot, "status": "running",
@@ -183,8 +182,7 @@ class TalariaTools:
                 "markdown": md[:REPORT_CHARS] + ("\n... (truncated)" if len(md) > REPORT_CHARS else "")}
 
     def bench_compare(self, args: dict[str, Any]) -> dict[str, Any]:
-        robot = str(args.get("robot"))
-        self.rt.robot(robot)
+        robot = self.rt.robot(str(args.get("robot"))).name
         raw = args.get("variants")
         if not isinstance(raw, list) or not raw:
             raise ValueError("variants must be a non-empty list")

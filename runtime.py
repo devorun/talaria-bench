@@ -130,10 +130,23 @@ class Runtime:
             out.setdefault(p.stem, (p, "user"))
         return out
 
+    def resolve_name(self, name: str) -> str:
+        """The exact robot name, or the one robot whose name starts with ``name`` ("spider" -> spider8, "dog"
+        -> dog12). Ambiguous or unknown names raise KeyError listing the robots."""
+        paths = self.robot_paths()
+        key = str(name or "").strip().lower()
+        if key in paths:
+            return key
+        hits = [n for n in paths if n.startswith(key)] if key else []
+        if len(hits) == 1:
+            return hits[0]
+        if len(hits) > 1:
+            raise KeyError(f"{name!r} matches several robots ({', '.join(hits)}); use the exact name")
+        raise KeyError(f"no robot named {name!r} (robots: {', '.join(paths)})")
+
     def robot(self, name: str) -> Spec:
         paths = self.robot_paths()
-        if name not in paths:
-            raise KeyError(f"no robot named {name!r} (robots: {', '.join(paths)})")
+        name = self.resolve_name(name)
         path = paths[name][0]
         mtime = path.stat().st_mtime
         with self._lock:
