@@ -1,9 +1,9 @@
 // "New robot from template": the same code path as the robot_define tool (template + params).
 import { useEffect, useState } from 'react'
 import { api, notify } from '../platform.js'
-import { Button, ErrorBox, Loading, useApi } from '../ui.jsx'
+import { Button, ErrorBox, Loading, MODEL_NOTE, useApi } from '../ui.jsx'
 
-export function NewRobot({ go }) {
+export function NewRobot({ go, refresh }) {
   const [data] = useApi('/templates')
   const list = data && data.ok ? data.templates : []
   const [tpl, setTpl] = useState('block_robot')
@@ -28,7 +28,7 @@ export function NewRobot({ go }) {
     const r = await api('/robots/new', { method: 'POST', body: { template: tpl, params } })
     setBusy(false)
     setRes(r)
-    if (r.ok) { notify(`Created ${r.robot}`); go('robot', r.robot) }
+    if (r.ok) { notify(`Created ${r.robot}`); if (refresh) refresh(); go('robot', r.robot) }
   }
   return (
     <div className="tb-page">
@@ -68,11 +68,12 @@ export function NewRobot({ go }) {
             </select>
           </label>
           <label className="tb-field">Total mass (g, optional)
-            <input className="tb-input tb-input-xs" type="number" value={mass} placeholder="estimate"
+            <input className="tb-input tb-input-xs" type="number" value={mass} placeholder="auto"
               onChange={(e) => setMass(e.target.value)} />
           </label>
         </div>
         {cur ? <p className="tb-muted tb-small">{cur.help}</p> : null}
+        <p className="tb-muted tb-small tb-model-note">{MODEL_NOTE}</p>
         <div className="tb-row tb-gap">
           <Button kind="primary" busy={busy} onClick={create}>Create robot</Button>
         </div>

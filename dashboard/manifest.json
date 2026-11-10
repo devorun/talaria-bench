@@ -2,7 +2,7 @@
   "name": "talaria-bench",
   "label": "Talaria Bench",
   "description": "Robot test bench: 3D viewer, report cards, design comparison and move preflight (simulation).",
-  "icon": "Activity",
+  "icon": "Wrench",
   "version": "1.0.0",
   "tab": {
     "path": "/talaria",

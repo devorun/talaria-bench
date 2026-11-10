@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, notify } from '../platform.js'
 import { Viewer3D, Timeline, usePlayer, tipMarks, tipTime, traceDuration } from '../viewer.jsx'
-import { Button, Chip, ErrorBox, Loading, useApi, useTrace } from '../ui.jsx'
+import { Button, Chip, ErrorBox, Loading, MODEL_NOTE, useApi, useTrace } from '../ui.jsx'
 
 function Photo({ robot, version }) {
   const [src, setSrc] = useState(null)
@@ -114,7 +114,7 @@ function PartsEditor({ detail, onSaved }) {
   )
 }
 
-export function RobotPage({ robot, go }) {
+export function RobotPage({ robot, go, refresh }) {
   const [detail, loading, reload] = useApi(robot ? `/robots/${robot}` : null)
   const [playing, setPlaying] = useState(null)
   const [photoVersion, setPhotoVersion] = useState(0)
@@ -166,9 +166,10 @@ export function RobotPage({ robot, go }) {
         {detail.has_photo ? (
           <div className="tb-photo-col">
             <Photo robot={robot} version={photoVersion} />
-            {detail.source === 'user' ? <AddPhoto robot={robot} compact onDone={() => { setPhotoVersion((v) => v + 1); reload() }} /> : null}
+            {detail.source === 'user' ? <p className="tb-muted tb-small tb-model-note">{MODEL_NOTE}</p> : null}
+            {detail.source === 'user' ? <AddPhoto robot={robot} compact onDone={() => { setPhotoVersion((v) => v + 1); reload(); if (refresh) refresh() }} /> : null}
           </div>
-        ) : detail.source === 'user' ? <AddPhoto robot={robot} onDone={() => { setPhotoVersion((v) => v + 1); reload() }} /> : null}
+        ) : detail.source === 'user' ? <AddPhoto robot={robot} onDone={() => { setPhotoVersion((v) => v + 1); reload(); if (refresh) refresh() }} /> : null}
       </div>
 
       <div className="tb-two">

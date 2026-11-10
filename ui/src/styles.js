@@ -43,6 +43,8 @@ export const STYLES = `
   background: color-mix(in srgb, var(--tb-accent) 16%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tb-accent) 30%, transparent);
 }
+.tb-logo-t { stroke: var(--tb-fg); }
+.tb-logo-w { stroke: var(--tb-accent-ink); }
 .tb-title { font-weight: 650; font-size: 15px; letter-spacing: -0.01em; }
 .tb-tagline { font-size: 11.5px; color: var(--tb-fg3); }
 .tb-tabs { display: flex; gap: 2px; padding: 3px; border-radius: 11px; background: var(--tb-card); border: 1px solid var(--tb-line);

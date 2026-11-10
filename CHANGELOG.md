@@ -14,12 +14,15 @@ First public release.
   collisions and speed limits; a `pre_tool_call` gate lets `robot_play` / `robot_pose` through only for
   exactly the move, speed and robot spec that passed.
 - Real robot: ESP32 + PCA9685 firmware generated per robot (`hermes talaria firmware`), shared random
-  robot token, spec-hash check, return to the home pose before every move; a virtual robot with the same
+  robot token, spec-hash check, a return to the home pose before every move that takes at least 3 seconds
+  (also for `robot_stop home=true`; a quick drop tips a light robot over), a Wi-Fi link that stays awake;
+  a virtual robot with the same
   HTTP API (`hermes talaria sim`).
 - Dashboard tab and Desktop page from one UI source: gallery, 3D robot view with its photo, report card,
   compare view, move check with replay.
 - 3D view: parts drawn by material with a servo horn at every joint; each scene shows its own numbers (ramp
   angle, bar height, floor friction, push force, payload mass) and a 10 cm scale mark; replays with slow
   motion and a mark on the part that touches the floor when a run tips. Appearance only, never physics.
+- Your own robots get a small 3D picture on their gallery card (their photo if 3D is unavailable); a winged-T logo.
 - Photo-assisted onboarding skill (`robot-onboarding`).
 - Seven bundled robots, including Caduceus, calibrated against videos of the real foam-board robot.

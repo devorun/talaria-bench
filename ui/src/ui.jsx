@@ -165,3 +165,6 @@ export function RobotPicker({ robots, value, onChange }) {
     </select>
   )
 }
+
+// Shown where a user's robot gets its 3D model (the template form) and where they add a photo.
+export const MODEL_NOTE = "3D model is built from the template and your measurements; the photo is shown next to it for comparison. Pick the template that matches your robot's shape."

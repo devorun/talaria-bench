@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { STYLES } from './styles.js'
 import { surface } from './platform.js'
 import { RobotPicker, useApi } from './ui.jsx'
@@ -18,18 +18,22 @@ const TABS = [
 ]
 
 export function App({ initial } = {}) {
-  const [robots, loading] = useApi('/robots')
+  const [robots, loading, refresh] = useApi('/robots')
   const list = robots && robots.ok ? robots.robots : null
   const [nav, setNav] = useState(initial || { view: 'gallery', robot: 'caduceus', move: null })
   const go = (view, robot, move = null) => setNav({ view, robot: robot || nav.robot, move })
   const robot = nav.robot
+  useEffect(() => { if (nav.view === 'gallery') refresh() }, [nav.view])
   return (
     <div className={'tb-root tb-surface-' + surface()}>
       <style>{STYLES}</style>
       <header className="tb-header">
         <div className="tb-brand">
           <div className="tb-logo" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 18 L12 4 L20 18 M8 12 H16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <svg viewBox="0 0 32 32" width="26" height="26" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <path className="tb-logo-t" strokeWidth="3.8" d="M15.5 8.5 H29 M22.25 8.5 V27" />
+              <path className="tb-logo-w" strokeWidth="3.2" d="M18.5 14.5 C12.5 15 7.5 12.5 3.8 6 M18.5 21.5 C14 21.5 10 19.5 6.8 15" />
+            </svg>
           </div>
           <div>
             <div className="tb-title">Talaria Bench</div>
@@ -49,8 +53,8 @@ export function App({ initial } = {}) {
       <main className="tb-main">
         {nav.view === 'gallery' ? <Gallery robots={list} loading={loading} open={(r) => go('robot', r)}
           create={() => go('new', robot)} /> : null}
-        {nav.view === 'new' ? <NewRobot go={go} /> : null}
-        {nav.view === 'robot' ? <RobotPage robot={robot} go={go} /> : null}
+        {nav.view === 'new' ? <NewRobot go={go} refresh={refresh} /> : null}
+        {nav.view === 'robot' ? <RobotPage robot={robot} go={go} refresh={refresh} /> : null}
         {nav.view === 'bench' ? <BenchPage robot={robot} /> : null}
         {nav.view === 'compare' ? <ComparePage robot={robot} /> : null}
         {nav.view === 'check' ? <CheckPage robot={robot} initialMove={nav.move} /> : null}

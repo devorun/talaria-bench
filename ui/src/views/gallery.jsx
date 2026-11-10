@@ -1,20 +1,31 @@
 import { useEffect, useState } from 'react'
 import { api } from '../platform.js'
 import { Chip, Loading, Empty } from '../ui.jsx'
+import { robotThumb } from '../thumb3d.js'
 
+// Card picture: the pre-rendered thumbnail of a bundled robot, else a small 3D render of the robot itself,
+// else its photo, else the first letter of its family.
 function Thumb({ robot }) {
   const [src, setSrc] = useState(null)
+  const [photo, setPhoto] = useState(false)
   useEffect(() => {
     let live = true
+    setSrc(null)
+    setPhoto(false)
+    const fromPhoto = () => robot.has_photo
+      ? api(`/robots/${robot.name}/photo.json`).then((r) => { if (live && r.ok) { setSrc(r.data_url); setPhoto(true) } })
+      : null
     if (robot.has_thumb) {
       api(`/robots/${robot.name}/thumb.json`).then((r) => { if (live && r.ok) setSrc(r.data_url) })
+    } else {
+      robotThumb(robot).then((url) => { if (!live) return; if (url) setSrc(url); else fromPhoto() })
     }
     return () => { live = false }
-  }, [robot.name, robot.has_thumb])
+  }, [robot.name, robot.has_thumb, robot.has_photo, robot.servos, robot.mass_g])
   return (
     <div className="tb-thumb">
       {src ? <img src={src} alt={robot.title} /> : <div className="tb-thumb-ph">{(robot.family || 'robot').slice(0, 1).toUpperCase()}</div>}
-      <span className="tb-thumb-tag">SIM</span>
+      <span className="tb-thumb-tag">{photo ? 'PHOTO' : 'SIM'}</span>
       {robot.look && robot.look.badge ? <span className="tb-badge" style={{ '--tb-badge': robot.look.accent }}>{robot.look.badge}</span> : null}
     </div>
   )

@@ -6,7 +6,7 @@
 import { ROUTES_AREA, SIDEBAR_NAV_AREA, host } from "@hermes/plugin-sdk";
 
 // src/app.jsx
-import { useState as useState9 } from "react";
+import { useEffect as useEffect9, useState as useState9 } from "react";
 
 // src/styles.js
 var STYLES = `
@@ -50,6 +50,8 @@ var STYLES = `
   background: color-mix(in srgb, var(--tb-accent) 16%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tb-accent) 30%, transparent);
 }
+.tb-logo-t { stroke: var(--tb-fg); }
+.tb-logo-w { stroke: var(--tb-accent-ink); }
 .tb-title { font-weight: 650; font-size: 15px; letter-spacing: -0.01em; }
 .tb-tagline { font-size: 11.5px; color: var(--tb-fg3); }
 .tb-tabs { display: flex; gap: 2px; padding: 3px; border-radius: 11px; background: var(--tb-card); border: 1px solid var(--tb-line);
@@ -591,83 +593,10 @@ function human(sceneId, v, unit) {
 function RobotPicker({ robots, value, onChange }) {
   return /* @__PURE__ */ jsx("select", { className: "tb-select", value: value || "", onChange: (e) => onChange(e.target.value), children: (robots || []).map((r) => /* @__PURE__ */ jsx("option", { value: r.name, children: r.title || r.name }, r.name)) });
 }
+var MODEL_NOTE = "3D model is built from the template and your measurements; the photo is shown next to it for comparison. Pick the template that matches your robot's shape.";
 
 // src/views/gallery.jsx
 import { useEffect as useEffect2, useState as useState2 } from "react";
-import { Fragment, jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
-function Thumb({ robot }) {
-  const [src, setSrc] = useState2(null);
-  useEffect2(() => {
-    let live = true;
-    if (robot.has_thumb) {
-      api(`/robots/${robot.name}/thumb.json`).then((r) => {
-        if (live && r.ok) setSrc(r.data_url);
-      });
-    }
-    return () => {
-      live = false;
-    };
-  }, [robot.name, robot.has_thumb]);
-  return /* @__PURE__ */ jsxs2("div", { className: "tb-thumb", children: [
-    src ? /* @__PURE__ */ jsx2("img", { src, alt: robot.title }) : /* @__PURE__ */ jsx2("div", { className: "tb-thumb-ph", children: (robot.family || "robot").slice(0, 1).toUpperCase() }),
-    /* @__PURE__ */ jsx2("span", { className: "tb-thumb-tag", children: "SIM" }),
-    robot.look && robot.look.badge ? /* @__PURE__ */ jsx2("span", { className: "tb-badge", style: { "--tb-badge": robot.look.accent }, children: robot.look.badge }) : null
-  ] });
-}
-function Gallery({ robots, loading, open, create }) {
-  if (loading && !robots) return /* @__PURE__ */ jsx2(Loading, { what: "Loading robots" });
-  if (!robots || !robots.length) return /* @__PURE__ */ jsx2(Empty, { children: "No robots yet." });
-  const bundled = robots.filter((r) => r.source === "bundled");
-  const mine = robots.filter((r) => r.source !== "bundled");
-  const card = (r) => /* @__PURE__ */ jsxs2("button", { type: "button", className: "tb-card tb-robot-card", onClick: () => open(r.name), children: [
-    /* @__PURE__ */ jsx2(Thumb, { robot: r }),
-    /* @__PURE__ */ jsxs2("div", { className: "tb-robot-card-body", children: [
-      /* @__PURE__ */ jsxs2("div", { className: "tb-robot-card-title", children: [
-        /* @__PURE__ */ jsx2("span", { children: r.title || r.name }),
-        r.source !== "bundled" ? /* @__PURE__ */ jsx2(Chip, { tone: "accent", children: "yours" }) : null
-      ] }),
-      /* @__PURE__ */ jsxs2("div", { className: "tb-meta-row", children: [
-        r.family ? /* @__PURE__ */ jsx2(Chip, { children: r.family }) : null,
-        /* @__PURE__ */ jsxs2(Chip, { children: [
-          r.servos,
-          " servos"
-        ] }),
-        /* @__PURE__ */ jsxs2(Chip, { children: [
-          r.mass_g,
-          " g"
-        ] }),
-        r.base === "fixed" ? /* @__PURE__ */ jsx2(Chip, { children: "fixed base" }) : null,
-        r.has_photo ? /* @__PURE__ */ jsx2(Chip, { tone: "accent", children: "photo" }) : null
-      ] }),
-      r.role ? /* @__PURE__ */ jsx2("p", { className: "tb-robot-card-role", children: r.role }) : null,
-      r.headline ? /* @__PURE__ */ jsx2("p", { className: "tb-robot-card-headline", children: r.headline }) : null
-    ] })
-  ] }, r.name);
-  return /* @__PURE__ */ jsxs2("div", { className: "tb-page", children: [
-    /* @__PURE__ */ jsx2("div", { className: "tb-hero", children: /* @__PURE__ */ jsxs2("div", { children: [
-      /* @__PURE__ */ jsx2("h2", { children: "Robot gallery" }),
-      /* @__PURE__ */ jsx2("p", { children: "Hobby servo robots described in a YAML spec and tested in MuJoCo across many randomized worlds. Every number on these cards is a simulation result." })
-    ] }) }),
-    /* @__PURE__ */ jsxs2("div", { className: "tb-grid-cards", children: [
-      bundled.map(card),
-      /* @__PURE__ */ jsxs2("button", { type: "button", className: "tb-card tb-robot-card tb-new-card", onClick: create, children: [
-        /* @__PURE__ */ jsx2("div", { className: "tb-new-plus", children: "+" }),
-        /* @__PURE__ */ jsx2("div", { className: "tb-robot-card-title", children: "New robot from a template" }),
-        /* @__PURE__ */ jsx2("p", { className: "tb-robot-card-role", children: "Block robot, biped, quadruped, hexapod, arm or humanoid from a few numbers. Or ask Hermes: share a photo and say “add my robot to Talaria”." })
-      ] })
-    ] }),
-    mine.length ? /* @__PURE__ */ jsxs2(Fragment, { children: [
-      /* @__PURE__ */ jsx2("h3", { className: "tb-section-title", children: "Your robots" }),
-      /* @__PURE__ */ jsx2("div", { className: "tb-grid-cards", children: mine.map(card) })
-    ] }) : null
-  ] });
-}
-
-// src/views/robot.jsx
-import { useEffect as useEffect4, useMemo, useRef as useRef3, useState as useState4 } from "react";
-
-// src/viewer.jsx
-import { useEffect as useEffect3, useRef as useRef2, useState as useState3, useCallback as useCallback2 } from "react";
 
 // node_modules/three/build/three.module.js
 var REVISION = "169";
@@ -5529,10 +5458,10 @@ var Object3D = class _Object3D extends EventDispatcher {
     }
     output.object = object;
     return output;
-    function extractFromCache(cache) {
+    function extractFromCache(cache2) {
       const values = [];
-      for (const key in cache) {
-        const data = cache[key];
+      for (const key in cache2) {
+        const data = cache2[key];
         delete data.metadata;
         values.push(data);
       }
@@ -6501,10 +6430,10 @@ var Material = class extends EventDispatcher {
     if (this.toneMapped === false) data.toneMapped = false;
     if (this.fog === false) data.fog = false;
     if (Object.keys(this.userData).length > 0) data.userData = this.userData;
-    function extractFromCache(cache) {
+    function extractFromCache(cache2) {
       const values = [];
-      for (const key in cache) {
-        const data2 = cache[key];
+      for (const key in cache2) {
+        const data2 = cache2[key];
         delete data2.metadata;
         values.push(data2);
       }
@@ -9677,7 +9606,7 @@ function WebGLBindingStates(gl, attributes) {
     return false;
   }
   function saveCache(object, geometry, program, index) {
-    const cache = {};
+    const cache2 = {};
     const attributes2 = geometry.attributes;
     let attributesNum = 0;
     const programAttributes = program.getAttributes();
@@ -9694,11 +9623,11 @@ function WebGLBindingStates(gl, attributes) {
         if (attribute && attribute.data) {
           data.data = attribute.data;
         }
-        cache[name] = data;
+        cache2[name] = data;
         attributesNum++;
       }
     }
-    currentState.attributes = cache;
+    currentState.attributes = cache2;
     currentState.attributesNum = attributesNum;
     currentState.index = index;
   }
@@ -11429,213 +11358,213 @@ function allocTexUnits(textures, n) {
   return r;
 }
 function setValueV1f(gl, v) {
-  const cache = this.cache;
-  if (cache[0] === v) return;
+  const cache2 = this.cache;
+  if (cache2[0] === v) return;
   gl.uniform1f(this.addr, v);
-  cache[0] = v;
+  cache2[0] = v;
 }
 function setValueV2f(gl, v) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   if (v.x !== void 0) {
-    if (cache[0] !== v.x || cache[1] !== v.y) {
+    if (cache2[0] !== v.x || cache2[1] !== v.y) {
       gl.uniform2f(this.addr, v.x, v.y);
-      cache[0] = v.x;
-      cache[1] = v.y;
+      cache2[0] = v.x;
+      cache2[1] = v.y;
     }
   } else {
-    if (arraysEqual(cache, v)) return;
+    if (arraysEqual(cache2, v)) return;
     gl.uniform2fv(this.addr, v);
-    copyArray(cache, v);
+    copyArray(cache2, v);
   }
 }
 function setValueV3f(gl, v) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   if (v.x !== void 0) {
-    if (cache[0] !== v.x || cache[1] !== v.y || cache[2] !== v.z) {
+    if (cache2[0] !== v.x || cache2[1] !== v.y || cache2[2] !== v.z) {
       gl.uniform3f(this.addr, v.x, v.y, v.z);
-      cache[0] = v.x;
-      cache[1] = v.y;
-      cache[2] = v.z;
+      cache2[0] = v.x;
+      cache2[1] = v.y;
+      cache2[2] = v.z;
     }
   } else if (v.r !== void 0) {
-    if (cache[0] !== v.r || cache[1] !== v.g || cache[2] !== v.b) {
+    if (cache2[0] !== v.r || cache2[1] !== v.g || cache2[2] !== v.b) {
       gl.uniform3f(this.addr, v.r, v.g, v.b);
-      cache[0] = v.r;
-      cache[1] = v.g;
-      cache[2] = v.b;
+      cache2[0] = v.r;
+      cache2[1] = v.g;
+      cache2[2] = v.b;
     }
   } else {
-    if (arraysEqual(cache, v)) return;
+    if (arraysEqual(cache2, v)) return;
     gl.uniform3fv(this.addr, v);
-    copyArray(cache, v);
+    copyArray(cache2, v);
   }
 }
 function setValueV4f(gl, v) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   if (v.x !== void 0) {
-    if (cache[0] !== v.x || cache[1] !== v.y || cache[2] !== v.z || cache[3] !== v.w) {
+    if (cache2[0] !== v.x || cache2[1] !== v.y || cache2[2] !== v.z || cache2[3] !== v.w) {
       gl.uniform4f(this.addr, v.x, v.y, v.z, v.w);
-      cache[0] = v.x;
-      cache[1] = v.y;
-      cache[2] = v.z;
-      cache[3] = v.w;
+      cache2[0] = v.x;
+      cache2[1] = v.y;
+      cache2[2] = v.z;
+      cache2[3] = v.w;
     }
   } else {
-    if (arraysEqual(cache, v)) return;
+    if (arraysEqual(cache2, v)) return;
     gl.uniform4fv(this.addr, v);
-    copyArray(cache, v);
+    copyArray(cache2, v);
   }
 }
 function setValueM2(gl, v) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   const elements = v.elements;
   if (elements === void 0) {
-    if (arraysEqual(cache, v)) return;
+    if (arraysEqual(cache2, v)) return;
     gl.uniformMatrix2fv(this.addr, false, v);
-    copyArray(cache, v);
+    copyArray(cache2, v);
   } else {
-    if (arraysEqual(cache, elements)) return;
+    if (arraysEqual(cache2, elements)) return;
     mat2array.set(elements);
     gl.uniformMatrix2fv(this.addr, false, mat2array);
-    copyArray(cache, elements);
+    copyArray(cache2, elements);
   }
 }
 function setValueM3(gl, v) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   const elements = v.elements;
   if (elements === void 0) {
-    if (arraysEqual(cache, v)) return;
+    if (arraysEqual(cache2, v)) return;
     gl.uniformMatrix3fv(this.addr, false, v);
-    copyArray(cache, v);
+    copyArray(cache2, v);
   } else {
-    if (arraysEqual(cache, elements)) return;
+    if (arraysEqual(cache2, elements)) return;
     mat3array.set(elements);
     gl.uniformMatrix3fv(this.addr, false, mat3array);
-    copyArray(cache, elements);
+    copyArray(cache2, elements);
   }
 }
 function setValueM4(gl, v) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   const elements = v.elements;
   if (elements === void 0) {
-    if (arraysEqual(cache, v)) return;
+    if (arraysEqual(cache2, v)) return;
     gl.uniformMatrix4fv(this.addr, false, v);
-    copyArray(cache, v);
+    copyArray(cache2, v);
   } else {
-    if (arraysEqual(cache, elements)) return;
+    if (arraysEqual(cache2, elements)) return;
     mat4array.set(elements);
     gl.uniformMatrix4fv(this.addr, false, mat4array);
-    copyArray(cache, elements);
+    copyArray(cache2, elements);
   }
 }
 function setValueV1i(gl, v) {
-  const cache = this.cache;
-  if (cache[0] === v) return;
+  const cache2 = this.cache;
+  if (cache2[0] === v) return;
   gl.uniform1i(this.addr, v);
-  cache[0] = v;
+  cache2[0] = v;
 }
 function setValueV2i(gl, v) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   if (v.x !== void 0) {
-    if (cache[0] !== v.x || cache[1] !== v.y) {
+    if (cache2[0] !== v.x || cache2[1] !== v.y) {
       gl.uniform2i(this.addr, v.x, v.y);
-      cache[0] = v.x;
-      cache[1] = v.y;
+      cache2[0] = v.x;
+      cache2[1] = v.y;
     }
   } else {
-    if (arraysEqual(cache, v)) return;
+    if (arraysEqual(cache2, v)) return;
     gl.uniform2iv(this.addr, v);
-    copyArray(cache, v);
+    copyArray(cache2, v);
   }
 }
 function setValueV3i(gl, v) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   if (v.x !== void 0) {
-    if (cache[0] !== v.x || cache[1] !== v.y || cache[2] !== v.z) {
+    if (cache2[0] !== v.x || cache2[1] !== v.y || cache2[2] !== v.z) {
       gl.uniform3i(this.addr, v.x, v.y, v.z);
-      cache[0] = v.x;
-      cache[1] = v.y;
-      cache[2] = v.z;
+      cache2[0] = v.x;
+      cache2[1] = v.y;
+      cache2[2] = v.z;
     }
   } else {
-    if (arraysEqual(cache, v)) return;
+    if (arraysEqual(cache2, v)) return;
     gl.uniform3iv(this.addr, v);
-    copyArray(cache, v);
+    copyArray(cache2, v);
   }
 }
 function setValueV4i(gl, v) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   if (v.x !== void 0) {
-    if (cache[0] !== v.x || cache[1] !== v.y || cache[2] !== v.z || cache[3] !== v.w) {
+    if (cache2[0] !== v.x || cache2[1] !== v.y || cache2[2] !== v.z || cache2[3] !== v.w) {
       gl.uniform4i(this.addr, v.x, v.y, v.z, v.w);
-      cache[0] = v.x;
-      cache[1] = v.y;
-      cache[2] = v.z;
-      cache[3] = v.w;
+      cache2[0] = v.x;
+      cache2[1] = v.y;
+      cache2[2] = v.z;
+      cache2[3] = v.w;
     }
   } else {
-    if (arraysEqual(cache, v)) return;
+    if (arraysEqual(cache2, v)) return;
     gl.uniform4iv(this.addr, v);
-    copyArray(cache, v);
+    copyArray(cache2, v);
   }
 }
 function setValueV1ui(gl, v) {
-  const cache = this.cache;
-  if (cache[0] === v) return;
+  const cache2 = this.cache;
+  if (cache2[0] === v) return;
   gl.uniform1ui(this.addr, v);
-  cache[0] = v;
+  cache2[0] = v;
 }
 function setValueV2ui(gl, v) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   if (v.x !== void 0) {
-    if (cache[0] !== v.x || cache[1] !== v.y) {
+    if (cache2[0] !== v.x || cache2[1] !== v.y) {
       gl.uniform2ui(this.addr, v.x, v.y);
-      cache[0] = v.x;
-      cache[1] = v.y;
+      cache2[0] = v.x;
+      cache2[1] = v.y;
     }
   } else {
-    if (arraysEqual(cache, v)) return;
+    if (arraysEqual(cache2, v)) return;
     gl.uniform2uiv(this.addr, v);
-    copyArray(cache, v);
+    copyArray(cache2, v);
   }
 }
 function setValueV3ui(gl, v) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   if (v.x !== void 0) {
-    if (cache[0] !== v.x || cache[1] !== v.y || cache[2] !== v.z) {
+    if (cache2[0] !== v.x || cache2[1] !== v.y || cache2[2] !== v.z) {
       gl.uniform3ui(this.addr, v.x, v.y, v.z);
-      cache[0] = v.x;
-      cache[1] = v.y;
-      cache[2] = v.z;
+      cache2[0] = v.x;
+      cache2[1] = v.y;
+      cache2[2] = v.z;
     }
   } else {
-    if (arraysEqual(cache, v)) return;
+    if (arraysEqual(cache2, v)) return;
     gl.uniform3uiv(this.addr, v);
-    copyArray(cache, v);
+    copyArray(cache2, v);
   }
 }
 function setValueV4ui(gl, v) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   if (v.x !== void 0) {
-    if (cache[0] !== v.x || cache[1] !== v.y || cache[2] !== v.z || cache[3] !== v.w) {
+    if (cache2[0] !== v.x || cache2[1] !== v.y || cache2[2] !== v.z || cache2[3] !== v.w) {
       gl.uniform4ui(this.addr, v.x, v.y, v.z, v.w);
-      cache[0] = v.x;
-      cache[1] = v.y;
-      cache[2] = v.z;
-      cache[3] = v.w;
+      cache2[0] = v.x;
+      cache2[1] = v.y;
+      cache2[2] = v.z;
+      cache2[3] = v.w;
     }
   } else {
-    if (arraysEqual(cache, v)) return;
+    if (arraysEqual(cache2, v)) return;
     gl.uniform4uiv(this.addr, v);
-    copyArray(cache, v);
+    copyArray(cache2, v);
   }
 }
 function setValueT1(gl, v, textures) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   const unit = textures.allocateTextureUnit();
-  if (cache[0] !== unit) {
+  if (cache2[0] !== unit) {
     gl.uniform1i(this.addr, unit);
-    cache[0] = unit;
+    cache2[0] = unit;
   }
   let emptyTexture2D;
   if (this.type === gl.SAMPLER_2D_SHADOW) {
@@ -11647,29 +11576,29 @@ function setValueT1(gl, v, textures) {
   textures.setTexture2D(v || emptyTexture2D, unit);
 }
 function setValueT3D1(gl, v, textures) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   const unit = textures.allocateTextureUnit();
-  if (cache[0] !== unit) {
+  if (cache2[0] !== unit) {
     gl.uniform1i(this.addr, unit);
-    cache[0] = unit;
+    cache2[0] = unit;
   }
   textures.setTexture3D(v || empty3dTexture, unit);
 }
 function setValueT6(gl, v, textures) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   const unit = textures.allocateTextureUnit();
-  if (cache[0] !== unit) {
+  if (cache2[0] !== unit) {
     gl.uniform1i(this.addr, unit);
-    cache[0] = unit;
+    cache2[0] = unit;
   }
   textures.setTextureCube(v || emptyCubeTexture, unit);
 }
 function setValueT2DArray1(gl, v, textures) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   const unit = textures.allocateTextureUnit();
-  if (cache[0] !== unit) {
+  if (cache2[0] !== unit) {
     gl.uniform1i(this.addr, unit);
-    cache[0] = unit;
+    cache2[0] = unit;
   }
   textures.setTexture2DArray(v || emptyArrayTexture, unit);
 }
@@ -11810,48 +11739,48 @@ function setValueV4uiArray(gl, v) {
   gl.uniform4uiv(this.addr, v);
 }
 function setValueT1Array(gl, v, textures) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   const n = v.length;
   const units = allocTexUnits(textures, n);
-  if (!arraysEqual(cache, units)) {
+  if (!arraysEqual(cache2, units)) {
     gl.uniform1iv(this.addr, units);
-    copyArray(cache, units);
+    copyArray(cache2, units);
   }
   for (let i = 0; i !== n; ++i) {
     textures.setTexture2D(v[i] || emptyTexture, units[i]);
   }
 }
 function setValueT3DArray(gl, v, textures) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   const n = v.length;
   const units = allocTexUnits(textures, n);
-  if (!arraysEqual(cache, units)) {
+  if (!arraysEqual(cache2, units)) {
     gl.uniform1iv(this.addr, units);
-    copyArray(cache, units);
+    copyArray(cache2, units);
   }
   for (let i = 0; i !== n; ++i) {
     textures.setTexture3D(v[i] || empty3dTexture, units[i]);
   }
 }
 function setValueT6Array(gl, v, textures) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   const n = v.length;
   const units = allocTexUnits(textures, n);
-  if (!arraysEqual(cache, units)) {
+  if (!arraysEqual(cache2, units)) {
     gl.uniform1iv(this.addr, units);
-    copyArray(cache, units);
+    copyArray(cache2, units);
   }
   for (let i = 0; i !== n; ++i) {
     textures.setTextureCube(v[i] || emptyCubeTexture, units[i]);
   }
 }
 function setValueT2DArrayArray(gl, v, textures) {
-  const cache = this.cache;
+  const cache2 = this.cache;
   const n = v.length;
   const units = allocTexUnits(textures, n);
-  if (!arraysEqual(cache, units)) {
+  if (!arraysEqual(cache2, units)) {
     gl.uniform1iv(this.addr, units);
-    copyArray(cache, units);
+    copyArray(cache2, units);
   }
   for (let i = 0; i !== n; ++i) {
     textures.setTexture2DArray(v[i] || emptyArrayTexture, units[i]);
@@ -12714,20 +12643,20 @@ var WebGLShaderCache = class {
     this.materialCache.clear();
   }
   _getShaderCacheForMaterial(material) {
-    const cache = this.materialCache;
-    let set = cache.get(material);
+    const cache2 = this.materialCache;
+    let set = cache2.get(material);
     if (set === void 0) {
       set = /* @__PURE__ */ new Set();
-      cache.set(material, set);
+      cache2.set(material, set);
     }
     return set;
   }
   _getShaderStage(code) {
-    const cache = this.shaderCache;
-    let stage = cache.get(code);
+    const cache2 = this.shaderCache;
+    let stage = cache2.get(code);
     if (stage === void 0) {
       stage = new WebGLShaderStage(code);
-      cache.set(code, stage);
+      cache2.set(code, stage);
     }
     return stage;
   }
@@ -13470,7 +13399,7 @@ function shadowCastingAndTexturingLightsFirst(lightA, lightB) {
   return (lightB.castShadow ? 2 : 0) - (lightA.castShadow ? 2 : 0) + (lightB.map ? 1 : 0) - (lightA.map ? 1 : 0);
 }
 function WebGLLights(extensions) {
-  const cache = new UniformsCache();
+  const cache2 = new UniformsCache();
   const shadowCache = ShadowUniformsCache();
   const state = {
     version: 0,
@@ -13543,7 +13472,7 @@ function WebGLLights(extensions) {
         }
         numLightProbes++;
       } else if (light.isDirectionalLight) {
-        const uniforms = cache.get(light);
+        const uniforms = cache2.get(light);
         uniforms.color.copy(light.color).multiplyScalar(light.intensity);
         if (light.castShadow) {
           const shadow = light.shadow;
@@ -13561,7 +13490,7 @@ function WebGLLights(extensions) {
         state.directional[directionalLength] = uniforms;
         directionalLength++;
       } else if (light.isSpotLight) {
-        const uniforms = cache.get(light);
+        const uniforms = cache2.get(light);
         uniforms.position.setFromMatrixPosition(light.matrixWorld);
         uniforms.color.copy(color).multiplyScalar(intensity);
         uniforms.distance = distance;
@@ -13590,14 +13519,14 @@ function WebGLLights(extensions) {
         }
         spotLength++;
       } else if (light.isRectAreaLight) {
-        const uniforms = cache.get(light);
+        const uniforms = cache2.get(light);
         uniforms.color.copy(color).multiplyScalar(intensity);
         uniforms.halfWidth.set(light.width * 0.5, 0, 0);
         uniforms.halfHeight.set(0, light.height * 0.5, 0);
         state.rectArea[rectAreaLength] = uniforms;
         rectAreaLength++;
       } else if (light.isPointLight) {
-        const uniforms = cache.get(light);
+        const uniforms = cache2.get(light);
         uniforms.color.copy(light.color).multiplyScalar(light.intensity);
         uniforms.distance = light.distance;
         uniforms.decay = light.decay;
@@ -13619,7 +13548,7 @@ function WebGLLights(extensions) {
         state.point[pointLength] = uniforms;
         pointLength++;
       } else if (light.isHemisphereLight) {
-        const uniforms = cache.get(light);
+        const uniforms = cache2.get(light);
         uniforms.skyColor.copy(light.color).multiplyScalar(intensity);
         uniforms.groundColor.copy(light.groundColor).multiplyScalar(intensity);
         state.hemi[hemiLength] = uniforms;
@@ -14055,12 +13984,12 @@ function WebGLShadowMap(renderer, objects, capabilities) {
     const material = event.target;
     material.removeEventListener("dispose", onMaterialDispose);
     for (const id in _materialCache) {
-      const cache = _materialCache[id];
+      const cache2 = _materialCache[id];
       const uuid = event.target.uuid;
-      if (uuid in cache) {
-        const shadowMaterial = cache[uuid];
+      if (uuid in cache2) {
+        const shadowMaterial = cache2[uuid];
         shadowMaterial.dispose();
-        delete cache[uuid];
+        delete cache2[uuid];
       }
     }
   }
@@ -17249,13 +17178,13 @@ function WebGLUniformsGroups(gl, info, capabilities, state) {
   function updateBufferData(uniformsGroup) {
     const buffer = buffers[uniformsGroup.id];
     const uniforms = uniformsGroup.uniforms;
-    const cache = uniformsGroup.__cache;
+    const cache2 = uniformsGroup.__cache;
     gl.bindBuffer(gl.UNIFORM_BUFFER, buffer);
     for (let i = 0, il = uniforms.length; i < il; i++) {
       const uniformArray = Array.isArray(uniforms[i]) ? uniforms[i] : [uniforms[i]];
       for (let j = 0, jl = uniformArray.length; j < jl; j++) {
         const uniform = uniformArray[j];
-        if (hasUniformChanged(uniform, i, j, cache) === true) {
+        if (hasUniformChanged(uniform, i, j, cache2) === true) {
           const offset = uniform.__offset;
           const values = Array.isArray(uniform.value) ? uniform.value : [uniform.value];
           let arrayOffset = 0;
@@ -17289,21 +17218,21 @@ function WebGLUniformsGroups(gl, info, capabilities, state) {
     }
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
   }
-  function hasUniformChanged(uniform, index, indexArray, cache) {
+  function hasUniformChanged(uniform, index, indexArray, cache2) {
     const value = uniform.value;
     const indexString = index + "_" + indexArray;
-    if (cache[indexString] === void 0) {
+    if (cache2[indexString] === void 0) {
       if (typeof value === "number" || typeof value === "boolean") {
-        cache[indexString] = value;
+        cache2[indexString] = value;
       } else {
-        cache[indexString] = value.clone();
+        cache2[indexString] = value.clone();
       }
       return true;
     } else {
-      const cachedObject = cache[indexString];
+      const cachedObject = cache2[indexString];
       if (typeof value === "number" || typeof value === "boolean") {
         if (cachedObject !== value) {
-          cache[indexString] = value;
+          cache2[indexString] = value;
           return true;
         }
       } else {
@@ -19388,18 +19317,18 @@ var Curve = class {
       return this.cacheArcLengths;
     }
     this.needsUpdate = false;
-    const cache = [];
+    const cache2 = [];
     let current, last = this.getPoint(0);
     let sum = 0;
-    cache.push(0);
+    cache2.push(0);
     for (let p = 1; p <= divisions; p++) {
       current = this.getPoint(p / divisions);
       sum += current.distanceTo(last);
-      cache.push(sum);
+      cache2.push(sum);
       last = current;
     }
-    this.cacheArcLengths = cache;
-    return cache;
+    this.cacheArcLengths = cache2;
+    return cache2;
   }
   updateArcLengths() {
     this.needsUpdate = true;
@@ -23348,11 +23277,11 @@ function luminance(css) {
 function isDarkTheme(el) {
   return luminance(getComputedStyle(el).color) > 0.5;
 }
-function canvasTexture(w, h, draw) {
+function canvasTexture(w, h, draw2) {
   const c = document.createElement("canvas");
   c.width = w;
   c.height = h;
-  draw(c.getContext("2d"), w, h);
+  draw2(c.getContext("2d"), w, h);
   const t = new CanvasTexture(c);
   t.colorSpace = SRGBColorSpace;
   t.anisotropy = 8;
@@ -24158,7 +24087,142 @@ var Stage = class {
   }
 };
 
+// src/thumb3d.js
+var cache = /* @__PURE__ */ new Map();
+var queue = Promise.resolve();
+var keyOf = (robot) => `${robot.name}|${robot.servos}|${robot.mass_g}|${robot.family}`;
+var settle = () => new Promise((done) => {
+  requestAnimationFrame(() => done());
+  setTimeout(done, 80);
+});
+async function draw(robot, key) {
+  if (cache.has(key)) return cache.get(key);
+  let host2 = null;
+  let stage = null;
+  try {
+    const r = await api(`/robots/${robot.name}`);
+    if (!r || !r.ok) throw new Error("no robot data");
+    const shown = r.showcase || r.render;
+    host2 = document.createElement("div");
+    host2.style.cssText = "position:fixed;left:-10000px;top:0;width:360px;height:270px;pointer-events:none";
+    document.body.appendChild(host2);
+    stage = new Stage(host2, { interactive: false, dark: false, preserve: true });
+    stage.follow = false;
+    stage.setRobot(shown.parts, r.look || {});
+    stage.setPose(shown.parts.map((p) => p.pose));
+    stage.setMeta({ mark: "front" });
+    stage.frame(true, { distance: 1.75, azimuth: [0.82, 0.42, 0.7] });
+    for (let i = 0; i < 6; i++) await settle();
+    stage.renderNow();
+    const url = stage.renderer.domElement.toDataURL("image/png");
+    cache.set(key, url);
+    return url;
+  } catch (err) {
+    cache.set(key, null);
+    return null;
+  } finally {
+    if (stage) stage.dispose();
+    if (host2) host2.remove();
+  }
+}
+function robotThumb(robot) {
+  const key = keyOf(robot);
+  if (cache.has(key)) return Promise.resolve(cache.get(key));
+  const job = queue.then(() => draw(robot, key));
+  queue = job.then(() => null, () => null);
+  return job;
+}
+
+// src/views/gallery.jsx
+import { Fragment, jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
+function Thumb({ robot }) {
+  const [src, setSrc] = useState2(null);
+  const [photo, setPhoto] = useState2(false);
+  useEffect2(() => {
+    let live = true;
+    setSrc(null);
+    setPhoto(false);
+    const fromPhoto = () => robot.has_photo ? api(`/robots/${robot.name}/photo.json`).then((r) => {
+      if (live && r.ok) {
+        setSrc(r.data_url);
+        setPhoto(true);
+      }
+    }) : null;
+    if (robot.has_thumb) {
+      api(`/robots/${robot.name}/thumb.json`).then((r) => {
+        if (live && r.ok) setSrc(r.data_url);
+      });
+    } else {
+      robotThumb(robot).then((url) => {
+        if (!live) return;
+        if (url) setSrc(url);
+        else fromPhoto();
+      });
+    }
+    return () => {
+      live = false;
+    };
+  }, [robot.name, robot.has_thumb, robot.has_photo, robot.servos, robot.mass_g]);
+  return /* @__PURE__ */ jsxs2("div", { className: "tb-thumb", children: [
+    src ? /* @__PURE__ */ jsx2("img", { src, alt: robot.title }) : /* @__PURE__ */ jsx2("div", { className: "tb-thumb-ph", children: (robot.family || "robot").slice(0, 1).toUpperCase() }),
+    /* @__PURE__ */ jsx2("span", { className: "tb-thumb-tag", children: photo ? "PHOTO" : "SIM" }),
+    robot.look && robot.look.badge ? /* @__PURE__ */ jsx2("span", { className: "tb-badge", style: { "--tb-badge": robot.look.accent }, children: robot.look.badge }) : null
+  ] });
+}
+function Gallery({ robots, loading, open, create }) {
+  if (loading && !robots) return /* @__PURE__ */ jsx2(Loading, { what: "Loading robots" });
+  if (!robots || !robots.length) return /* @__PURE__ */ jsx2(Empty, { children: "No robots yet." });
+  const bundled = robots.filter((r) => r.source === "bundled");
+  const mine = robots.filter((r) => r.source !== "bundled");
+  const card = (r) => /* @__PURE__ */ jsxs2("button", { type: "button", className: "tb-card tb-robot-card", onClick: () => open(r.name), children: [
+    /* @__PURE__ */ jsx2(Thumb, { robot: r }),
+    /* @__PURE__ */ jsxs2("div", { className: "tb-robot-card-body", children: [
+      /* @__PURE__ */ jsxs2("div", { className: "tb-robot-card-title", children: [
+        /* @__PURE__ */ jsx2("span", { children: r.title || r.name }),
+        r.source !== "bundled" ? /* @__PURE__ */ jsx2(Chip, { tone: "accent", children: "yours" }) : null
+      ] }),
+      /* @__PURE__ */ jsxs2("div", { className: "tb-meta-row", children: [
+        r.family ? /* @__PURE__ */ jsx2(Chip, { children: r.family }) : null,
+        /* @__PURE__ */ jsxs2(Chip, { children: [
+          r.servos,
+          " servos"
+        ] }),
+        /* @__PURE__ */ jsxs2(Chip, { children: [
+          r.mass_g,
+          " g"
+        ] }),
+        r.base === "fixed" ? /* @__PURE__ */ jsx2(Chip, { children: "fixed base" }) : null,
+        r.has_photo ? /* @__PURE__ */ jsx2(Chip, { tone: "accent", children: "photo" }) : null
+      ] }),
+      r.role ? /* @__PURE__ */ jsx2("p", { className: "tb-robot-card-role", children: r.role }) : null,
+      r.headline ? /* @__PURE__ */ jsx2("p", { className: "tb-robot-card-headline", children: r.headline }) : null
+    ] })
+  ] }, r.name);
+  return /* @__PURE__ */ jsxs2("div", { className: "tb-page", children: [
+    /* @__PURE__ */ jsx2("div", { className: "tb-hero", children: /* @__PURE__ */ jsxs2("div", { children: [
+      /* @__PURE__ */ jsx2("h2", { children: "Robot gallery" }),
+      /* @__PURE__ */ jsx2("p", { children: "Hobby servo robots described in a YAML spec and tested in MuJoCo across many randomized worlds. Every number on these cards is a simulation result." })
+    ] }) }),
+    /* @__PURE__ */ jsxs2("div", { className: "tb-grid-cards", children: [
+      bundled.map(card),
+      /* @__PURE__ */ jsxs2("button", { type: "button", className: "tb-card tb-robot-card tb-new-card", onClick: create, children: [
+        /* @__PURE__ */ jsx2("div", { className: "tb-new-plus", children: "+" }),
+        /* @__PURE__ */ jsx2("div", { className: "tb-robot-card-title", children: "New robot from a template" }),
+        /* @__PURE__ */ jsx2("p", { className: "tb-robot-card-role", children: "Block robot, biped, quadruped, hexapod, arm or humanoid from a few numbers. Or ask Hermes: share a photo and say “add my robot to Talaria”." })
+      ] })
+    ] }),
+    mine.length ? /* @__PURE__ */ jsxs2(Fragment, { children: [
+      /* @__PURE__ */ jsx2("h3", { className: "tb-section-title", children: "Your robots" }),
+      /* @__PURE__ */ jsx2("div", { className: "tb-grid-cards", children: mine.map(card) })
+    ] }) : null
+  ] });
+}
+
+// src/views/robot.jsx
+import { useEffect as useEffect4, useMemo, useRef as useRef3, useState as useState4 } from "react";
+
 // src/viewer.jsx
+import { useEffect as useEffect3, useRef as useRef2, useState as useState3, useCallback as useCallback2 } from "react";
 import { jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
 var TIP_FLASH_S = 0.8;
 function tipTime(trace, result) {
@@ -24515,7 +24579,7 @@ function PartsEditor({ detail, onSaved }) {
     /* @__PURE__ */ jsx4(ErrorBox, { data: result })
   ] });
 }
-function RobotPage({ robot, go }) {
+function RobotPage({ robot, go, refresh }) {
   const [detail, loading, reload] = useApi(robot ? `/robots/${robot}` : null);
   const [playing, setPlaying] = useState4(null);
   const [photoVersion, setPhotoVersion] = useState4(0);
@@ -24591,13 +24655,16 @@ function RobotPage({ robot, go }) {
       ] }),
       detail.has_photo ? /* @__PURE__ */ jsxs4("div", { className: "tb-photo-col", children: [
         /* @__PURE__ */ jsx4(Photo, { robot, version: photoVersion }),
+        detail.source === "user" ? /* @__PURE__ */ jsx4("p", { className: "tb-muted tb-small tb-model-note", children: MODEL_NOTE }) : null,
         detail.source === "user" ? /* @__PURE__ */ jsx4(AddPhoto, { robot, compact: true, onDone: () => {
           setPhotoVersion((v) => v + 1);
           reload();
+          if (refresh) refresh();
         } }) : null
       ] }) : detail.source === "user" ? /* @__PURE__ */ jsx4(AddPhoto, { robot, onDone: () => {
         setPhotoVersion((v) => v + 1);
         reload();
+        if (refresh) refresh();
       } }) : null
     ] }),
     /* @__PURE__ */ jsxs4("div", { className: "tb-two", children: [
@@ -25446,7 +25513,7 @@ function CheckPage({ robot, initialMove }) {
 // src/views/newrobot.jsx
 import { useEffect as useEffect8, useState as useState8 } from "react";
 import { jsx as jsx8, jsxs as jsxs8 } from "react/jsx-runtime";
-function NewRobot({ go }) {
+function NewRobot({ go, refresh }) {
   const [data] = useApi("/templates");
   const list = data && data.ok ? data.templates : [];
   const [tpl, setTpl] = useState8("block_robot");
@@ -25473,6 +25540,7 @@ function NewRobot({ go }) {
     setRes(r);
     if (r.ok) {
       notify(`Created ${r.robot}`);
+      if (refresh) refresh();
       go("robot", r.robot);
     }
   };
@@ -25528,13 +25596,14 @@ function NewRobot({ go }) {
               className: "tb-input tb-input-xs",
               type: "number",
               value: mass,
-              placeholder: "estimate",
+              placeholder: "auto",
               onChange: (e) => setMass(e.target.value)
             }
           )
         ] })
       ] }),
       cur ? /* @__PURE__ */ jsx8("p", { className: "tb-muted tb-small", children: cur.help }) : null,
+      /* @__PURE__ */ jsx8("p", { className: "tb-muted tb-small tb-model-note", children: MODEL_NOTE }),
       /* @__PURE__ */ jsx8("div", { className: "tb-row tb-gap", children: /* @__PURE__ */ jsx8(Button, { kind: "primary", busy, onClick: create, children: "Create robot" }) }),
       /* @__PURE__ */ jsx8(ErrorBox, { data: res })
     ] })
@@ -25551,16 +25620,22 @@ var TABS = [
   ["check", "Move check"]
 ];
 function App({ initial } = {}) {
-  const [robots, loading] = useApi("/robots");
+  const [robots, loading, refresh] = useApi("/robots");
   const list = robots && robots.ok ? robots.robots : null;
   const [nav, setNav] = useState9(initial || { view: "gallery", robot: "caduceus", move: null });
   const go = (view, robot2, move = null) => setNav({ view, robot: robot2 || nav.robot, move });
   const robot = nav.robot;
+  useEffect9(() => {
+    if (nav.view === "gallery") refresh();
+  }, [nav.view]);
   return /* @__PURE__ */ jsxs9("div", { className: "tb-root tb-surface-" + surface(), children: [
     /* @__PURE__ */ jsx9("style", { children: STYLES }),
     /* @__PURE__ */ jsxs9("header", { className: "tb-header", children: [
       /* @__PURE__ */ jsxs9("div", { className: "tb-brand", children: [
-        /* @__PURE__ */ jsx9("div", { className: "tb-logo", "aria-hidden": "true", children: /* @__PURE__ */ jsx9("svg", { viewBox: "0 0 24 24", width: "22", height: "22", children: /* @__PURE__ */ jsx9("path", { d: "M4 18 L12 4 L20 18 M8 12 H16", fill: "none", stroke: "currentColor", strokeWidth: "2.2", strokeLinecap: "round", strokeLinejoin: "round" }) }) }),
+        /* @__PURE__ */ jsx9("div", { className: "tb-logo", "aria-hidden": "true", children: /* @__PURE__ */ jsxs9("svg", { viewBox: "0 0 32 32", width: "26", height: "26", fill: "none", strokeLinecap: "round", strokeLinejoin: "round", children: [
+          /* @__PURE__ */ jsx9("path", { className: "tb-logo-t", strokeWidth: "3.8", d: "M15.5 8.5 H29 M22.25 8.5 V27" }),
+          /* @__PURE__ */ jsx9("path", { className: "tb-logo-w", strokeWidth: "3.2", d: "M18.5 14.5 C12.5 15 7.5 12.5 3.8 6 M18.5 21.5 C14 21.5 10 19.5 6.8 15" })
+        ] }) }),
         /* @__PURE__ */ jsxs9("div", { children: [
           /* @__PURE__ */ jsx9("div", { className: "tb-title", children: "Talaria Bench" }),
           /* @__PURE__ */ jsx9("div", { className: "tb-tagline", children: "Test before it moves · simulation" })
@@ -25590,8 +25665,8 @@ function App({ initial } = {}) {
           create: () => go("new", robot)
         }
       ) : null,
-      nav.view === "new" ? /* @__PURE__ */ jsx9(NewRobot, { go }) : null,
-      nav.view === "robot" ? /* @__PURE__ */ jsx9(RobotPage, { robot, go }) : null,
+      nav.view === "new" ? /* @__PURE__ */ jsx9(NewRobot, { go, refresh }) : null,
+      nav.view === "robot" ? /* @__PURE__ */ jsx9(RobotPage, { robot, go, refresh }) : null,
       nav.view === "bench" ? /* @__PURE__ */ jsx9(BenchPage, { robot }) : null,
       nav.view === "compare" ? /* @__PURE__ */ jsx9(ComparePage, { robot }) : null,
       nav.view === "check" ? /* @__PURE__ */ jsx9(CheckPage, { robot, initialMove: nav.move }) : null
