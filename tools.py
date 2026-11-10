@@ -136,11 +136,28 @@ class TalariaTools:
             raise SpecError([f"name {name!r} belongs to a bundled robot; choose another name"])
         photo_rel = self.rt.photo_from_path(name, photo) if photo else None
         spec, path = self.rt.define_robot_data(raw, photo_rel)
+        stand = self._stand_warning(spec)
         return {"ok": True, "robot": spec.name, "template": template, "summary": spec.summary(),
-                "estimates_and_notes": notes, "photo": photo_rel, "warnings": spec.warnings,
+                "estimates_and_notes": notes, "photo": photo_rel, "warnings": list(spec.warnings) + stand,
                 "next": (f"Tell the user to open Talaria Bench → Robot → {spec.name} to see the 3D model"
                          + (" next to the photo" if photo_rel else "") + ", and ask what to correct; then offer "
                          f"bench_run robot={spec.name} quick=true and a move_check.")}
+
+    @staticmethod
+    def _stand_warning(spec) -> list[str]:
+        """A robot whose servos cannot hold it up collapses while settling; say so when it is made, not only
+        in a replay that says "tipped at 0.00 s"."""
+        from .simrun import run_move
+
+        try:
+            r = run_move(spec, None, seconds=0.1)
+        except Exception:  # a robot that cannot be simulated reports that elsewhere
+            return []
+        if not (r.fell and r.fall_reason and "while settling" in r.fall_reason):
+            return []
+        servo_names = sorted({p.joint.servo.name for p in spec.joint_parts})
+        return [f"At this size and mass the {'/'.join(servo_names)} servos cannot hold the robot up: it collapses "
+                "as soon as it is placed. Pick a stronger servo or a smaller size."]
 
     def robot_show(self, args: dict[str, Any]) -> dict[str, Any]:
         spec = self.rt.robot(str(args.get("robot")))

@@ -6,6 +6,9 @@ A variant is a name plus overrides of the robot's spec, or a whole spec file:
   numbers/strings, or relative strings: ``"+1.5"``, ``"-2"``, ``"*1.2"``. ``parts.*`` matches every part
   (``parts.*.joint.servo`` sets the servo of every jointed part).
 * ``{"name": "v2", "spec": "examples/robots/caduceus_v2.yaml"}``.
+* Two whole-robot knobs for the Arena: ``"@scale": 1.3`` (every length times 1.3; explicit part masses follow
+  the volume, x1.3^3) and ``"@mass_total": 400`` (every part mass scaled so the robot weighs 400 g; applied
+  after ``@scale``, so it wins over the volume rule).
 
 Every number is simulation.
 """
@@ -49,9 +52,38 @@ def _get(data: Any, keys: list[str]) -> Any:
     return node
 
 
+SCALE_KEY = "@scale"
+MASS_KEY = "@mass_total"
+SCALE_RANGE = (0.4, 2.5)
+MASS_RANGE_G = (5.0, 50_000.0)
+
+
+def _number(key: str, value: Any, lo: float, hi: float) -> float:
+    try:
+        x = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{key} must be a number") from None
+    if not lo <= x <= hi:
+        raise ValueError(f"{key} must be between {lo:g} and {hi:g}")
+    return x
+
+
 def apply_overrides(data: dict, overrides: dict[str, Any]) -> dict:
-    """Raw spec data with ``overrides`` applied (paths as in calibration.set_path, plus ``parts.*``)."""
+    """Raw spec data with ``overrides`` applied (paths as in calibration.set_path, plus ``parts.*`` and ``@scale``;
+    ``@mass_total`` needs the parsed masses and is applied by build_variant)."""
     out = copy.deepcopy(data)
+    overrides = dict(overrides)
+    if MASS_KEY in overrides:
+        _number(MASS_KEY, overrides.pop(MASS_KEY), *MASS_RANGE_G)
+    if SCALE_KEY in overrides:
+        from .templates import _scale
+
+        k = _number(SCALE_KEY, overrides.pop(SCALE_KEY), *SCALE_RANGE)
+        if abs(k - 1) > 1e-9:
+            _scale(out, k)
+            for part in out.get("parts", []):
+                if isinstance(part.get("mass"), (int, float)) and not isinstance(part["mass"], bool):
+                    part["mass"] = round(part["mass"] * k ** 3, 4)
     for path, value in overrides.items():
         keys = path.split(".")
         if keys[:2] == ["parts", "*"]:
@@ -98,8 +130,18 @@ def build_variant(spec: Spec, variant: dict[str, Any], base_dir: Optional[Path] 
     if spec.source is None:
         raise ValueError("override variants need a spec loaded from a file")
     raw = yaml.safe_load(Path(spec.source).read_text(encoding="utf-8"))
-    data = apply_overrides(raw, variant.get("set") or {})
+    sets = variant.get("set") or {}
+    data = apply_overrides(raw, sets)
     out = parse_spec(data, base_dir=Path(spec.source).parent)
+    if MASS_KEY in sets:
+        target = _number(MASS_KEY, sets[MASS_KEY], *MASS_RANGE_G)
+        total = sum(p.mass for p in out.parts)
+        if total > 0:
+            masses = {p.name: p.mass * target / total for p in out.parts}
+            for part in data["parts"]:
+                if part.get("name") in masses:
+                    part["mass"] = round(masses[part["name"]], 4)
+            out = parse_spec(data, base_dir=Path(spec.source).parent)
     out.source = spec.source
     return out
 

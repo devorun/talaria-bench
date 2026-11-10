@@ -28,6 +28,7 @@ from .worlds import World
 CTRL_DT = 0.01            # servo command period, s
 SETTLE_S = 0.5
 FALL_TILT_DEG = 60.0
+COLLAPSE_REPLAY_S = 1.5   # a robot that cannot stand is replayed for this long after it starts to go down
 SATURATED = 0.98          # |torque| / limit at or above this counts as saturated
 TRACE_FPS = 30
 
@@ -210,7 +211,29 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
         z_axis = d.xmat[root_id].reshape(3, 3)[:, 2]
         return math.degrees(math.acos(max(-1.0, min(1.0, float(np.dot(z_axis, up))))))
 
+    # The recorded trace starts with the settling, so a robot that collapses there can still be replayed
+    # (the frames are dropped again when it settles and stands).
+    trace = None
+    if record:
+        geom_ids = [m.geom(p.name).id for p in parts]
+        trace = {"fps": TRACE_FPS, "units": "m", "dt": round(1.0 / TRACE_FPS, 6),
+                 "parts": [{"name": p.name, "shape": p.shape, "size_m": [s * 0.01 for s in p.size],
+                            "color": p.color} for p in parts], "frames": []}
+        next_frame = 0.0
+
+        def snap() -> None:
+            q = np.zeros(4)
+            frame = []
+            for gid in geom_ids:
+                mujoco.mju_mat2Quat(q, d.geom_xmat[gid])
+                frame.append([round(float(v), 5) for v in (*d.geom_xpos[gid], *q)])
+            trace["frames"].append(frame)
+    settle_t, settle_next = 0.0, 0.0
     for _ in range(int(round(SETTLE_S / CTRL_DT))):
+        if record and settle_t + 1e-9 >= settle_next:
+            snap()
+            settle_next += 1.0 / TRACE_FPS
+        settle_t += CTRL_DT
         apply_tether()
         mujoco.mj_step(m, d, nstep=sub)
         why, _ = check(None)
@@ -219,6 +242,20 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
             fell, fell_at = True, 0.0
             reason = (why or f"root tilted {tilt:.0f} deg") + " while settling (it cannot stand)"
             break
+
+    if record:
+        if fell:                        # let the collapse play out for the replay (no result depends on it)
+            extra_next = 0.0
+            for k in range(int(round(COLLAPSE_REPLAY_S / CTRL_DT))):
+                if k * CTRL_DT + 1e-9 >= extra_next:
+                    snap()
+                    extra_next += 1.0 / TRACE_FPS
+                apply_tether()
+                mujoco.mj_step(m, d, nstep=sub)
+            snap()
+        else:
+            trace["frames"].clear()
+        next_frame = 0.0
 
     x0, y0 = float(d.xpos[root_id, 0]), float(d.xpos[root_id, 1])
     yaw0 = _yaw(d.xquat[root_id])
@@ -245,22 +282,6 @@ def run_move(spec: Spec, move: Any = None, world: Optional[World] = None, second
     slip_sum = slip_n = 0.0
     body_speed_sum = 0.0
     vel6 = np.zeros(6)
-
-    trace = None
-    if record:
-        geom_ids = [m.geom(p.name).id for p in parts]
-        trace = {"fps": TRACE_FPS, "units": "m", "dt": round(1.0 / TRACE_FPS, 6),
-                 "parts": [{"name": p.name, "shape": p.shape, "size_m": [s * 0.01 for s in p.size],
-                            "color": p.color} for p in parts], "frames": []}
-        next_frame = 0.0
-
-        def snap() -> None:
-            q = np.zeros(4)
-            frame = []
-            for gid in geom_ids:
-                mujoco.mju_mat2Quat(q, d.geom_xmat[gid])
-                frame.append([round(float(v), 5) for v in (*d.geom_xpos[gid], *q)])
-            trace["frames"].append(frame)
 
     if not fell:
         for i in range(len(traj)):

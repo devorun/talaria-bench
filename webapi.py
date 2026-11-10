@@ -364,6 +364,8 @@ class WebAPI:
         worlds = _whole(body, "worlds", 1, 10**6)
         if worlds:
             args["worlds"] = worlds
+        if body.get("scenes"):
+            args["scenes"] = body["scenes"]
         return self._ok_or_raise(_call(self.tools, "bench_run", args))
 
     def start_compare(self, body: dict[str, Any]) -> dict[str, Any]:
