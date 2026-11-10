@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { STYLES } from './styles.js'
+import { LOGO } from './logo.js'
 import { surface } from './platform.js'
 import { RobotPicker, useApi } from './ui.jsx'
 import { Gallery } from './views/gallery.jsx'
@@ -7,10 +8,12 @@ import { RobotPage } from './views/robot.jsx'
 import { BenchPage } from './views/bench.jsx'
 import { ComparePage } from './views/compare.jsx'
 import { CheckPage } from './views/check.jsx'
+import { ArenaPage } from './views/arena.jsx'
 import { NewRobot } from './views/newrobot.jsx'
 
 const TABS = [
   ['gallery', 'Gallery'],
+  ['arena', 'Arena', true],
   ['robot', 'Robot'],
   ['bench', 'Report card'],
   ['compare', 'Compare'],
@@ -29,21 +32,16 @@ export function App({ initial } = {}) {
       <style>{STYLES}</style>
       <header className="tb-header">
         <div className="tb-brand">
-          <div className="tb-logo" aria-hidden="true">
-            <svg viewBox="0 0 32 32" width="26" height="26" fill="none" strokeLinecap="round" strokeLinejoin="round">
-              <path className="tb-logo-t" strokeWidth="3.8" d="M15.5 8.5 H29 M22.25 8.5 V27" />
-              <path className="tb-logo-w" strokeWidth="3.2" d="M18.5 14.5 C12.5 15 7.5 12.5 3.8 6 M18.5 21.5 C14 21.5 10 19.5 6.8 15" />
-            </svg>
-          </div>
+          <img className="tb-logo" src={LOGO} alt="" width="34" height="34" />
           <div>
             <div className="tb-title">Talaria Bench</div>
             <div className="tb-tagline">Test before it moves · simulation</div>
           </div>
         </div>
         <nav className="tb-tabs" role="tablist">
-          {TABS.map(([id, label]) => (
+          {TABS.map(([id, label, feature]) => (
             <button key={id} type="button" role="tab" aria-selected={nav.view === id}
-              className={'tb-tab' + (nav.view === id ? ' tb-active' : '')} onClick={() => go(id, robot)}>{label}</button>
+              className={'tb-tab' + (feature ? ' tb-tab-feature' : '') + (nav.view === id ? ' tb-active' : '')} onClick={() => go(id, robot)}>{label}</button>
           ))}
         </nav>
         {nav.view !== 'gallery' && nav.view !== 'new' ? (
@@ -54,6 +52,7 @@ export function App({ initial } = {}) {
         {nav.view === 'gallery' ? <Gallery robots={list} loading={loading} open={(r) => go('robot', r)}
           create={() => go('new', robot)} /> : null}
         {nav.view === 'new' ? <NewRobot go={go} refresh={refresh} /> : null}
+        {nav.view === 'arena' ? <ArenaPage robot={robot} go={go} /> : null}
         {nav.view === 'robot' ? <RobotPage robot={robot} go={go} refresh={refresh} /> : null}
         {nav.view === 'bench' ? <BenchPage robot={robot} /> : null}
         {nav.view === 'compare' ? <ComparePage robot={robot} /> : null}

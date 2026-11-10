@@ -6,6 +6,12 @@ const TIP_FLASH_S = 0.8
 
 // When a recorded run tips: the simulator's fall time if it gave one, else the first frame whose body
 // (the first part) is tilted more than 50 degrees from upright.
+// "tipped at 1.20 s", or for a robot whose servos cannot hold it up (it goes down while settling, at 0.00 s).
+export function tipLabel(result, verb = 'tipped') {
+  if (result && result.fell_at_s === 0) return 'cannot stand: collapses before it moves'
+  return `${verb} at ${result && result.fell_at_s != null ? result.fell_at_s.toFixed(2) : '?'} s`
+}
+
 export function tipTime(trace, result) {
   if (!trace || !result || !result.fell) return null
   if (result.fell_at_s != null) return result.fell_at_s

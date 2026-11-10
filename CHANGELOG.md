@@ -23,6 +23,10 @@ First public release.
 - 3D view: parts drawn by material with a servo horn at every joint; each scene shows its own numbers (ramp
   angle, bar height, floor friction, push force, payload mass) and a 10 cm scale mark; replays with slow
   motion and a mark on the part that touches the floor when a run tips. Appearance only, never physics.
-- Your own robots get a small 3D picture on their gallery card (their photo if 3D is unavailable); a winged-T logo.
+- Arena page: a robot and at most one changed version (size, total mass, servo model) on one scene, 10 worlds,
+  replayed side by side in the same world with the terrain drawn, plus a results table.
+- Your own robots get a small 3D picture on their gallery card (their photo if 3D is unavailable); a new logo.
+- A robot whose servos cannot hold it up (a big template with weak servos) is replayed as it collapses and says
+  so when it is made; template servo defaults follow the size.
 - Photo-assisted onboarding skill (`robot-onboarding`).
 - Seven bundled robots, including Caduceus, calibrated against videos of the real foam-board robot.

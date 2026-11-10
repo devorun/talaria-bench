@@ -17,18 +17,23 @@ export function NewRobot({ go, refresh }) {
   useEffect(() => {
     if (!cur) return
     setVals(Object.fromEntries(cur.fields.map((f) => [f.key, f.default])))
-    setServo(cur.servo)
+    setServo('')
   }, [tpl, cur && cur.name])
   if (!data) return <Loading what="Loading templates" />
   const create = async () => {
-    const params = { name, servo }
+    const params = { name }
+    if (servo) params.servo = servo          // otherwise the template picks the servo that suits its size
     for (const f of cur.fields) params[f.key] = Number(vals[f.key])
     if (mass !== '') params.mass_g = Number(mass)
     setBusy(true)
     const r = await api('/robots/new', { method: 'POST', body: { template: tpl, params } })
     setBusy(false)
     setRes(r)
-    if (r.ok) { notify(`Created ${r.robot}`); if (refresh) refresh(); go('robot', r.robot) }
+    if (r.ok) {
+      notify(r.warnings && r.warnings.length ? `Created ${r.robot}. ${r.warnings[r.warnings.length - 1]}` : `Created ${r.robot}`)
+      if (refresh) refresh()
+      go('robot', r.robot)
+    }
   }
   return (
     <div className="tb-page">
@@ -64,6 +69,7 @@ export function NewRobot({ go, refresh }) {
           )) : null}
           <label className="tb-field">Servo
             <select className="tb-select" value={servo} onChange={(e) => setServo(e.target.value)}>
+              <option value="">{cur ? `template default (${cur.servo}${cur.name === 'quadruped' || cur.name === 'hexapod' ? ', by size' : ''})` : 'template default'}</option>
               {data.servos.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </label>

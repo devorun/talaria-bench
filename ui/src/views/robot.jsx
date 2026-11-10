@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, notify } from '../platform.js'
-import { Viewer3D, Timeline, usePlayer, tipMarks, tipTime, traceDuration } from '../viewer.jsx'
+import { Viewer3D, Timeline, usePlayer, tipLabel, tipMarks, tipTime, traceDuration } from '../viewer.jsx'
 import { Button, Chip, ErrorBox, Loading, MODEL_NOTE, useApi, useTrace } from '../ui.jsx'
 
 function Photo({ robot, version }) {
@@ -145,6 +145,7 @@ export function RobotPage({ robot, go, refresh }) {
           </div>
         </div>
         <div className="tb-hero-actions">
+          <Button onClick={() => go('arena', robot)}>Open in Arena</Button>
           <Button onClick={() => go('bench', robot)}>Report card</Button>
           <Button onClick={() => go('compare', robot)}>Compare designs</Button>
           <Button kind="primary" onClick={() => go('check', robot)}>Check a move</Button>
@@ -158,7 +159,7 @@ export function RobotPage({ robot, go, refresh }) {
             tipAt={tr ? tipTime(tr, trace.result) : null} tipWhy={tr ? trace.result.fall_reason : null}
             time={player.t} turntable={!detail.has_photo}
             label={playing ? `move: ${playing}` : 'showcase pose'}
-            sublabel={tr ? (trace.result.fell ? `tipped at ${trace.result.fell_at_s?.toFixed(2)} s` : 'nominal world, stays up') : 'standing on the floor'}
+            sublabel={tr ? (trace.result.fell ? tipLabel(trace.result) : 'nominal world, stays up') : 'standing on the floor'}
             tone={tr ? (trace.result.fell ? 'red' : 'green') : null} height={440} />
           {tr ? <Timeline player={player} marks={tipMarks([tr, trace.result])} /> : null}
           {traceLoading ? <div className="tb-overlay-note"><span className="tb-spinner" /> simulating {playing}…</div> : null}

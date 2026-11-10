@@ -6,7 +6,7 @@
 import { ROUTES_AREA, SIDEBAR_NAV_AREA, host } from "@hermes/plugin-sdk";
 
 // src/app.jsx
-import { useEffect as useEffect9, useState as useState9 } from "react";
+import { useEffect as useEffect10, useState as useState10 } from "react";
 
 // src/styles.js
 var STYLES = `
@@ -45,13 +45,8 @@ var STYLES = `
 }
 .tb-surface-dashboard .tb-header { position: static; background: transparent; padding: 4px 0 14px; }
 .tb-brand { display: flex; align-items: center; gap: 10px; margin-right: 6px; }
-.tb-logo {
-  width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: var(--tb-accent);
-  background: color-mix(in srgb, var(--tb-accent) 16%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tb-accent) 30%, transparent);
-}
-.tb-logo-t { stroke: var(--tb-fg); }
-.tb-logo-w { stroke: var(--tb-accent-ink); }
+.tb-logo { width: 34px; height: 34px; border-radius: 9px; display: block; flex: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tb-fg) 14%, transparent); }
 .tb-title { font-weight: 650; font-size: 15px; letter-spacing: -0.01em; }
 .tb-tagline { font-size: 11.5px; color: var(--tb-fg3); }
 .tb-tabs { display: flex; gap: 2px; padding: 3px; border-radius: 11px; background: var(--tb-card); border: 1px solid var(--tb-line);
@@ -329,6 +324,26 @@ var STYLES = `
   letter-spacing: .04em; color: #fff; background: var(--tb-badge, var(--tb-accent)); }
 .tb-thumb .tb-badge { position: absolute; right: 10px; top: 10px; }
 
+
+/* Arena */
+.tb-tab-feature { color: var(--tb-accent-ink); font-weight: 650; }
+.tb-tab-feature::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px;
+  background: var(--tb-accent); vertical-align: 1px; }
+.tb-arena-robots { display: flex; flex-direction: column; gap: 12px; }
+.tb-arena-robot { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--tb-line);
+  background: var(--tb-card); }
+.tb-arena-variant { align-items: flex-start; border-color: color-mix(in srgb, var(--tb-accent) 40%, var(--tb-line)); }
+.tb-arena-variant .tb-field { min-width: 150px; }
+.tb-scene-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 6px 0 14px; }
+.tb-scene { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; gap: 4px; padding: 12px;
+  border-radius: 12px; border: 1px solid var(--tb-line); background: var(--tb-card); color: var(--tb-fg2); }
+.tb-scene:hover { background: var(--tb-card-hi); }
+.tb-scene:focus-visible { outline: 2px solid var(--tb-accent); outline-offset: 2px; }
+.tb-scene.tb-active { border-color: var(--tb-accent); background: color-mix(in srgb, var(--tb-accent) 12%, transparent); color: var(--tb-fg); }
+.tb-scene-icon { color: var(--tb-accent-ink); height: 28px; }
+.tb-scene-title { font-weight: 650; font-size: 13.5px; color: var(--tb-fg); }
+.tb-scene-blurb { font-size: 11.5px; color: var(--tb-fg3); line-height: 1.35; }
+.tb-table-arena th, .tb-table-arena td { vertical-align: middle; }
 /* Move check */
 .tb-verdict { display: grid; grid-template-columns: auto 1fr auto; gap: 30px; align-items: center; padding: 26px 32px;
   border-radius: 18px; color: #fff; position: relative; overflow: hidden; box-shadow: 0 18px 40px -28px #000; }
@@ -397,6 +412,9 @@ var STYLES = `
   .tb-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 `;
+
+// src/logo.js
+var LOGO = "data:image/png;base64,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";
 
 // src/platform.js
 var platform = null;
@@ -24225,6 +24243,10 @@ import { useEffect as useEffect4, useMemo, useRef as useRef3, useState as useSta
 import { useEffect as useEffect3, useRef as useRef2, useState as useState3, useCallback as useCallback2 } from "react";
 import { jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
 var TIP_FLASH_S = 0.8;
+function tipLabel(result, verb = "tipped") {
+  if (result && result.fell_at_s === 0) return "cannot stand: collapses before it moves";
+  return `${verb} at ${result && result.fell_at_s != null ? result.fell_at_s.toFixed(2) : "?"} s`;
+}
 function tipTime(trace, result) {
   if (!trace || !result || !result.fell) return null;
   if (result.fell_at_s != null) return result.fell_at_s;
@@ -24619,6 +24641,7 @@ function RobotPage({ robot, go, refresh }) {
         ] })
       ] }),
       /* @__PURE__ */ jsxs4("div", { className: "tb-hero-actions", children: [
+        /* @__PURE__ */ jsx4(Button, { onClick: () => go("arena", robot), children: "Open in Arena" }),
         /* @__PURE__ */ jsx4(Button, { onClick: () => go("bench", robot), children: "Report card" }),
         /* @__PURE__ */ jsx4(Button, { onClick: () => go("compare", robot), children: "Compare designs" }),
         /* @__PURE__ */ jsx4(Button, { kind: "primary", onClick: () => go("check", robot), children: "Check a move" })
@@ -24640,7 +24663,7 @@ function RobotPage({ robot, go, refresh }) {
             time: player.t,
             turntable: !detail.has_photo,
             label: playing ? `move: ${playing}` : "showcase pose",
-            sublabel: tr ? trace.result.fell ? `tipped at ${trace.result.fell_at_s?.toFixed(2)} s` : "nominal world, stays up" : "standing on the floor",
+            sublabel: tr ? trace.result.fell ? tipLabel(trace.result) : "nominal world, stays up" : "standing on the floor",
             tone: tr ? trace.result.fell ? "red" : "green" : null,
             height: 440
           }
@@ -25397,7 +25420,7 @@ function Result({ res, robot, move, speed }) {
               time: player.t,
               height: 400,
               label: seed != null ? `a world where it tipped (${seed})` : "nominal world",
-              sublabel: trace.result.fell ? `tips at ${trace.result.fell_at_s?.toFixed(2)} s` : "stays up",
+              sublabel: trace.result.fell ? tipLabel(trace.result, "tips") : "stays up",
               tone: trace.result.fell ? "red" : "green"
             }
           ),
@@ -25510,28 +25533,442 @@ function CheckPage({ robot, initialMove }) {
   ] });
 }
 
+// src/views/arena.jsx
+import { useEffect as useEffect8, useMemo as useMemo4, useState as useState8 } from "react";
+import { Fragment as Fragment4, jsx as jsx8, jsxs as jsxs8 } from "react/jsx-runtime";
+var ICON = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" };
+var Svg = ({ children }) => /* @__PURE__ */ jsx8("svg", { viewBox: "0 0 40 28", width: "40", height: "28", "aria-hidden": "true", ...ICON, children });
+var SCENES = [
+  {
+    id: "flat",
+    title: "Flat floor",
+    blurb: "Walk straight on level ground.",
+    icon: /* @__PURE__ */ jsxs8(Svg, { children: [
+      /* @__PURE__ */ jsx8("path", { d: "M3 21 H37" }),
+      /* @__PURE__ */ jsx8("circle", { cx: "14", cy: "15", r: "3" }),
+      /* @__PURE__ */ jsx8("path", { d: "M22 15 H32 M29 12 L32 15 L29 18" })
+    ] })
+  },
+  {
+    id: "ramp_5",
+    title: "Ramp 5°",
+    blurb: "A gentle slope uphill.",
+    icon: /* @__PURE__ */ jsxs8(Svg, { children: [
+      /* @__PURE__ */ jsx8("path", { d: "M3 22 H37 L37 17 Z" }),
+      /* @__PURE__ */ jsx8("path", { d: "M10 22 A8 8 0 0 0 7 20" })
+    ] })
+  },
+  {
+    id: "ramp_10",
+    title: "Ramp 10°",
+    blurb: "A real hill for a small robot.",
+    icon: /* @__PURE__ */ jsxs8(Svg, { children: [
+      /* @__PURE__ */ jsx8("path", { d: "M3 22 H37 L37 11 Z" }),
+      /* @__PURE__ */ jsx8("path", { d: "M13 22 A10 10 0 0 0 11 18" })
+    ] })
+  },
+  {
+    id: "ramp_15",
+    title: "Ramp 15°",
+    blurb: "Steep: most hobby robots slide.",
+    icon: /* @__PURE__ */ jsxs8(Svg, { children: [
+      /* @__PURE__ */ jsx8("path", { d: "M3 22 H37 L37 5 Z" }),
+      /* @__PURE__ */ jsx8("path", { d: "M16 22 A13 13 0 0 0 14 17" })
+    ] })
+  },
+  {
+    id: "obstacle_1cm",
+    title: "Bar 1 cm",
+    blurb: "Step over a 1 cm bar.",
+    icon: /* @__PURE__ */ jsxs8(Svg, { children: [
+      /* @__PURE__ */ jsx8("path", { d: "M3 22 H37" }),
+      /* @__PURE__ */ jsx8("rect", { x: "19", y: "18", width: "5", height: "4" })
+    ] })
+  },
+  {
+    id: "obstacle_2cm",
+    title: "Bar 2 cm",
+    blurb: "Step over a 2 cm bar.",
+    icon: /* @__PURE__ */ jsxs8(Svg, { children: [
+      /* @__PURE__ */ jsx8("path", { d: "M3 22 H37" }),
+      /* @__PURE__ */ jsx8("rect", { x: "19", y: "14", width: "5", height: "8" })
+    ] })
+  },
+  {
+    id: "push",
+    title: "Push",
+    blurb: "A shove from the side: does it stay up?",
+    icon: /* @__PURE__ */ jsxs8(Svg, { children: [
+      /* @__PURE__ */ jsx8("path", { d: "M3 22 H37" }),
+      /* @__PURE__ */ jsx8("rect", { x: "22", y: "10", width: "9", height: "12", rx: "2" }),
+      /* @__PURE__ */ jsx8("path", { d: "M5 16 H17 M13 12 L17 16 L13 20" })
+    ] })
+  },
+  {
+    id: "slippery",
+    title: "Slippery",
+    blurb: "Low friction, like a polished table.",
+    icon: /* @__PURE__ */ jsxs8(Svg, { children: [
+      /* @__PURE__ */ jsx8("path", { d: "M3 22 H37" }),
+      /* @__PURE__ */ jsx8("path", { d: "M7 16 Q10 12 13 16 T19 16 T25 16 T31 16" })
+    ] })
+  },
+  {
+    id: "payload",
+    title: "Payload",
+    blurb: "How much can the arm lift?",
+    icon: /* @__PURE__ */ jsxs8(Svg, { children: [
+      /* @__PURE__ */ jsx8("path", { d: "M5 22 H20 M12 22 V14 L26 8" }),
+      /* @__PURE__ */ jsx8("rect", { x: "25", y: "9", width: "9", height: "8", rx: "1.5" })
+    ] })
+  }
+];
+var SCENE_BY_ID = Object.fromEntries(SCENES.map((s) => [s.id, s]));
+function variantSet({ scale, mass, servo }) {
+  const set = {};
+  if (Math.abs(scale - 1) > 1e-6) set["@scale"] = scale;
+  if (mass !== "" && Number(mass) > 0) set["@mass_total"] = Number(mass);
+  if (servo) set["parts.*.joint.servo"] = servo;
+  return set;
+}
+function variantName({ scale, mass, servo }) {
+  const bits = [];
+  if (Math.abs(scale - 1) > 1e-6) bits.push(`×${scale.toFixed(2).replace(/0$/, "")} size`);
+  if (mass !== "" && Number(mass) > 0) bits.push(`${Math.round(Number(mass))} g`);
+  if (servo) bits.push(servo);
+  return bits.join(" · ");
+}
+function worldChoices2(result, names, scene) {
+  const base = result.cards.base;
+  const median = base && base.metric && base.metric.median_seed != null ? [base.metric.median_seed] : [0];
+  const worst = base && base.metric && base.metric.worst && base.metric.worst.seed != null ? [base.metric.worst.seed] : [];
+  const out = result.outcomes || {};
+  const passed = (n, seed) => {
+    const hit = (out[n] || []).find(([s]) => s === seed);
+    return hit ? hit[1] : null;
+  };
+  const differ = [];
+  for (const [seed] of out.base || []) {
+    const vals = names.map((n) => passed(n, seed));
+    if (vals.length > 1 && vals.some((v) => v) && vals.some((v) => !v)) differ.push(seed);
+  }
+  return { median, worst, differ };
+}
+var MODES2 = [["median", "Median world"], ["worst", "Worst world"], ["differ", "Where they differ"]];
+function Replay({ robot, jobId, scene, names, labels, result }) {
+  const choices = useMemo4(() => worldChoices2(result, names, scene), [result, names, scene]);
+  const [mode, setMode] = useState8("median");
+  const [idx, setIdx] = useState8(0);
+  const list = choices[mode].length ? choices[mode] : choices.median;
+  const seed = list[Math.min(idx, list.length - 1)];
+  const traces = names.map((n) => useTrace({ robot, scene, seed, ...n === "base" ? {} : { job_id: jobId, variant: n } }));
+  const ok = traces.map(([d]) => d && d.ok ? d : null);
+  const player = usePlayer(traceDuration(...ok.map((d) => d && d.trace)));
+  return /* @__PURE__ */ jsxs8("div", { className: "tb-card tb-arena-replay", children: [
+    /* @__PURE__ */ jsxs8("div", { className: "tb-card-head", children: [
+      /* @__PURE__ */ jsxs8("h3", { children: [
+        SCENE_BY_ID[scene] ? SCENE_BY_ID[scene].title : scene,
+        ": world ",
+        seed,
+        names.length > 1 ? ", side by side" : ""
+      ] }),
+      /* @__PURE__ */ jsxs8("div", { className: "tb-row tb-gap-sm tb-wrap", children: [
+        /* @__PURE__ */ jsx8("div", { className: "tb-seg", role: "tablist", children: MODES2.filter(([m]) => m !== "differ" || names.length > 1).map(([m, label]) => /* @__PURE__ */ jsxs8(
+          "button",
+          {
+            type: "button",
+            className: "tb-seg-btn" + (mode === m ? " tb-active" : ""),
+            disabled: !choices[m].length,
+            onClick: () => {
+              setMode(m);
+              setIdx(0);
+            },
+            children: [
+              label,
+              " ",
+              /* @__PURE__ */ jsx8("span", { className: "tb-seg-count", children: choices[m].length })
+            ]
+          },
+          m
+        )) }),
+        list.length > 1 ? /* @__PURE__ */ jsxs8(Button, { onClick: () => setIdx((idx + 1) % list.length), children: [
+          "Next world (",
+          Math.min(idx, list.length - 1) + 1,
+          "/",
+          list.length,
+          ")"
+        ] }) : null
+      ] })
+    ] }),
+    /* @__PURE__ */ jsx8("div", { className: "tb-grid-views tb-views-" + names.length, children: names.map((n, i) => {
+      const d = ok[i];
+      if (!d) return /* @__PURE__ */ jsxs8("div", { className: "tb-viewer tb-viewer-wait", style: { height: 380 }, children: [
+        /* @__PURE__ */ jsx8("span", { className: "tb-spinner" }),
+        " ",
+        labels[n],
+        "…"
+      ] }, n);
+      const r = d.result || {};
+      return /* @__PURE__ */ jsx8(
+        Viewer3D,
+        {
+          parts: d.trace.parts,
+          frames: d.trace.frames,
+          fps: d.trace.fps,
+          meta: d.meta,
+          look: d.look,
+          tipAt: tipTime(d.trace, r),
+          tipWhy: r.reason,
+          time: player.t,
+          height: 380,
+          label: labels[n],
+          sublabel: r.passed ? `passed · ${human(scene, r.metric)}` : `${r.reason || "failed"} · ${human(scene, r.metric)}`,
+          tone: r.passed ? "green" : "red"
+        },
+        n
+      );
+    }) }),
+    /* @__PURE__ */ jsx8(Timeline, { player, marks: tipMarks(...ok.map((d, i) => [d && d.trace, d && d.result, `${labels[names[i]]} tips`])) })
+  ] });
+}
+function ResultsTable({ scene, names, labels, cards }) {
+  const rows = names.map((n) => ({ n, c: cards[n] }));
+  if (rows.some(({ c }) => !c || c.applicable === false)) {
+    const bad = rows.find(({ c }) => !c || c.applicable === false);
+    return /* @__PURE__ */ jsxs8("div", { className: "tb-callout tb-tone-amber", children: [
+      "This scene does not apply to ",
+      labels[bad.n],
+      bad.c && bad.c.note ? `: ${bad.c.note}` : "."
+    ] });
+  }
+  return /* @__PURE__ */ jsxs8("div", { className: "tb-card", children: [
+    /* @__PURE__ */ jsxs8("div", { className: "tb-card-head", children: [
+      /* @__PURE__ */ jsx8("h3", { children: "Results" }),
+      /* @__PURE__ */ jsxs8(Chip, { children: [
+        rows[0].c.runs,
+        " worlds · same seeds for both"
+      ] })
+    ] }),
+    /* @__PURE__ */ jsx8("div", { className: "tb-table-wrap", children: /* @__PURE__ */ jsxs8("table", { className: "tb-table tb-table-arena", children: [
+      /* @__PURE__ */ jsx8("thead", { children: /* @__PURE__ */ jsxs8("tr", { children: [
+        /* @__PURE__ */ jsx8("th", { children: "Robot" }),
+        /* @__PURE__ */ jsx8("th", { children: "Pass rate" }),
+        /* @__PURE__ */ jsx8("th", { children: "Distance (median)" }),
+        /* @__PURE__ */ jsx8("th", { children: "Tipped" }),
+        /* @__PURE__ */ jsx8("th", { children: "Worst world" })
+      ] }) }),
+      /* @__PURE__ */ jsx8("tbody", { children: rows.map(({ n, c }) => {
+        const st = STATUS[c.status] || STATUS["n/a"];
+        const reasons = Object.entries(c.failure_reasons || {});
+        return /* @__PURE__ */ jsxs8("tr", { children: [
+          /* @__PURE__ */ jsx8("th", { scope: "row", children: labels[n] }),
+          /* @__PURE__ */ jsxs8("td", { children: [
+            /* @__PURE__ */ jsx8("span", { className: "tb-dot tb-fill-" + st.tone }),
+            " ",
+            /* @__PURE__ */ jsx8("b", { children: pct(c.pass_rate) }),
+            " ",
+            /* @__PURE__ */ jsxs8("span", { className: "tb-muted", children: [
+              c.passed,
+              "/",
+              c.runs
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx8("td", { children: c.metric ? human(scene, c.metric.median, c.metric.unit) : "–" }),
+          /* @__PURE__ */ jsxs8("td", { children: [
+            c.falls ? /* @__PURE__ */ jsxs8(Chip, { tone: "red", children: [
+              c.falls,
+              " of ",
+              c.runs
+            ] }) : /* @__PURE__ */ jsx8(Chip, { tone: "green", children: "none" }),
+            reasons.length ? /* @__PURE__ */ jsxs8("span", { className: "tb-muted tb-small", children: [
+              " ",
+              reasons.map(([why, k]) => `${why} ×${k}`).join(", ")
+            ] }) : null
+          ] }),
+          /* @__PURE__ */ jsx8("td", { children: c.metric && c.metric.worst ? human(scene, c.metric.worst.value, c.metric.unit) : "–" })
+        ] }, n);
+      }) })
+    ] }) })
+  ] });
+}
+function ArenaPage({ robot }) {
+  const [detail] = useApi(robot ? `/robots/${robot}` : null);
+  const [tpl] = useApi("/templates");
+  const [withVariant, setWithVariant] = useState8(true);
+  const [scale, setScale] = useState8(1.3);
+  const [mass, setMass] = useState8("");
+  const [servo, setServo] = useState8("");
+  const [scene, setScene] = useState8("ramp_10");
+  const [run, setRun] = useState8(null);
+  const [job, start] = useJob();
+  useEffect8(() => {
+    setRun(null);
+  }, [robot]);
+  if (!robot) return null;
+  if (!detail || !detail.ok) return detail ? /* @__PURE__ */ jsx8(ErrorBox, { data: detail }) : /* @__PURE__ */ jsx8(Loading, { what: "Loading robot" });
+  const baseMass = Math.round(detail.summary.total_mass_g);
+  const knobs = { scale, mass, servo };
+  const set = variantSet(knobs);
+  const hasVariant = withVariant && Object.keys(set).length > 0;
+  const name = variantName(knobs);
+  const running = job && (job.status === "running" || job.status === "starting");
+  const simulate = () => {
+    const body = { robot, scenes: [scene], quick: true };
+    setRun({ robot, scene, hasVariant, name });
+    if (hasVariant) start("/compare", { ...body, variants: [{ name, set }] });
+    else start("/bench", body);
+  };
+  const done = job && job.status === "done" && run && run.robot === robot && job.result;
+  let view = null;
+  if (done) {
+    const res = job.result;
+    const names = run.hasVariant ? ["base", run.name] : ["base"];
+    const labels = { base: detail.title, [run.name || "x"]: run.name ? `${detail.title} · ${run.name}` : "" };
+    const cards = {};
+    const outcomes = {};
+    if (run.hasVariant) {
+      for (const n of names) {
+        cards[n] = (res.reports && res.reports[n] && res.reports[n].scenes || []).find((c) => c.id === run.scene);
+      }
+      const row = (res.rows || []).find((r) => r.scene === run.scene);
+      Object.assign(outcomes, row ? row.outcomes : {});
+    } else {
+      cards.base = (res.scenes || []).find((c) => c.id === run.scene);
+    }
+    view = { names, labels, cards, result: { cards, outcomes } };
+  }
+  return /* @__PURE__ */ jsxs8("div", { className: "tb-page", children: [
+    /* @__PURE__ */ jsx8("div", { className: "tb-hero", children: /* @__PURE__ */ jsxs8("div", { children: [
+      /* @__PURE__ */ jsx8("h2", { children: "Arena" }),
+      /* @__PURE__ */ jsx8("p", { children: "Put a robot, and one changed version of it, on the same scene. Both run on exactly the same randomized worlds, then replay side by side. Every number is a simulation result." })
+    ] }) }),
+    /* @__PURE__ */ jsxs8("div", { className: "tb-card tb-arena-setup", children: [
+      /* @__PURE__ */ jsxs8("div", { className: "tb-card-head", children: [
+        /* @__PURE__ */ jsx8("h3", { children: "1 · The robots" }),
+        /* @__PURE__ */ jsx8("span", { className: "tb-muted", children: "pick the robot in the header" })
+      ] }),
+      /* @__PURE__ */ jsxs8("div", { className: "tb-arena-robots", children: [
+        /* @__PURE__ */ jsxs8("div", { className: "tb-arena-robot", children: [
+          /* @__PURE__ */ jsx8(Chip, { tone: "muted", children: "A" }),
+          /* @__PURE__ */ jsxs8("div", { children: [
+            /* @__PURE__ */ jsx8("b", { children: detail.title }),
+            /* @__PURE__ */ jsxs8("div", { className: "tb-muted tb-small", children: [
+              detail.summary.joints.length,
+              " servos · ",
+              baseMass,
+              " g · as designed"
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxs8("label", { className: "tb-toggle", children: [
+          /* @__PURE__ */ jsx8("input", { type: "checkbox", checked: withVariant, onChange: (e) => setWithVariant(e.target.checked) }),
+          " add a changed version"
+        ] }),
+        withVariant ? /* @__PURE__ */ jsxs8("div", { className: "tb-arena-robot tb-arena-variant", children: [
+          /* @__PURE__ */ jsx8(Chip, { tone: "accent", children: "B" }),
+          /* @__PURE__ */ jsxs8("div", { className: "tb-row tb-gap tb-wrap", children: [
+            /* @__PURE__ */ jsxs8("label", { className: "tb-field", children: [
+              "Size ×",
+              scale.toFixed(2),
+              /* @__PURE__ */ jsx8("input", { type: "range", min: "0.6", max: "1.8", step: "0.05", value: scale, onChange: (e) => setScale(Number(e.target.value)) })
+            ] }),
+            /* @__PURE__ */ jsxs8("label", { className: "tb-field", children: [
+              "Total mass (g)",
+              /* @__PURE__ */ jsx8(
+                "input",
+                {
+                  className: "tb-input tb-input-xs",
+                  type: "number",
+                  min: "5",
+                  value: mass,
+                  placeholder: `${baseMass}`,
+                  onChange: (e) => setMass(e.target.value)
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxs8("label", { className: "tb-field", children: [
+              "Servo",
+              /* @__PURE__ */ jsxs8("select", { className: "tb-select", value: servo, onChange: (e) => setServo(e.target.value), children: [
+                /* @__PURE__ */ jsx8("option", { value: "", children: "same servos" }),
+                tpl && tpl.ok ? tpl.servos.map((s) => /* @__PURE__ */ jsx8("option", { value: s, children: s }, s)) : null
+              ] })
+            ] })
+          ] })
+        ] }) : null,
+        withVariant && !hasVariant ? /* @__PURE__ */ jsx8("p", { className: "tb-muted tb-small", children: "Change the size, mass or servo to get a second robot." }) : null
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxs8("div", { className: "tb-card", children: [
+      /* @__PURE__ */ jsxs8("div", { className: "tb-card-head", children: [
+        /* @__PURE__ */ jsx8("h3", { children: "2 · The scene" }),
+        /* @__PURE__ */ jsx8("span", { className: "tb-muted", children: (SCENE_BY_ID[scene] || {}).blurb })
+      ] }),
+      /* @__PURE__ */ jsx8("div", { className: "tb-scene-grid", role: "radiogroup", "aria-label": "Scene", children: SCENES.map((s) => /* @__PURE__ */ jsxs8(
+        "button",
+        {
+          type: "button",
+          role: "radio",
+          "aria-checked": scene === s.id,
+          className: "tb-scene" + (scene === s.id ? " tb-active" : ""),
+          onClick: () => setScene(s.id),
+          children: [
+            /* @__PURE__ */ jsx8("span", { className: "tb-scene-icon", children: s.icon }),
+            /* @__PURE__ */ jsx8("span", { className: "tb-scene-title", children: s.title }),
+            /* @__PURE__ */ jsx8("span", { className: "tb-scene-blurb", children: s.blurb })
+          ]
+        },
+        s.id
+      )) }),
+      /* @__PURE__ */ jsxs8("div", { className: "tb-row tb-gap", children: [
+        /* @__PURE__ */ jsx8(Button, { kind: "primary", busy: running, onClick: simulate, children: "Simulate · 10 worlds" }),
+        /* @__PURE__ */ jsxs8("span", { className: "tb-muted tb-small", children: [
+          hasVariant ? "Both robots, same worlds." : "One robot.",
+          " Takes well under a minute."
+        ] })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsx8(Progress, { job, label: "Simulating" }),
+    view ? /* @__PURE__ */ jsxs8(Fragment4, { children: [
+      /* @__PURE__ */ jsx8(
+        Replay,
+        {
+          robot: run.robot,
+          jobId: job.id,
+          scene: run.scene,
+          names: view.names,
+          labels: view.labels,
+          result: view.result
+        },
+        `${run.robot}-${run.scene}-${job.id}`
+      ),
+      /* @__PURE__ */ jsx8(ResultsTable, { scene: run.scene, names: view.names, labels: view.labels, cards: view.cards })
+    ] }) : null
+  ] });
+}
+
 // src/views/newrobot.jsx
-import { useEffect as useEffect8, useState as useState8 } from "react";
-import { jsx as jsx8, jsxs as jsxs8 } from "react/jsx-runtime";
+import { useEffect as useEffect9, useState as useState9 } from "react";
+import { jsx as jsx9, jsxs as jsxs9 } from "react/jsx-runtime";
 function NewRobot({ go, refresh }) {
   const [data] = useApi("/templates");
   const list = data && data.ok ? data.templates : [];
-  const [tpl, setTpl] = useState8("block_robot");
-  const [vals, setVals] = useState8({});
-  const [name, setName] = useState8("my_robot");
-  const [mass, setMass] = useState8("");
-  const [servo, setServo] = useState8("");
-  const [busy, setBusy] = useState8(false);
-  const [res, setRes] = useState8(null);
+  const [tpl, setTpl] = useState9("block_robot");
+  const [vals, setVals] = useState9({});
+  const [name, setName] = useState9("my_robot");
+  const [mass, setMass] = useState9("");
+  const [servo, setServo] = useState9("");
+  const [busy, setBusy] = useState9(false);
+  const [res, setRes] = useState9(null);
   const cur = list.find((t) => t.name === tpl);
-  useEffect8(() => {
+  useEffect9(() => {
     if (!cur) return;
     setVals(Object.fromEntries(cur.fields.map((f) => [f.key, f.default])));
-    setServo(cur.servo);
+    setServo("");
   }, [tpl, cur && cur.name]);
-  if (!data) return /* @__PURE__ */ jsx8(Loading, { what: "Loading templates" });
+  if (!data) return /* @__PURE__ */ jsx9(Loading, { what: "Loading templates" });
   const create = async () => {
-    const params = { name, servo };
+    const params = { name };
+    if (servo) params.servo = servo;
     for (const f of cur.fields) params[f.key] = Number(vals[f.key]);
     if (mass !== "") params.mass_g = Number(mass);
     setBusy(true);
@@ -25539,41 +25976,41 @@ function NewRobot({ go, refresh }) {
     setBusy(false);
     setRes(r);
     if (r.ok) {
-      notify(`Created ${r.robot}`);
+      notify(r.warnings && r.warnings.length ? `Created ${r.robot}. ${r.warnings[r.warnings.length - 1]}` : `Created ${r.robot}`);
       if (refresh) refresh();
       go("robot", r.robot);
     }
   };
-  return /* @__PURE__ */ jsxs8("div", { className: "tb-page", children: [
-    /* @__PURE__ */ jsx8("div", { className: "tb-hero", children: /* @__PURE__ */ jsxs8("div", { children: [
-      /* @__PURE__ */ jsx8("h2", { children: "New robot from a template" }),
-      /* @__PURE__ */ jsx8("p", { children: "A few numbers give a valid model that stands in simulation. Leave the mass empty if you do not know it: it is estimated from the part sizes and the bench varies it by ±30%." })
+  return /* @__PURE__ */ jsxs9("div", { className: "tb-page", children: [
+    /* @__PURE__ */ jsx9("div", { className: "tb-hero", children: /* @__PURE__ */ jsxs9("div", { children: [
+      /* @__PURE__ */ jsx9("h2", { children: "New robot from a template" }),
+      /* @__PURE__ */ jsx9("p", { children: "A few numbers give a valid model that stands in simulation. Leave the mass empty if you do not know it: it is estimated from the part sizes and the bench varies it by ±30%." })
     ] }) }),
-    /* @__PURE__ */ jsxs8("div", { className: "tb-card", children: [
-      /* @__PURE__ */ jsxs8("div", { className: "tb-row tb-gap tb-wrap", children: [
-        /* @__PURE__ */ jsxs8("label", { className: "tb-field", children: [
+    /* @__PURE__ */ jsxs9("div", { className: "tb-card", children: [
+      /* @__PURE__ */ jsxs9("div", { className: "tb-row tb-gap tb-wrap", children: [
+        /* @__PURE__ */ jsxs9("label", { className: "tb-field", children: [
           "Template",
-          /* @__PURE__ */ jsx8("select", { className: "tb-select", value: tpl, onChange: (e) => {
+          /* @__PURE__ */ jsx9("select", { className: "tb-select", value: tpl, onChange: (e) => {
             setTpl(e.target.value);
             setRes(null);
-          }, children: list.map((t) => /* @__PURE__ */ jsx8("option", { value: t.name, children: t.name.replace("_", " ") }, t.name)) })
+          }, children: list.map((t) => /* @__PURE__ */ jsx9("option", { value: t.name, children: t.name.replace("_", " ") }, t.name)) })
         ] }),
-        /* @__PURE__ */ jsxs8("label", { className: "tb-field", children: [
+        /* @__PURE__ */ jsxs9("label", { className: "tb-field", children: [
           "Name",
-          /* @__PURE__ */ jsx8("input", { className: "tb-input", value: name, onChange: (e) => setName(e.target.value.toLowerCase()) })
+          /* @__PURE__ */ jsx9("input", { className: "tb-input", value: name, onChange: (e) => setName(e.target.value.toLowerCase()) })
         ] }),
-        cur ? cur.fields.map((f) => /* @__PURE__ */ jsxs8("label", { className: "tb-field", children: [
+        cur ? cur.fields.map((f) => /* @__PURE__ */ jsxs9("label", { className: "tb-field", children: [
           f.label,
           f.unit ? ` (${f.unit})` : "",
-          f.options ? /* @__PURE__ */ jsx8(
+          f.options ? /* @__PURE__ */ jsx9(
             "select",
             {
               className: "tb-select",
               value: vals[f.key] ?? f.default,
               onChange: (e) => setVals({ ...vals, [f.key]: e.target.value }),
-              children: f.options.map((o) => /* @__PURE__ */ jsx8("option", { value: o, children: o }, o))
+              children: f.options.map((o) => /* @__PURE__ */ jsx9("option", { value: o, children: o }, o))
             }
-          ) : /* @__PURE__ */ jsx8(
+          ) : /* @__PURE__ */ jsx9(
             "input",
             {
               className: "tb-input tb-input-xs",
@@ -25584,13 +26021,16 @@ function NewRobot({ go, refresh }) {
             }
           )
         ] }, f.key)) : null,
-        /* @__PURE__ */ jsxs8("label", { className: "tb-field", children: [
+        /* @__PURE__ */ jsxs9("label", { className: "tb-field", children: [
           "Servo",
-          /* @__PURE__ */ jsx8("select", { className: "tb-select", value: servo, onChange: (e) => setServo(e.target.value), children: data.servos.map((s) => /* @__PURE__ */ jsx8("option", { value: s, children: s }, s)) })
+          /* @__PURE__ */ jsxs9("select", { className: "tb-select", value: servo, onChange: (e) => setServo(e.target.value), children: [
+            /* @__PURE__ */ jsx9("option", { value: "", children: cur ? `template default (${cur.servo}${cur.name === "quadruped" || cur.name === "hexapod" ? ", by size" : ""})` : "template default" }),
+            data.servos.map((s) => /* @__PURE__ */ jsx9("option", { value: s, children: s }, s))
+          ] })
         ] }),
-        /* @__PURE__ */ jsxs8("label", { className: "tb-field", children: [
+        /* @__PURE__ */ jsxs9("label", { className: "tb-field", children: [
           "Total mass (g, optional)",
-          /* @__PURE__ */ jsx8(
+          /* @__PURE__ */ jsx9(
             "input",
             {
               className: "tb-input tb-input-xs",
@@ -25602,18 +26042,19 @@ function NewRobot({ go, refresh }) {
           )
         ] })
       ] }),
-      cur ? /* @__PURE__ */ jsx8("p", { className: "tb-muted tb-small", children: cur.help }) : null,
-      /* @__PURE__ */ jsx8("p", { className: "tb-muted tb-small tb-model-note", children: MODEL_NOTE }),
-      /* @__PURE__ */ jsx8("div", { className: "tb-row tb-gap", children: /* @__PURE__ */ jsx8(Button, { kind: "primary", busy, onClick: create, children: "Create robot" }) }),
-      /* @__PURE__ */ jsx8(ErrorBox, { data: res })
+      cur ? /* @__PURE__ */ jsx9("p", { className: "tb-muted tb-small", children: cur.help }) : null,
+      /* @__PURE__ */ jsx9("p", { className: "tb-muted tb-small tb-model-note", children: MODEL_NOTE }),
+      /* @__PURE__ */ jsx9("div", { className: "tb-row tb-gap", children: /* @__PURE__ */ jsx9(Button, { kind: "primary", busy, onClick: create, children: "Create robot" }) }),
+      /* @__PURE__ */ jsx9(ErrorBox, { data: res })
     ] })
   ] });
 }
 
 // src/app.jsx
-import { jsx as jsx9, jsxs as jsxs9 } from "react/jsx-runtime";
+import { jsx as jsx10, jsxs as jsxs10 } from "react/jsx-runtime";
 var TABS = [
   ["gallery", "Gallery"],
+  ["arena", "Arena", true],
   ["robot", "Robot"],
   ["bench", "Report card"],
   ["compare", "Compare"],
@@ -25622,41 +26063,38 @@ var TABS = [
 function App({ initial } = {}) {
   const [robots, loading, refresh] = useApi("/robots");
   const list = robots && robots.ok ? robots.robots : null;
-  const [nav, setNav] = useState9(initial || { view: "gallery", robot: "caduceus", move: null });
+  const [nav, setNav] = useState10(initial || { view: "gallery", robot: "caduceus", move: null });
   const go = (view, robot2, move = null) => setNav({ view, robot: robot2 || nav.robot, move });
   const robot = nav.robot;
-  useEffect9(() => {
+  useEffect10(() => {
     if (nav.view === "gallery") refresh();
   }, [nav.view]);
-  return /* @__PURE__ */ jsxs9("div", { className: "tb-root tb-surface-" + surface(), children: [
-    /* @__PURE__ */ jsx9("style", { children: STYLES }),
-    /* @__PURE__ */ jsxs9("header", { className: "tb-header", children: [
-      /* @__PURE__ */ jsxs9("div", { className: "tb-brand", children: [
-        /* @__PURE__ */ jsx9("div", { className: "tb-logo", "aria-hidden": "true", children: /* @__PURE__ */ jsxs9("svg", { viewBox: "0 0 32 32", width: "26", height: "26", fill: "none", strokeLinecap: "round", strokeLinejoin: "round", children: [
-          /* @__PURE__ */ jsx9("path", { className: "tb-logo-t", strokeWidth: "3.8", d: "M15.5 8.5 H29 M22.25 8.5 V27" }),
-          /* @__PURE__ */ jsx9("path", { className: "tb-logo-w", strokeWidth: "3.2", d: "M18.5 14.5 C12.5 15 7.5 12.5 3.8 6 M18.5 21.5 C14 21.5 10 19.5 6.8 15" })
-        ] }) }),
-        /* @__PURE__ */ jsxs9("div", { children: [
-          /* @__PURE__ */ jsx9("div", { className: "tb-title", children: "Talaria Bench" }),
-          /* @__PURE__ */ jsx9("div", { className: "tb-tagline", children: "Test before it moves · simulation" })
+  return /* @__PURE__ */ jsxs10("div", { className: "tb-root tb-surface-" + surface(), children: [
+    /* @__PURE__ */ jsx10("style", { children: STYLES }),
+    /* @__PURE__ */ jsxs10("header", { className: "tb-header", children: [
+      /* @__PURE__ */ jsxs10("div", { className: "tb-brand", children: [
+        /* @__PURE__ */ jsx10("img", { className: "tb-logo", src: LOGO, alt: "", width: "34", height: "34" }),
+        /* @__PURE__ */ jsxs10("div", { children: [
+          /* @__PURE__ */ jsx10("div", { className: "tb-title", children: "Talaria Bench" }),
+          /* @__PURE__ */ jsx10("div", { className: "tb-tagline", children: "Test before it moves · simulation" })
         ] })
       ] }),
-      /* @__PURE__ */ jsx9("nav", { className: "tb-tabs", role: "tablist", children: TABS.map(([id, label]) => /* @__PURE__ */ jsx9(
+      /* @__PURE__ */ jsx10("nav", { className: "tb-tabs", role: "tablist", children: TABS.map(([id, label, feature]) => /* @__PURE__ */ jsx10(
         "button",
         {
           type: "button",
           role: "tab",
           "aria-selected": nav.view === id,
-          className: "tb-tab" + (nav.view === id ? " tb-active" : ""),
+          className: "tb-tab" + (feature ? " tb-tab-feature" : "") + (nav.view === id ? " tb-active" : ""),
           onClick: () => go(id, robot),
           children: label
         },
         id
       )) }),
-      nav.view !== "gallery" && nav.view !== "new" ? /* @__PURE__ */ jsx9("div", { className: "tb-picker", children: /* @__PURE__ */ jsx9(RobotPicker, { robots: list, value: robot, onChange: (r) => go(nav.view, r) }) }) : null
+      nav.view !== "gallery" && nav.view !== "new" ? /* @__PURE__ */ jsx10("div", { className: "tb-picker", children: /* @__PURE__ */ jsx10(RobotPicker, { robots: list, value: robot, onChange: (r) => go(nav.view, r) }) }) : null
     ] }),
-    /* @__PURE__ */ jsxs9("main", { className: "tb-main", children: [
-      nav.view === "gallery" ? /* @__PURE__ */ jsx9(
+    /* @__PURE__ */ jsxs10("main", { className: "tb-main", children: [
+      nav.view === "gallery" ? /* @__PURE__ */ jsx10(
         Gallery,
         {
           robots: list,
@@ -25665,17 +26103,18 @@ function App({ initial } = {}) {
           create: () => go("new", robot)
         }
       ) : null,
-      nav.view === "new" ? /* @__PURE__ */ jsx9(NewRobot, { go, refresh }) : null,
-      nav.view === "robot" ? /* @__PURE__ */ jsx9(RobotPage, { robot, go, refresh }) : null,
-      nav.view === "bench" ? /* @__PURE__ */ jsx9(BenchPage, { robot }) : null,
-      nav.view === "compare" ? /* @__PURE__ */ jsx9(ComparePage, { robot }) : null,
-      nav.view === "check" ? /* @__PURE__ */ jsx9(CheckPage, { robot, initialMove: nav.move }) : null
+      nav.view === "new" ? /* @__PURE__ */ jsx10(NewRobot, { go, refresh }) : null,
+      nav.view === "arena" ? /* @__PURE__ */ jsx10(ArenaPage, { robot, go }) : null,
+      nav.view === "robot" ? /* @__PURE__ */ jsx10(RobotPage, { robot, go, refresh }) : null,
+      nav.view === "bench" ? /* @__PURE__ */ jsx10(BenchPage, { robot }) : null,
+      nav.view === "compare" ? /* @__PURE__ */ jsx10(ComparePage, { robot }) : null,
+      nav.view === "check" ? /* @__PURE__ */ jsx10(CheckPage, { robot, initialMove: nav.move }) : null
     ] })
   ] });
 }
 
 // src/desktop.jsx
-import { jsx as jsx10 } from "react/jsx-runtime";
+import { jsx as jsx11 } from "react/jsx-runtime";
 var desktop_default = {
   id: "talaria-bench",
   name: "Talaria Bench",
@@ -25686,7 +26125,7 @@ var desktop_default = {
       notify: (message, kind) => host.notify({ kind: kind === "error" ? "error" : "info", message })
     });
     ctx.registerMany([
-      { id: "page", area: ROUTES_AREA, data: { path: "/talaria" }, render: () => /* @__PURE__ */ jsx10(App, {}) },
+      { id: "page", area: ROUTES_AREA, data: { path: "/talaria" }, render: () => /* @__PURE__ */ jsx11(App, {}) },
       { id: "nav", area: SIDEBAR_NAV_AREA, data: { path: "/talaria", label: "Talaria Bench", codicon: "beaker" } }
     ]);
   }

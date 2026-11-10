@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.png" alt="Talaria Bench: a real foam-board robot next to its simulated model" width="100%"></p>
 
-# Talaria Bench
+# <img src="docs/img/logo-tile.png" alt="" width="40" align="top"> Talaria Bench
 
 [![tests](https://github.com/devorun/talaria-bench/actions/workflows/tests.yml/badge.svg)](https://github.com/devorun/talaria-bench/actions/workflows/tests.yml)
 [![Hermes Agent plugin](https://img.shields.io/badge/Hermes%20Agent-plugin%20%E2%89%A5%200.22-0b6b63)](https://github.com/NousResearch/hermes-agent)
@@ -16,6 +16,8 @@ makes him move.
 - Describe your robot with a photo and a few measurements, and see it in 3D inside Hermes.
 - One click: flat ground, ramp, obstacles, push and slippery-floor tests, with a report card that says why it fails.
 - Compare design variants (longer legs, stronger servos) before you build or print anything.
+- Arena: put a robot and a resized, reweighted or re-servoed version of it on the same ramp, bar or push test and
+  watch both side by side in the same world.
 - Every move Hermes sends to your real robot is screened in simulation first.
 
 <p align="center"><img src="docs/img/tour.gif" alt="Gallery, a robot next to its photo, report card, replay, design comparison, a blocked move and a passing move" width="92%"></p>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../platform.js'
-import { Viewer3D, Timeline, usePlayer, tipMarks, tipTime, traceDuration } from '../viewer.jsx'
+import { Viewer3D, Timeline, usePlayer, tipLabel, tipMarks, tipTime, traceDuration } from '../viewer.jsx'
 import { Bar, Button, Chip, ErrorBox, useApi, useTrace } from '../ui.jsx'
 
 const VERDICT = {
@@ -96,7 +96,7 @@ function Result({ res, robot, move, speed }) {
                 <Viewer3D parts={tr.parts} frames={tr.frames} fps={tr.fps} meta={trace.meta} look={trace.look}
                   tipAt={tipTime(tr, trace.result)} tipWhy={trace.result.fall_reason} time={player.t}
                   height={400} label={seed != null ? `a world where it tipped (${seed})` : 'nominal world'}
-                  sublabel={trace.result.fell ? `tips at ${trace.result.fell_at_s?.toFixed(2)} s` : 'stays up'}
+                  sublabel={trace.result.fell ? tipLabel(trace.result, 'tips') : 'stays up'}
                   tone={trace.result.fell ? 'red' : 'green'} />
                 <Timeline player={player} marks={tipMarks([tr, trace.result])} />
               </>

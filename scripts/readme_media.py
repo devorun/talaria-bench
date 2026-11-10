@@ -2,6 +2,7 @@
 
 * docs/img/banner.png (2:1, the catalog image): the Caduceus photo next to its 3D model, four gallery robots,
   the name and the headline. Laid out as HTML and rendered with headless Chromium.
+* docs/img/banner-x.png (1500x500): the cover for an X / social profile: the logo, the name and the tagline.
 * docs/img/tour.gif: gallery -> robot page -> report card -> replay -> compare -> BLOCKED -> PASS.
 * docs/img/screens/*.png are re-saved with a 256-colour palette (README use only; keeps the repository small).
 
@@ -45,7 +46,7 @@ def data_uri(path: Path, mime: str) -> str:
 
 
 BANNER = """<!doctype html><html><head><meta charset="utf-8"><style>
-FACES
+@@FACES@@
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body { width: 1200px; height: 600px; overflow: hidden; color: #ecf4f2; font-family: 'Banner', 'Segoe UI', system-ui, sans-serif;
@@ -56,7 +57,8 @@ body::before { content: ""; position: absolute; inset: 0; opacity: .5;
 .left { position: absolute; left: 56px; top: 54px; width: 500px; }
 .pill { display: inline-block; font-size: 12.5px; font-weight: 700; letter-spacing: .14em; color: #ffd678; padding: 5px 11px;
   border: 1px solid rgba(255,214,120,.45); border-radius: 99px; }
-h1 { margin: 18px 0 0; font-size: 66px; line-height: 1; font-weight: 700; letter-spacing: -.02em; }
+h1 { margin: 18px 0 0; font-size: 62px; line-height: 1; font-weight: 700; letter-spacing: -.02em; display: flex; align-items: center; gap: 16px; }
+h1 img { width: 66px; height: 66px; border-radius: 17px; box-shadow: 0 0 0 1px rgba(255,255,255,.14), 0 14px 30px -16px #000; }
 .head { margin: 18px 0 0; font-size: 27px; line-height: 1.25; font-weight: 400; }
 .head b { display: block; margin-top: 6px; font-weight: 700; color: #ffd678; }
 ul { list-style: none; margin: 30px 0 0; padding: 0; display: grid; gap: 11px; font-size: 18.5px; color: #b4d0ca; }
@@ -79,7 +81,7 @@ li::before { content: ""; width: 8px; height: 8px; border-radius: 50%; backgroun
 </style></head><body>
 <div class="left">
   <span class="pill">HERMES AGENT PLUGIN</span>
-  <h1>Talaria Bench</h1>
+  <h1><img src="@@LOGO@@">Talaria Bench</h1>
   <p class="head">Test your DIY robot in physics<br>before it moves.<b>No GPU, no CAD.</b></p>
   <ul>
     <li>Robot from a photo and a few measurements</li>
@@ -91,10 +93,10 @@ li::before { content: ""; width: 8px; height: 8px; border-radius: 50%; backgroun
 <div class="foot">MuJoCo &nbsp;·&nbsp; CPU only &nbsp;·&nbsp; hobby servo robots</div>
 <div class="right">
   <div class="pair">
-    <div class="card"><img src="PHOTO"><span class="tag real">REAL</span></div>
-    <div class="card sim"><img src="RENDER"><span class="tag">SIMULATION</span></div>
+    <div class="card"><img src="@@PHOTO@@"><span class="tag real">REAL</span></div>
+    <div class="card sim"><img src="@@RENDER@@"><span class="tag">SIMULATION</span></div>
   </div>
-  <div class="row">THUMBS</div>
+  <div class="row">@@THUMBS@@</div>
   <div class="cap">Bundled robots: spider, dog, humanoid, arm, biped and Caduceus</div>
 </div>
 </body></html>"""
@@ -109,10 +111,11 @@ def banner() -> Path:
                       f"src: url('{data_uri(f, 'font/ttf')}'); }}\n")
     thumbs = "".join(f'<div><img src="{data_uri(IMG / "gallery" / "thumbs" / f"{n}.png", "image/png")}"></div>'
                      for n in ("spider8", "dog12", "humanoid16", "arm6"))
-    html = (BANNER.replace("FACES", faces)
-            .replace("PHOTO", data_uri(ROOT / "examples" / "robots" / "caduceus_front.jpg", "image/jpeg"))
-            .replace("RENDER", data_uri(IMG / "gallery" / "thumbs" / "caduceus.png", "image/png"))
-            .replace("THUMBS", thumbs))
+    html = (BANNER.replace("@@FACES@@", faces)
+            .replace("@@PHOTO@@", data_uri(ROOT / "examples" / "robots" / "caduceus_front.jpg", "image/jpeg"))
+            .replace("@@RENDER@@", data_uri(IMG / "gallery" / "thumbs" / "caduceus.png", "image/png"))
+            .replace("@@THUMBS@@", thumbs)
+            .replace("@@LOGO@@", data_uri(IMG / "logo-tile.png", "image/png")))
     page_file = Path(tempfile.mkdtemp()) / "banner.html"
     page_file.write_text(html, encoding="utf-8")
     out = IMG / "banner.png"
@@ -125,6 +128,64 @@ def banner() -> Path:
         browser.close()
     # Rendered at 2x for clean edges, kept at 1600x800: sharp at GitHub's README width, well under 1 MB.
     Image.open(out).convert("RGB").resize((1600, 800), Image.LANCZOS).save(out, optimize=True)
+    return out
+
+
+BANNER_X = """<!doctype html><html><head><meta charset="utf-8"><style>
+@@FACES@@
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { width: 1500px; height: 500px; overflow: hidden; color: #ecf4f2; font-family: 'Banner', 'Segoe UI', system-ui, sans-serif;
+  background: radial-gradient(80% 140% at 18% 20%, #16403f 0%, #0c1f22 55%, #081518 100%); position: relative; }
+body::before { content: ""; position: absolute; inset: 0; opacity: .5;
+  background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+  background-size: 44px 44px; mask-image: radial-gradient(60% 100% at 30% 50%, #000 0%, transparent 100%); }
+.glow { position: absolute; left: 40px; top: 20px; width: 470px; height: 470px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255,214,120,.20), transparent); }
+.logo { position: absolute; left: 70px; top: 60px; width: 380px; height: 380px; object-fit: contain;
+  filter: drop-shadow(0 18px 30px rgba(0,0,0,.45)); }
+.text { position: absolute; left: 500px; top: 0; height: 500px; width: 520px; display: flex; flex-direction: column; justify-content: center; }
+.pill { align-self: flex-start; font-size: 14px; font-weight: 700; letter-spacing: .15em; color: #ffd678; padding: 6px 13px;
+  border: 1px solid rgba(255,214,120,.45); border-radius: 99px; }
+h1 { margin: 20px 0 0; font-size: 88px; line-height: 1; font-weight: 700; letter-spacing: -.025em; }
+.tag { margin: 18px 0 0; font-size: 38px; line-height: 1.15; font-weight: 700; color: #ffd678; }
+.sub { margin: 16px 0 0; font-size: 22px; color: #a9cbc4; letter-spacing: .01em; }
+.grid { position: absolute; left: 1086px; top: 62px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 360px; }
+.grid div { height: 172px; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,.16);
+  box-shadow: 0 22px 44px -26px #000; background: #e6e9ee; }
+.grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lab { position: absolute; right: 54px; bottom: 36px; font-size: 13px; font-weight: 700; letter-spacing: .12em; color: #8fb3ac; }
+</style></head><body>
+<div class="glow"></div><img class="logo" src="@@LOGO@@">
+<div class="text"><span class="pill">HERMES AGENT PLUGIN</span><h1>Talaria Bench</h1>
+  <div class="tag">Test before it moves.</div><div class="sub">DIY robots in physics &nbsp;·&nbsp; no GPU, no CAD</div></div>
+<div class="grid">@@THUMBS@@</div><div class="lab">SIMULATION</div>
+</body></html>"""
+
+
+def banner_x() -> Path:
+    faces = ""
+    for weight in (400, 600, 700):
+        f = font_file(weight)
+        if f:
+            faces += (f"@font-face {{ font-family: 'Banner'; font-weight: {weight}; "
+                      f"src: url('{data_uri(f, 'font/ttf')}'); }}\n")
+    thumbs = "".join(f'<div><img src="{data_uri(IMG / "gallery" / "thumbs" / f"{n}.png", "image/png")}"></div>'
+                     for n in ("spider8", "dog12", "humanoid16", "arm6"))
+    html = (BANNER_X.replace("@@FACES@@", faces)
+            .replace("@@LOGO@@", data_uri(IMG / "logo.png", "image/png"))
+            .replace("@@THUMBS@@", thumbs))
+    page_file = Path(tempfile.mkdtemp()) / "banner-x.html"
+    page_file.write_text(html, encoding="utf-8")
+    out = IMG / "banner-x.png"
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={"width": 1500, "height": 500}, device_scale_factor=2)
+        page.goto(page_file.as_uri())
+        page.wait_for_timeout(400)
+        page.screenshot(path=str(out))
+        browser.close()
+    Image.open(out).convert("RGB").resize((1500, 500), Image.LANCZOS).save(out, optimize=True)
     return out
 
 
@@ -169,6 +230,6 @@ def shrink_screens() -> None:
 
 
 if __name__ == "__main__":
-    for p in (banner(), tour()):                      # the tour is built from the full-colour screenshots
+    for p in (banner(), banner_x(), tour()):                      # the tour is built from the full-colour screenshots
         print(p.relative_to(ROOT), f"{p.stat().st_size // 1024} KB")
     shrink_screens()
