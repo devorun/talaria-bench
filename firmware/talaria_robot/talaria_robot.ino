@@ -31,6 +31,17 @@
 #ifndef ROBOT_TOKEN
 #define ROBOT_TOKEN ""
 #endif
+
+// The Arduino IDE inserts generated function prototypes above the first function, so every type those
+// prototypes mention (Frame) has to be declared before any function in this file.
+#define MAX_JOINTS 16
+struct Frame {
+  uint16_t ms;
+  uint16_t hold;
+  bool has[MAX_JOINTS];
+  float target[MAX_JOINTS];
+};
+
 #if HAS_OLED
 #include <Adafruit_GFX.h>
 #include <Adafruit_SH110X.h>
@@ -56,7 +67,6 @@ void showMessage(const char* title, const char* line) {
 #define FIRMWARE_VERSION "talaria-robot/0.1.0"
 #define API_VERSION 1
 #define MAX_FRAMES 64
-#define MAX_JOINTS 16
 #define MAX_LOOPS 10
 #define MIN_FRAME_MS 20
 #define MAX_FRAME_MS 10000
@@ -71,13 +81,6 @@ Adafruit_PWMServoDriver pwm(PCA9685_ADDR);
 float usPerTick = 0;        // microseconds per PCA9685 tick, from the prescale read once at boot
 
 // ─── Motion state ────────────────────────────────────────────────────────────────────────────────
-
-struct Frame {
-  uint16_t ms;
-  uint16_t hold;
-  bool has[MAX_JOINTS];
-  float target[MAX_JOINTS];
-};
 
 Frame program[MAX_FRAMES];
 int programLen = 0;
@@ -415,6 +418,7 @@ void announceAddress() {
 void connectWifi(unsigned long waitMs) {
   WiFi.setHostname(ROBOT_HOSTNAME);
   WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);   // no modem sleep: otherwise requests see latency spikes and drops on a weak signal
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   unsigned long start = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - start < waitMs) delay(250);
