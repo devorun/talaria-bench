@@ -385,7 +385,7 @@ void handleStop() {
   stopMotion("stopped");
   if (home) {
     Frame& f = program[0];
-    f.ms = 600;
+    f.ms = 3000;          // a quick drop to home tips the robot over; never faster than 3 s
     f.hold = 0;
     for (int j = 0; j < NJ; j++) {
       f.has[j] = true;

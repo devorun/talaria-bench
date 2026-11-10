@@ -23,12 +23,12 @@ REPORT_CHARS = 12000
 SIM_NOTE = "Simulation results: risk screening, not a guarantee of how the real robot behaves."
 MAX_VARIANTS = 6
 HOME_SPEED_FRACTION = 0.5       # the return to home turns each joint at half its speed limit
-HOME_MIN_MS = 600
+HOME_MIN_MS = bridge.HOME_MS   # 3000: every way home is at least this slow
 HOME_TOLERANCE_DEG = 1.0
 HOME_GRACE_S = 2.0
 HOME_POLL_S = 0.05
-HOME_NOTE = ("The robot first eased back to its home pose at half speed (that return is not itself simulated), "
-             "then played the move, so it started from the pose the preflight simulated.")
+HOME_NOTE = ("The robot first eased back to its home pose slowly, in at least 3 seconds (that return is not itself "
+             "simulated), then played the move, so it started from the pose the preflight simulated.")
 
 
 def ignored_move_args(args: dict[str, Any]) -> list[str]:
@@ -336,6 +336,17 @@ class TalariaTools:
             "drive a robot without a token anyway, set plugins.entries.talaria-bench.settings."
             "allow_unauthenticated_robot to true.")
 
+    @staticmethod
+    def _home_ms(limits, pose) -> int:
+        """Time for the return to home: at least HOME_MIN_MS, and slow enough that no joint exceeds half its limit."""
+        ms = float(HOME_MIN_MS)
+        for n, j in limits.items():
+            value = pose.get(n)
+            now = float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+            travel = abs(now - j["home"]) if now is not None else j["max"] - j["min"]   # unknown: assume the worst
+            ms = max(ms, travel / (j["max_speed"] * HOME_SPEED_FRACTION) * 1000.0)
+        return int(min(math.ceil(ms), MAX_FRAME_MS))
+
     def _go_home(self, client: bridge.RobotClient, spec) -> int:
         """Ease to the home pose at a safe speed (half each joint's limit) and wait until the robot is there, so
         the approved move starts from the pose the preflight simulated. Returns the homing time in ms (0 when
@@ -352,12 +363,7 @@ class TalariaTools:
                       for n, j in limits.items())
         if at_home and not state.get("busy"):
             return 0
-        ms = float(HOME_MIN_MS)
-        for n, j in limits.items():
-            now = angle(n)
-            travel = abs(now - j["home"]) if now is not None else j["max"] - j["min"]   # unknown: assume the worst
-            ms = max(ms, travel / (j["max_speed"] * HOME_SPEED_FRACTION) * 1000.0)
-        ms = int(min(math.ceil(ms), MAX_FRAME_MS))
+        ms = self._home_ms(limits, pose)
         client.pose({n: j["home"] for n, j in limits.items()}, ms=ms)
         deadline = time.monotonic() + ms / 1000.0 + HOME_GRACE_S
         while time.monotonic() < deadline:
@@ -414,7 +420,17 @@ class TalariaTools:
         if target == "virtual" and spec.name not in self.rt.virtual:
             return {"ok": True, "robot": spec.name, "target": target, "stopped": False, "note": "nothing was playing"}
         client = self._client(spec, target)
-        client.stop(home=bool(args.get("home")))
+        home = bool(args.get("home"))
+        client.stop(home=False)
+        if home:
+            # Plugin-side slow return (an older firmware drops to home in 600 ms): stop, then ease home.
+            try:
+                pose = client.state().get("pose")
+            except bridge.RobotError:
+                pose = None
+            limits = spec.joint_limits()
+            client.pose({n: j["home"] for n, j in limits.items()},
+                        ms=self._home_ms(limits, pose if isinstance(pose, dict) else {}))
         return {"ok": True, "robot": spec.name, "target": target, "stopped": True, "home": bool(args.get("home"))}
 
     def robot_status(self, args: dict[str, Any]) -> dict[str, Any]:

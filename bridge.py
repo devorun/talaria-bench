@@ -27,6 +27,7 @@ API_VERSION = 1
 TOKEN_HEADER = "X-Robot-Token"
 MAX_BODY_BYTES = 64 * 1024
 TICK_SECONDS = 0.02
+HOME_MS = 3000   # every return to home takes at least this long (a quick drop tips the foam robot over)
 
 
 class RobotError(Exception):
@@ -161,7 +162,7 @@ class VirtualRobot:
                 self.stop_reason = "stopped"
             self.engine.load([], now=self.now())
             if home:
-                self.engine.load([{"ms": 600, "joints": home_pose(self.joints)}], now=self.now())
+                self.engine.load([{"ms": HOME_MS, "joints": home_pose(self.joints)}], now=self.now())
                 self.name = "home"
 
     def tick(self) -> None:

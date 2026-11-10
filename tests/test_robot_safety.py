@@ -66,6 +66,9 @@ class FakeRobot:
     def play(self, frames, loops=1, easing="smoothstep", name=None):
         self.calls.append(("play", frames, loops))
 
+    def stop(self, home=False):
+        self.calls.append(("stop", home))
+
 
 def _use(tools, fake, monkeypatch):
     monkeypatch.setattr(tools, "_client", lambda spec, target: fake)
@@ -91,6 +94,27 @@ def test_play_returns_home_at_half_speed_then_plays(rt, tools, monkeypatch):
     slowest = 40 / (limits["left_arm"]["max_speed"] * tools_mod.HOME_SPEED_FRACTION) * 1000
     assert ms >= max(slowest, tools_mod.HOME_MIN_MS) and out["homing_ms"] == ms
     assert "home pose" in out["note"]
+
+
+def test_stop_with_home_eases_home_in_at_least_three_seconds(rt, tools, monkeypatch):
+    spec = rt.robot("caduceus")
+    limits = spec.joint_limits()
+    home = {n: j["home"] for n, j in limits.items()}
+    fake = FakeRobot(pose={**home, "right_arm": 50})
+    _use(tools, fake, monkeypatch)
+    out = call(tools, "robot_stop", {"robot": "caduceus", "target": "real", "home": True})
+    assert out["ok"] and out["home"]
+    assert ("stop", False) in fake.calls and ("stop", True) not in fake.calls   # plugin-side slow return
+    poses = [c for c in fake.calls if c[0] == "pose"]
+    assert len(poses) == 1 and poses[0][1] == home and poses[0][2] >= 3000
+    fake2 = FakeRobot(pose=None)                                                  # unknown pose: still >= 3 s
+    _use(tools, fake2, monkeypatch)
+    call(tools, "robot_stop", {"robot": "caduceus", "target": "real", "home": True})
+    assert [c for c in fake2.calls if c[0] == "pose"][0][2] >= 3000
+    fake3 = FakeRobot(pose=home)
+    _use(tools, fake3, monkeypatch)
+    call(tools, "robot_stop", {"robot": "caduceus", "target": "real"})            # no home: just a stop
+    assert [c[0] for c in fake3.calls] == ["stop"]
 
 
 def test_play_from_home_skips_the_return(rt, tools, monkeypatch):
