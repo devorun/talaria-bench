@@ -18,5 +18,8 @@ First public release.
   HTTP API (`hermes talaria sim`).
 - Dashboard tab and Desktop page from one UI source: gallery, 3D robot view with its photo, report card,
   compare view, move check with replay.
+- 3D view: parts drawn by material with a servo horn at every joint; each scene shows its own numbers (ramp
+  angle, bar height, floor friction, push force, payload mass) and a 10 cm scale mark; replays with slow
+  motion and a mark on the part that touches the floor when a run tips. Appearance only, never physics.
 - Photo-assisted onboarding skill (`robot-onboarding`).
 - Seven bundled robots, including Caduceus, calibrated against videos of the real foam-board robot.
