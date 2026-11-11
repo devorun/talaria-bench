@@ -3,7 +3,7 @@
 * docs/img/banner.png (2:1, the catalog image): the Caduceus photo next to its 3D model, four gallery robots,
   the name and the headline. Laid out as HTML and rendered with headless Chromium.
 * docs/img/banner-x.png (1500x500): the cover for an X / social profile: the logo, the name and the tagline.
-* docs/img/tour.gif: gallery -> robot page -> report card -> replay -> compare -> BLOCKED -> PASS.
+* docs/img/tour.gif: gallery -> robot page -> report card -> replay -> compare -> Arena -> BLOCKED -> PASS.
 * docs/img/screens/*.png are re-saved with a 256-colour palette (README use only; keeps the repository small).
 
 Dev tool (needs Playwright and Pillow, which are not plugin dependencies). Run after render_gallery.py and
@@ -84,7 +84,7 @@ li::before { content: ""; width: 8px; height: 8px; border-radius: 50%; backgroun
   <h1><img src="@@LOGO@@">Talaria Bench</h1>
   <p class="head">Test your DIY robot in physics<br>before it moves.<b>No GPU, no CAD.</b></p>
   <ul>
-    <li>Robot from a photo and a few measurements</li>
+    <li>Robot from a template and a few measurements</li>
     <li>Arena benchmark with a report card</li>
     <li>Compare designs before you build</li>
     <li>Every real move screened in simulation</li>
@@ -200,13 +200,15 @@ def tour() -> Path:
              ("dashboard-report-spider8", "3  One click: the report card"),
              ("dashboard-report-spider8-replay", "4  Replay the median and the worst world"),
              ("dashboard-compare-spider8-high-step", "5  Compare design variants on the same worlds"),
-             ("dashboard-check-arms_up_both-blocked", "6  Preflight blocks a move that tips"),
-             ("dashboard-check-arms_up_alternating-pass", "7  A revised move passes the gate")]
+             ("dashboard-arena-spider8-ramp10", "6  Arena: a robot and its changed version, same world"),
+             ("dashboard-check-arms_up_both-blocked", "7  Preflight blocks a move that tips"),
+             ("dashboard-check-wave-pass", "8  A move that passes the gate")]
     W, H, BAR = 960, 640, 44
     frames = []
     for name, caption in shots:
         im = Image.open(SCREENS / f"{name}.png").convert("RGB")
-        im = im.crop((HERMES_NAV_PX, 0, im.width, im.height))
+        if im.width >= 1440:                                       # a full window: leave out Hermes's own navigation
+            im = im.crop((HERMES_NAV_PX, 0, im.width, im.height))
         im = im.resize((W, int(im.height * W / im.width)), Image.LANCZOS).crop((0, 0, W, H - BAR))
         frame = Image.new("RGB", (W, H), BG)
         frame.paste(im, (0, BAR))

@@ -41,11 +41,10 @@ def settle(page: Page, ms: int = 2500) -> None:
     page.wait_for_timeout(ms)
 
 
-def shot(page: Page, prefix: str, name: str, full: bool = False) -> None:
+def shot(page: Page, prefix: str, name: str, full: bool = False, clip: dict | None = None) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / f"{prefix}-{name}.png"
-    clip = None
-    if prefix.startswith("desktop") and not full:
+    if clip is None and prefix.startswith("desktop") and not full:
         # Leave out the Desktop session list: it shows the user's own chat titles and user name.
         size = page.viewport_size or {"width": 1440, "height": 960}
         clip = {"x": 261, "y": 0, "width": size["width"] - 261, "height": size["height"]}
@@ -117,9 +116,30 @@ def run(page: Page, prefix: str) -> None:
     page.wait_for_timeout(500)
     shot(page, prefix, "compare-spider8-high-step")
 
+    # Arena: the spider next to a 1.3x larger copy (the page's default change) on the 10 deg ramp, same world.
+    tab(page, "Arena")
+    page.wait_for_selector(".tb-scene-grid", timeout=60_000)
+    page.locator(".tb-scene", has_text="Ramp 10").first.click()
+    page.wait_for_timeout(400)
+    page.get_by_role("button", name="Simulate").click()
+    page.wait_for_selector(".tb-arena-replay canvas", timeout=300_000)
+    page.wait_for_selector(".tb-table-arena", timeout=300_000)
+    settle(page, 3500)
+    scrub(page, 5.0)
+    page.locator(".tb-arena-replay").evaluate("el => el.scrollIntoView({ block: 'start' })")
+    page.wait_for_timeout(700)
+    # The page ends below the results, so the replay cannot reach the top: crop to the replay and the results.
+    top = page.locator(".tb-arena-replay").bounding_box()
+    bottom = page.locator(".tb-card", has=page.locator(".tb-table-arena")).bounding_box()
+    pad = 16
+    shot(page, prefix, "arena-spider8-ramp10", clip={"x": top["x"] - pad, "y": top["y"] - pad,
+                                                      "width": top["width"] + 2 * pad,
+                                                      "height": bottom["y"] + bottom["height"] - top["y"] + 2 * pad})
+
     tab(page, "Move check")
     pick_robot(page, "caduceus")
-    for move, name in (("arms_up_both", "check-arms_up_both-blocked"), ("arms_up_alternating", "check-arms_up_alternating-pass")):
+    # The passing example is the wave: it passed the gate and also played as checked on the real Caduceus.
+    for move, name in (("arms_up_both", "check-arms_up_both-blocked"), ("wave", "check-wave-pass")):
         page.locator(".tb-field select").first.select_option(move)
         page.get_by_role("button", name="Run preflight").click()
         page.wait_for_selector(".tb-verdict", timeout=300_000)

@@ -79,11 +79,11 @@ class Svg:
 
 
 def pipeline(theme) -> Svg:
-    s = Svg(1040, 232, theme, "How Talaria Bench works: robot spec and photo, MuJoCo model, randomized worlds, "
+    s = Svg(1040, 232, theme, "How Talaria Bench works: robot spec, MuJoCo model, randomized worlds, "
                               "arena scenes, report card")
     w, h, gap, y = 176, 158, 40, 14
     boxes = [
-        ("Robot spec + photo", ["parts in cm and g,", "hobby servo models;", "photo: appearance only"]),
+        ("Robot spec", ["template + your numbers:", "parts in cm and g,", "hobby servo models"]),
         ("MuJoCo model", ["soft contacts by material,", "servo torque and speed,", "servo free play"]),
         ("Randomized worlds", ["friction, mass, torque,", "latency, offsets, floor tilt;", "30 per scene, 60 per move"]),
         ("Arena scenes", ["flat floor, ramps, bars,", "push, slippery floor,", "payload, standing moves"]),

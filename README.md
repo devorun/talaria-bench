@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/img/banner.png" alt="Talaria Bench: a real foam-board robot next to its simulated model" width="100%"></p>
+![Talaria Bench: a photo of a real foam-board robot next to its simulated model](docs/img/banner.png)
 
 # <img src="docs/img/logo-tile.png" alt="" width="40" align="top"> Talaria Bench
 
@@ -13,14 +13,17 @@ A [Hermes Agent](https://github.com/NousResearch/hermes-agent) plugin for hobby 
 MG996R and friends), built on MuJoCo. In Greek myth, talaria are Hermes's winged sandals: the thing that
 makes him move.
 
-- Describe your robot with a photo and a few measurements, and see it in 3D inside Hermes.
+- Build your robot from a template and a few measurements, and see it in 3D inside Hermes, next to its photo.
 - One click: flat ground, ramp, obstacles, push and slippery-floor tests, with a report card that says why it fails.
 - Compare design variants (longer legs, stronger servos) before you build or print anything.
 - Arena: put a robot and a resized, reweighted or re-servoed version of it on the same ramp, bar or push test and
   watch both side by side in the same world.
 - Every move Hermes sends to your real robot is screened in simulation first.
 
-<p align="center"><img src="docs/img/tour.gif" alt="Gallery, a robot next to its photo, report card, replay, design comparison, a blocked move and a passing move" width="92%"></p>
+Demo video: `<VIDEO LINK>`
+
+![Gallery, a robot next to its photo, report card, replay, design comparison, Arena, a blocked move and a passing move](docs/img/tour.gif)
+
 <p align="center"><sub>The Talaria Bench tab in the Hermes web dashboard (simulation).</sub></p>
 
 Every number Talaria Bench shows comes from simulation and is labelled that way. It is
@@ -36,11 +39,16 @@ This clones the plugin, installs its Python dependencies (`mujoco`, `numpy`, `py
 environment and enables it. Without `--yes-deps` Hermes asks before installing them.
 
 - **Hermes Desktop:** Capabilities -> Plugins -> make sure Talaria Bench is enabled, then open the
-  **Talaria Bench** page in the sidebar.
+  **Talaria Bench** page in the sidebar (light and dark themes).
 - **Web dashboard:** run `hermes dashboard` and open the **Talaria Bench** tab.
-- **Chat:** `/talaria demo` gives a tour without hardware: a quick benchmark of the spider, then the
+- **Chat:** `/talaria demo` gives a guided tour without hardware: a quick benchmark of the spider, then the
   preflight of two Caduceus moves (one is blocked, one passes) and a play on the virtual robot.
-  `/talaria help` lists the other commands; `hermes talaria --help` does the same in a terminal.
+  `/talaria status | gallery | bench | report | check | play | demo`; `/talaria help` lists them.
+- **Tools:** Hermes calls 14 tools on its own: `robot_list`, `robot_define`, `robot_show`, `bench_run`,
+  `bench_status`, `bench_report`, `bench_compare`, `move_check`, `move_save`, `move_list`, `robot_play`,
+  `robot_pose`, `robot_stop`, `robot_status`.
+- **Terminal:** `hermes talaria status | gallery | bench | report | check | play | demo | firmware | sim`
+  (`hermes talaria --help`).
 
 Or just ask Hermes: *"Benchmark the spider and tell me where it fails"*, *"Add my robot"* (with a photo),
 *"Write a dance for Caduceus and check it"*.
@@ -63,16 +71,29 @@ Or just ask Hermes: *"Benchmark the spider and tell me where it fails"*, *"Add m
   <tr>
     <td><img src="docs/img/screens/desktop-check-arms_up_both-blocked.png" alt="Move check: arms_up_both is BLOCKED, it tips in 25 of 60 simulated worlds"><br>
       <sub><b>BLOCKED.</b> The move tips the robot in 25 of 60 simulated worlds; the gate refuses it and says what to change.</sub></td>
-    <td><img src="docs/img/screens/dashboard-check-arms_up_alternating-pass.png" alt="Move check: arms_up_alternating passes, 0 of 60 simulated worlds tip"><br>
-      <sub><b>PASS.</b> The revised move is approved for exactly this move, speed and robot spec.</sub></td>
+    <td><img src="docs/img/screens/dashboard-check-wave-pass.png" alt="Move check: the wave passes, 0 of 60 simulated worlds tip"><br>
+      <sub><b>PASS.</b> The wave is approved for exactly this move, speed and robot spec.</sub></td>
   </tr>
 </table>
+
+## Arena
+
+![Arena: the spider and a 1.3 times larger copy on the 10 degree ramp, replayed side by side in the same simulated world, with a results table](docs/img/screens/dashboard-arena-spider8-ramp10.png)
+
+<p align="center"><sub>The spider and a copy 1.3 times its size on the 10° ramp, in the same simulated world.</sub></p>
+
+The Arena page puts a robot and one changed version of it (size x0.6 to x1.8, total mass, servo model) on one
+scene: flat floor, a 5, 10 or 15° ramp, a 1 or 2 cm bar, a push, a slippery floor or an arm payload. Both run
+in the same 10 randomized worlds. Their 3D replays play side by side in one world (the median world, the worst
+world, or a world where the two differ), with the terrain drawn, and a results table gives each one's pass rate,
+median distance, tip count and worst world. Without a change it simulates the robot alone. An Arena run never
+touches the robot's report card.
 
 ## How it works
 
 <p align="center"><picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/diagram-pipeline-dark.svg">
-  <img src="docs/img/diagram-pipeline-light.svg" alt="Robot spec and photo, MuJoCo model, randomized worlds, arena scenes, report card" width="100%">
+  <img src="docs/img/diagram-pipeline-light.svg" alt="Robot spec, MuJoCo model, randomized worlds, arena scenes, report card" width="100%">
 </picture></p>
 <p align="center"><sub>From a robot spec to a report card.</sub></p>
 
@@ -84,26 +105,33 @@ Or just ask Hermes: *"Benchmark the spider and tell me where it fails"*, *"Add m
 
 - **Robot spec.** Parts (box, cylinder, sphere), sizes in cm, masses in g, joints with ranges
   and hobby servo models from a small servo catalog. See [docs/robot-spec.md](docs/robot-spec.md).
-- **Arena.** Flat floor, ramps of 5, 10 and 15 deg, bars of 1 and 2 cm, a push test (0.05 to 1 x body
+- **Arena benchmark.** Flat floor, ramps of 5, 10 and 15 deg, bars of 1 and 2 cm, a push test (0.05 to 1 x body
   weight from four sides), a slippery floor (foot friction 0.08-0.15), payload steps for arms, and the
   robot's own moves. Each scene runs in 30 randomized worlds by default (10 with `quick`; 10 to 200 on
-  request). Benchmarks run as background jobs; a full benchmark of one robot takes about one to two minutes
-  on a 4-core laptop CPU.
+  request). Benchmarks run as background jobs with progress and a log (`bench_status`); a full benchmark of
+  one robot takes about one to two minutes on a 4-core laptop CPU.
 - **Report card.** GREEN / AMBER / RED per scene with the pass rate, the median and p10 of the scene's
-  main metric, the worst world and the top failure reasons. Distances count only steady progress, so a
-  one-time lurch earns nothing. Format: [docs/report-format.md](docs/report-format.md).
+  main metric, the worst world, the top failure reasons and servo load estimates. Distances count only
+  steady progress, so a one-time lurch earns nothing. Click a scene to replay its median world and its worst
+  world side by side. Scenes a model cannot simulate honestly (Caduceus's foam-foot walk, for example) are
+  marked OUT OF MODEL SCOPE instead of being scored. Format: [docs/report-format.md](docs/report-format.md).
 - **Design comparison.** Up to six variants (`legs +1.5 cm`, another servo, more mass) on the same worlds.
+- **Moves.** A move is a list of keyframes (time and joint angles). Hermes can write one (say, a dance for
+  your robot), check it and save it with `move_save`; `move_list` shows a robot's moves.
 - **Motion preflight.** A move runs in 60 fixed randomized worlds. It passes when the upper end of the
   95% Wilson interval of its tip chance is at most 10% and no servo peaks above 90% of its stall torque
   (90th percentile across worlds). A quick check starts with 30 worlds and extends a clean run to 60; it
-  never blocks on fewer than 30. Speed-limit stretches, self and ground collisions are reported too.
+  never blocks on fewer than 30. Speed-limit stretches, self and ground collisions are reported too. The
+  Move check page also checks a custom pose: go there, hold it, come back home.
 - **The gate.** A `pre_tool_call` hook lets `robot_play` and `robot_pose` through only when that exact
-  move (frames, loops, easing), speed and robot spec passed. Any change needs a new check.
+  move (frames, loops, easing), speed and robot spec passed. Any change needs a new check. The same rule
+  holds for `/talaria play` and `hermes talaria play`.
 
 ## Robot gallery
 
 Seven robots ship in `examples/robots/`. Headlines from the arena benchmark (simulation, 30 worlds per
-scene; full cards in [examples/reports/](examples/reports/), more in [docs/gallery.md](docs/gallery.md)):
+scene; full cards in [examples/reports/](examples/reports/), more in [docs/gallery.md](docs/gallery.md), how
+Caduceus was calibrated in [docs/calibration-caduceus.md](docs/calibration-caduceus.md)):
 
 | Simulation&nbsp;render | Robot | Servos | Mass | Benchmark headline (simulation) |
 |---|---|---|---|---|
@@ -112,18 +140,20 @@ scene; full cards in [examples/reports/](examples/reports/), more in [docs/galle
 | <img src="docs/img/gallery/thumbs/desk-biped4.png" alt="desk-biped4 (simulation render)" width="120"> | `desk-biped4` Desk biped | 4 | 166 g | Walks the flat target in 100% of worlds (median 18.9 cm); stuck at both bars. |
 | <img src="docs/img/gallery/thumbs/humanoid16.png" alt="humanoid16 (simulation render)" width="120"> | `humanoid16` Small humanoid | 16 | 802 g | `dance_safe` stays upright; `dance_risky` tips it in 95% of 60 preflight worlds. |
 | <img src="docs/img/gallery/thumbs/arm6.png" alt="arm6 (simulation render)" width="120"> | `arm6` Desk arm (fixed base) | 6 | 758 g | Max safe payload median 100 g (p10 95 g); at 200 g the upper arm reaches stall (estimate). |
-| <img src="docs/img/gallery/thumbs/caduceus.png" alt="caduceus (simulation render)" width="120"> | `caduceus` Caduceus | 4 | 437 g | `arms_up_both` tips it in 42% of 60 preflight worlds; `arms_up_alternating` passes. Walking is out of model scope. |
+| <img src="docs/img/gallery/thumbs/caduceus.png" alt="caduceus (simulation render)" width="120"> | `caduceus` Caduceus | 4 | 437 g | `arms_up_both` tips it in 42% of 60 preflight worlds; `wave` passes. Walking is out of model scope. |
 | <img src="docs/img/gallery/thumbs/caduceus_v2.png" alt="caduceus_v2 (simulation render)" width="120"> | `caduceus_v2` Caduceus v2 (design variant) | 4 | 437 g | Tighter joints and a lower centre of mass: survives a nudge from every side in 100% of worlds. |
 
-<p align="center"><img src="docs/img/gallery.png" alt="The seven bundled robots rendered in 3D (simulation)" width="100%"></p>
+![The seven bundled robots rendered in 3D (simulation)](docs/img/gallery.png)
+
 <p align="center"><sub>The seven bundled robots, drawn by the same renderer as the app. The bar on the floor is 10 cm.</sub></p>
 
 ## Bring your own robot
 
-- **From a photo, in chat.** Send Hermes a photo and say "add my robot". The bundled `robot-onboarding`
-  skill reads the photo for structure only (family, limbs, servos), asks for the three or four
-  measurements that matter most, and builds the model from a template. Sizes and masses come from you;
-  anything estimated is named as an estimate. The photo is shown next to the 3D model.
+- **In chat, with a photo.** Send Hermes a photo and say "add my robot". The bundled `robot-onboarding`
+  skill reads the photo for structure only (family, limbs, servos) to pick the closest template, asks for
+  the three or four measurements that matter most, and builds the model from that template and your
+  numbers. Sizes and masses come from you; anything estimated is named as an estimate. The 3D model is not
+  made from the photo: the photo is shown next to it for comparison.
 - **From a template.** `block_robot` (Caduceus-like), `biped4`, `quadruped` (8 or 12 servos), `hexapod`,
   `arm`, `humanoid`, each with a few numbers. The dashboard has a New robot form for the same templates.
 - **From a spec file.** Write the YAML yourself: [docs/robot-spec.md](docs/robot-spec.md). Your robots are
@@ -137,12 +167,17 @@ scene; full cards in [examples/reports/](examples/reports/), more in [docs/galle
 </picture></p>
 <p align="center"><sub>The hardware path. Moves travel as data; the firmware never needs reflashing for a new move.</sub></p>
 
+Several layers stand between a move and the servos: the preflight gate, the robot token, the spec-hash
+check, the firmware's own angle and speed limits, and a slow return to home before every move. Together
+they lower the risk; none of them is a guarantee (see [Scope and assumptions](#scope-and-assumptions)).
+
 - **Firmware.** `firmware/talaria_robot/` is an ESP32 + PCA9685 sketch. `hermes talaria firmware <robot>
   <folder>` writes the sketch plus a `robot_config.h` generated from the robot spec (I2C pins, servo
   channels, joint ranges, speed limits, home pose, spec hash) and a random 128-bit robot token, and prints the
   `hermes config set TALARIA_ROBOT_TOKEN <token>` line. Copy `secrets.example.h` to `secrets.h`, add your
   Wi-Fi, build with the ESP32 core and the Adafruit PWM Servo Driver and ArduinoJson 7 libraries.
-  Moves are sent as data (keyframes) over HTTP, so there is no reflashing per move. The firmware clamps
+  Moves are sent as data (keyframes) to the robot's small HTTP API (`/info`, `/state`, `/play`, `/pose`,
+  `/stop`), so there is no reflashing per move. The firmware clamps
   every angle to its joint range and stretches every transition to the joint's speed limit on its own.
 - **Settings** (Hermes Desktop: Settings -> Plugins -> Talaria Bench, or
   `plugins.entries.talaria-bench.settings`): `robot_url` (for example `http://192.168.1.8`),
@@ -153,7 +188,7 @@ scene; full cards in [examples/reports/](examples/reports/), more in [docs/galle
   refusals can be turned off explicitly (`allow_firmware_mismatch`, `allow_unauthenticated_robot`, both
   off by default). `robot_stop` and `robot_status` always work.
 - **Every move starts from home.** `robot_play` and `robot_pose` first ease the robot back to its home
-  pose at half of each joint's speed limit (at least 600 ms) and wait until it is idle there, then play.
+  pose at half of each joint's speed limit (taking at least 3 seconds) and wait until it is idle there, then play.
   The preflight simulates moves from the home pose, so this keeps the real start pose equal to the
   simulated one. **This return to home is not simulated itself.** It is skipped when the robot already
   stands still at home; a robot that does not reach home in time gets no move. `robot_stop` with
@@ -163,31 +198,18 @@ scene; full cards in [examples/reports/](examples/reports/), more in [docs/galle
 
 ## The Caduceus story
 
-Caduceus is Devran's own robot: a foam-board biped with four MG90S servos, two long arms and two short
-legs. Its simulation model was calibrated against videos of the real robot, sampling hundreds of
-parameter sets (geometry, foam softness, servo play, firmware timing) against what the clips show. That
-search found that the original firmware played moves about 2.5 times slower than its code suggests,
-because the servo library re-read a register on every write; the Talaria firmware writes the servo
-signal directly, so a move plays at the timing it was checked at. Details:
-[docs/calibration-caduceus.md](docs/calibration-caduceus.md).
+Caduceus is Devran's foam-board robot: an ESP32, a PCA9685 driver and four MG90S servos. Its model was calibrated against videos of the real robot, which also revealed the firmware's real servo speed. On the real robot, the gate held back a move the simulation predicted would tip it, and approved moves (a left-arm lift, a wave) played exactly as checked.
 
 ## Scope and assumptions
 
-- Robots are rigid bodies. Soft materials (foam, rubber feet) are approximated with soft contacts, not
-  simulated as deforming parts. Where that is not enough, a spec declares a limitation and the report
-  card shows those scenes as OUT OF MODEL SCOPE instead of scoring them (Caduceus's walk is one).
-- Servo loads are estimates: peak torque as a share of the datasheet stall torque, which is not a safe
-  continuous torque. Servo dynamics, gear play, latency and offsets are modelled simply and randomized
-  per world.
-- All results are simulation. Randomized worlds give a spread, not a guarantee about one real run.
-- Preflight screens one move at a time from the home pose; sequences are not screened as a whole (the
-  real robot returns home first, see above).
-- Out of scope today: learning new gaits, automatic sim-to-real calibration, physics from photos,
-  wheels and continuous-rotation servos, sensor feedback (IMU) policies, URDF/MJCF import.
+- Rigid-body approximation: foam, soft feet and cable drag are approximated; servo loads are estimates.
+- Results are probabilities across randomized worlds. A PASS lowers the risk; it is not a guarantee.
+- Tested on real hardware: on Caduceus, fast two-arm moves where an arm drags on the table can still tip the robot even when the simulation passes them, because arm-to-surface friction on soft foam is not modelled yet. Use slow moves and keep a hand nearby on first runs.
+- Walking gaits are outside the model's scope today.
 
 ## Security and privacy
 
-What Talaria Bench does on your machine and network:
+What Talaria Bench does on your machine and network (the disclosures the Hermes plugin catalog asks for):
 
 - **Files.** It writes only inside the plugin data folder Hermes gives it,
   `$HERMES_HOME/plugin-data/talaria-bench/` (outside Hermes: `~/.cache/talaria-bench/`): your robots and
@@ -209,8 +231,8 @@ What Talaria Bench does on your machine and network:
 - **Credentials.** The only credential is the optional robot token, stored and read through Hermes
   secrets (`TALARIA_ROBOT_TOKEN`). Your Wi-Fi password stays in the firmware's `secrets.h` on your
   machine and is never read by the plugin.
-- **No telemetry, no downloads, no shell commands.** Nothing is sent anywhere else, and the plugin never
-  updates itself.
+- **No third-party services, no telemetry, no downloads, no shell commands.** Nothing is sent anywhere
+  else, and the plugin never updates itself.
 
 ## Development
 
