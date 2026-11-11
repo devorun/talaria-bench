@@ -192,3 +192,27 @@ def test_compare_uses_the_same_worlds(spider):
     assert out["reports"]["base"]["settings"]["seed"] == out["reports"]["heavy"]["settings"]["seed"]
     assert "Design comparison" in compare.to_markdown(out)
     _ = mujoco  # imported so a missing mujoco fails here, not deep inside a worker
+
+
+def test_progress_file_survives_a_reader_holding_it(tmp_path, monkeypatch):
+    """On Windows os.replace fails while the dashboard has progress.json open: retry, then skip the update."""
+    target = tmp_path / "job" / "progress.json"
+    real_replace = bench.os.replace
+    calls = {"n": 0}
+
+    def busy_twice(src, dst):
+        calls["n"] += 1
+        if calls["n"] <= 2:
+            raise PermissionError(13, "Access is denied")
+        real_replace(src, dst)
+
+    monkeypatch.setattr(bench.os, "replace", busy_twice)
+    bench.write_progress(target, {"done": 1, "total": 4})
+    assert calls["n"] == 3 and target.read_text(encoding="utf-8") == "{\"done\": 1, \"total\": 4}"
+
+    def always_busy(src, dst):
+        raise PermissionError(13, "Access is denied")
+
+    monkeypatch.setattr(bench.os, "replace", always_busy)
+    bench.write_progress(target, {"done": 2, "total": 4})          # no exception: the update is skipped
+    assert target.read_text(encoding="utf-8") == "{\"done\": 1, \"total\": 4}"

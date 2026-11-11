@@ -74,6 +74,19 @@ def _cache_get(cache_dir: Optional[Path], key: str) -> Optional[dict]:
         return None
 
 
+def replace_quietly(tmp: Path, path: Path, tries: int = 5) -> bool:
+    """``os.replace`` for files other processes may be reading: on Windows a reader that has ``path`` open
+    makes the replace fail with PermissionError. Retry briefly; on failure leave ``path`` as it was and
+    return False (callers only write advisory files: progress and the result cache)."""
+    for attempt in range(tries):
+        try:
+            os.replace(tmp, path)
+            return True
+        except PermissionError:
+            time.sleep(0.02 * (attempt + 1))
+    return False
+
+
 def _cache_put(cache_dir: Optional[Path], key: str, job: dict) -> None:
     if cache_dir is None:
         return
@@ -81,7 +94,8 @@ def _cache_put(cache_dir: Optional[Path], key: str, job: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(f".{os.getpid()}.tmp")
     tmp.write_text(json.dumps(job), encoding="utf-8")
-    os.replace(tmp, path)
+    if not replace_quietly(tmp, path):
+        tmp.unlink(missing_ok=True)          # another process has the same result cached already
 
 
 def _init_worker(spec: Spec) -> None:
@@ -93,13 +107,15 @@ def _worker(task: tuple[str, int]) -> dict:
     return run_scene(_WORKER_SPEC, task[0], task[1])
 
 
-def _write_progress(path: Optional[Path], state: dict) -> None:
+def write_progress(path: Optional[Path | str], state: dict) -> None:
+    """Progress JSON for the dashboard. Best effort: an update the reader blocks is skipped, never fatal."""
     if path is None:
         return
+    path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(state), encoding="utf-8")
-    os.replace(tmp, path)
+    replace_quietly(tmp, path)
 
 
 # Official move worlds: the preflight's seeds (preflight.SEED_BASE) and world count (preflight.DEFAULT_WORLDS).
@@ -151,7 +167,7 @@ def run_benchmark(spec: Spec, scenes: Optional[list[str]] = None, worlds: int = 
     done = len(jobs)
     state = {"done": done, "total": total, "scene": None, "started": datetime.now(timezone.utc).isoformat(),
              "robot": spec.name, "finished": False}
-    _write_progress(pfile, state)
+    write_progress(pfile, state)
 
     def finished(task: tuple[str, int], job: dict) -> None:
         nonlocal done
@@ -162,7 +178,7 @@ def run_benchmark(spec: Spec, scenes: Optional[list[str]] = None, worlds: int = 
         if progress:
             progress(done, total, task[0])
         if done == total or done % 5 == 0:
-            _write_progress(pfile, state)
+            write_progress(pfile, state)
 
     n_workers = workers or default_workers()
     if todo and n_workers > 1 and len(todo) > 2:
@@ -192,7 +208,7 @@ def run_benchmark(spec: Spec, scenes: Optional[list[str]] = None, worlds: int = 
         for sid, js in by_scene.items():
             trace_out[sid] = _pick_traces(spec, sid, js)
     state.update(finished=True, done=total)
-    _write_progress(pfile, state)
+    write_progress(pfile, state)
     return {
         "format": RESULTS_FORMAT, "version": RESULTS_VERSION, "simulation": True,
         "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),

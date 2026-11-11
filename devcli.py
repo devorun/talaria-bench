@@ -223,13 +223,12 @@ def cmd_report(args) -> int:
 
 def _compare_progress(progress_file):
     """Progress lines on stderr and, when asked, the latest state as JSON in ``progress_file``."""
+    from talaria_bench.bench import write_progress
+
     def cb(name, done, total, scene):
         _bench_progress(f"{name}: ")(done, total, scene)
         if progress_file:
-            tmp = Path(progress_file).with_suffix(".tmp")
-            tmp.write_text(json.dumps({"variant": name, "done": done, "total": total, "scene": scene}),
-                           encoding="utf-8")
-            tmp.replace(progress_file)
+            write_progress(progress_file, {"variant": name, "done": done, "total": total, "scene": scene})
     return cb
 
 
