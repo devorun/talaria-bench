@@ -1,17 +1,23 @@
 """Real-robot safety: every play starts from the home pose, a real robot needs its token and matching
-firmware, the firmware command makes the token, schema limits equal the engine's, ignored arguments warn."""
+firmware, the firmware command makes the token, schema limits equal the engine's, ignored arguments warn,
+a real move needs a person's approval, approvals expire with the engine and the check's rules, the virtual
+robot takes JSON only, and a benchmark job gets none of Hermes's secrets."""
 
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
+import os
 import re
 import time
+from pathlib import Path
 
 import pytest
 
-from talaria_bench import bench, bridge, firmware, motion, preflight, schemas, tools as tools_mod
+from talaria_bench import bench, bridge, builder, firmware, jobs, motion, preflight, schemas, tools as tools_mod
 from talaria_bench.commands import cli_handler
+from talaria_bench.hooks import make_pre_tool_call
 from talaria_bench.runtime import Runtime
 from talaria_bench.tools import TalariaTools
 
@@ -316,3 +322,114 @@ def test_more_than_six_variants_warn(tools, monkeypatch):
     assert "only the first 6 of 8" in out["warnings"][0] and "v6, v7" in out["warnings"][0]
     few = call(tools, "bench_compare", {"robot": "spider8", "variants": variants[:2], "quick": True})
     assert "warnings" not in few
+
+
+# H: a person approves every real move --------------------------------------------------------------------
+
+
+def test_real_move_goes_to_hermes_approval(rt):
+    spec = rt.robot("caduceus")
+    approve(rt, "caduceus", spec.moves["wave"])
+    approve(rt, "caduceus", POSE)
+    rt.overrides["robot_url"] = "http://192.168.1.8"
+    hook = make_pre_tool_call(rt)
+    for target in (None, "virtual"):
+        assert hook(tool_name="robot_play", args={"robot": "caduceus", "move": "wave", "target": target}) is None
+    out = hook(tool_name="robot_play", args={"robot": "caduceus", "move": "wave", "target": "real"})
+    assert out["action"] == "approve" and "REAL robot: caduceus / wave" in out["message"]
+    assert "http://192.168.1.8" in out["message"] and "0 of 60 worlds tipped" in out["message"]
+    assert out["rule_key"] == "talaria-bench:real:caduceus:" + preflight.approval_key(spec, spec.moves["wave"])[:16]
+    pose = hook(tool_name="robot_pose", args={"robot": "caduceus", "joints": {"left_arm": 40}, "target": "real"})
+    assert pose["action"] == "approve" and "caduceus pose left_arm=40" in pose["message"]
+    assert pose["rule_key"] != out["rule_key"]                     # an answer covers one exact move only
+    odd = hook(tool_name="robot_play", args={"robot": "caduceus", "move": "wave", "target": "Real"})
+    assert odd["action"] == "approve"                              # anything but virtual counts as real
+    blocked = hook(tool_name="robot_play", args={"robot": "caduceus", "move": "arms_up_both", "target": "real"})
+    assert blocked["action"] == "block"                            # no passing preflight: nothing to approve
+
+
+def test_approval_key_expires_with_the_engine_and_the_rules(rt):
+    spec = rt.robot("caduceus")
+    move = spec.moves["wave"]
+    key = preflight.approval_key(spec, move)
+    changes = [(builder, "MODEL_VERSION", builder.MODEL_VERSION + 1), (preflight, "DEFAULT_WORLDS", 100),
+               (preflight, "QUICK_WORLDS", 20), (preflight, "MIN_DECIDE_WORLDS", 40), (preflight, "SEED_BASE", 6000),
+               (preflight, "MAX_TIP_UPPER", 0.2), (preflight, "MAX_LOAD", 0.95)]
+    for module, name, value in changes:
+        with pytest.MonkeyPatch.context() as m:
+            m.setattr(module, name, value)
+            assert preflight.approval_key(spec, move) != key, name
+    assert preflight.approval_key(spec, move) == key
+    approve(rt, "caduceus", move)
+    hook = make_pre_tool_call(rt)
+    assert hook(tool_name="robot_play", args={"robot": "caduceus", "move": "wave"}) is None
+    with pytest.MonkeyPatch.context() as m:
+        m.setattr(builder, "MODEL_VERSION", builder.MODEL_VERSION + 1)       # a new engine: check again
+        out = hook(tool_name="robot_play", args={"robot": "caduceus", "move": "wave"})
+        assert out["action"] == "block" and "no preflight for this exact move" in out["message"]
+
+
+# I: the virtual robot takes JSON only --------------------------------------------------------------------
+
+
+def _raw_post(server, path, body, content_type):
+    host, port = server.server_address[:2]
+    conn = http.client.HTTPConnection(host, port, timeout=3)
+    headers = {"Content-Type": content_type} if content_type else {}
+    try:
+        conn.request("POST", path, body=body, headers=headers)
+        resp = conn.getresponse()
+        return resp.status, json.loads(resp.read() or b"{}")
+    finally:
+        conn.close()
+
+
+def test_virtual_robot_refuses_posts_that_are_not_json(rt):
+    server = bridge.start_virtual(rt.robot("caduceus"))
+    body = json.dumps({"joints": {"left_arm": 40}, "ms": 400}).encode()
+    try:
+        for content_type in (None, "text/plain", "application/x-www-form-urlencoded",
+                             "multipart/form-data; boundary=x"):
+            status, data = _raw_post(server, "/pose", body, content_type)
+            assert status == 415 and data["ok"] is False, content_type
+        assert server.robot.state()["busy"] is False                 # nothing moved
+        assert _raw_post(server, "/pose", body, "application/json; charset=utf-8") == (200, {"ok": True})
+        assert bridge.RobotClient(server.url).stop()["ok"]              # the plugin's own client sends JSON
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+# J: a benchmark job gets none of Hermes's secrets --------------------------------------------------------
+
+
+def test_job_env_is_an_allowlist():
+    env = {"PATH": "/bin", "HOME": "/h", "USERPROFILE": "/h", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8",
+           "TMPDIR": "/t", "TEMP": "/t", "TMP": "/t", "TALARIA_MP_START": "spawn", "PYTHONUTF8": "1",
+           "PYTHONIOENCODING": "utf-8", "MUJOCO_GL": "egl", "SYSTEMROOT": "C:\\Windows",
+           "OPENAI_API_KEY": "sk-x", "ANTHROPIC_API_KEY": "x", "TELEGRAM_BOT_TOKEN": "x", "GITHUB_TOKEN": "x",
+           "TALARIA_ROBOT_TOKEN": "x", "HERMES_HOME": "/hh", "PYTHONHOME": "/py", "LD_PRELOAD": "x.so"}
+    kept = set(jobs.job_env(env))
+    expected = {"PATH", "HOME", "USERPROFILE", "LANG", "LC_ALL", "TMPDIR", "TEMP", "TMP", "TALARIA_MP_START",
+                "PYTHONUTF8", "PYTHONIOENCODING", "MUJOCO_GL"}
+    assert kept == expected | ({"SYSTEMROOT"} if os.name == "nt" else set())
+
+
+def test_job_subprocess_gets_no_api_keys(rt, tools, tmp_path, monkeypatch):
+    monkeypatch.setenv("TALARIA_FAKE_API_KEY", "sk-fake-talaria-0000")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-fake-0000")
+    dump = tmp_path / "dump_env.py"                  # stands in for devcli.py: writes its environment to --out
+    dump.write_text("import json, os, sys\n"
+                    "out = sys.argv[sys.argv.index('--out') + 1]\n"
+                    "with open(out, 'w', encoding='utf-8') as f:\n"
+                    "    json.dump(dict(os.environ), f)\n", encoding="utf-8")
+    monkeypatch.setattr(jobs, "DEVCLI", dump)
+    started = call(tools, "bench_run", {"robot": "arm6", "quick": True})
+    assert tools.jobs._procs[started["job_id"]].wait(timeout=60) == 0
+    env = json.loads(Path(tools.jobs.job(started["job_id"])["out"]).read_text(encoding="utf-8"))
+    names = {k.upper() for k in env}
+    assert not [n for n in names if n.endswith("_API_KEY")]
+    assert "sk-fake-talaria-0000" not in env.values() and "sk-or-fake-0000" not in env.values()
+    assert "HERMES_HOME" not in names                                # set for every test by conftest
+    assert {"PATH", "PYTHONPATH", "TALARIA_CACHE"} <= names
+    assert env[next(k for k in env if k.upper() == "TALARIA_CACHE")] == str(rt.folder("cache"))

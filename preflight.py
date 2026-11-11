@@ -4,7 +4,8 @@
 probability with a 95% Wilson interval, peak servo load estimates per joint, collisions, speed-limit
 stretches and a verdict. A passing check writes an approval record keyed by
 ``approval_key(spec, move, speed)``: a hash of the robot's physics, its firmware/hardware mapping, the
-exact move content and the playback speed. Change any of them and the approval no longer applies.
+exact move content, the playback speed, the model builder's version and the check's own rules (``policy()``).
+Change any of them and the approval no longer applies.
 
 This is risk screening in simulation, not a safety guarantee. Servo loads are estimates against
 datasheet stall torque.
@@ -21,6 +22,7 @@ from typing import Any, Optional
 
 import numpy as np
 
+from . import builder
 from .motion import MoveError, check_move
 from .simrun import run_move
 from .spec import Spec
@@ -31,6 +33,8 @@ QUICK_WORLDS = 30
 BATCH = 10
 MIN_DECIDE_WORLDS = 30          # never BLOCK on fewer worlds than this
 SEED_BASE = 5000
+MAX_TIP_UPPER = 0.10            # PASS needs the 95% upper bound of the tip chance at or below this
+MAX_LOAD = 0.90                 # and every joint's servo load (90th percentile) at or below this share of stall
 MOVE_KEYS = ("frames", "loops", "easing", "repeat")
 
 
@@ -74,9 +78,17 @@ def canonical_move(move: dict[str, Any]) -> dict[str, Any]:
     return _norm(out)
 
 
+def policy() -> dict[str, Any]:
+    """What a verdict depends on besides the robot and the move: the model builder's version and the check's
+    rules (worlds, seeds, thresholds). Read at call time, so a new engine or a changed rule retires old approvals."""
+    return {"model": builder.MODEL_VERSION, "worlds": DEFAULT_WORLDS, "quick_worlds": QUICK_WORLDS,
+            "min_decide_worlds": MIN_DECIDE_WORLDS, "seed": SEED_BASE,
+            "max_tip_upper": MAX_TIP_UPPER, "max_load": MAX_LOAD}
+
+
 def approval_key(spec: Spec, move: dict[str, Any], speed: float = 1.0) -> str:
     blob = json.dumps({"physics": spec.hash(), "hardware": spec.hardware_mapping(),
-                       "move": canonical_move(move), "speed": round(float(speed), 4)},
+                       "move": canonical_move(move), "speed": round(float(speed), 4), "policy": policy()},
                       sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
@@ -119,7 +131,7 @@ def _pct(x: float) -> str:
 
 
 def check(spec: Spec, name: str, move: dict[str, Any], speed: float = 1.0, worlds: int = DEFAULT_WORLDS,
-          seed: int = SEED_BASE, max_tip_upper: float = 0.10, max_load: float = 0.90,
+          seed: int = SEED_BASE, max_tip_upper: float = MAX_TIP_UPPER, max_load: float = MAX_LOAD,
           adaptive: bool = True) -> dict[str, Any]:
     """Screen ``move`` in randomized worlds (flat ground). Returns a JSON-able result.
 

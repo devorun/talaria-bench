@@ -185,6 +185,15 @@ before every move. Together they lower the risk; none of them is a guarantee (se
   `plugins.entries.talaria-bench.settings`): `robot_url` (for example `http://192.168.1.8`),
   `real_robot` (which spec the robot is), `robot_token` (a Hermes secret, `TALARIA_ROBOT_TOKEN`),
   `timeout_s`, `check_worlds`.
+- **A person approves every real move.** A preflight is a simulation check, not consent. When the agent
+  calls `robot_play` or `robot_pose` with `target: real` and the move passed its preflight, Hermes shows
+  its approval prompt (in the terminal, or as an approval card on a messaging platform) and the move waits
+  for your answer; a denial or no answer blocks it. Cron jobs, `hermes chat -q` and other unattended runs
+  refuse real moves (Hermes's `approvals.cron_mode` / `single_query_mode` / `unattended_mode`, `deny` by
+  default). A "session" or "always" answer covers only that exact checked move on that robot. Hermes's
+  own `/yolo` and `approvals.mode: off` skip this prompt, as they skip every approval. `/talaria play
+  --real`, `hermes talaria play --real` and the Move check page's "Play on real robot" button are typed or
+  clicked by you, so they are the confirmation.
 - **What the plugin checks before a real move.** The robot must report the same robot name and joints
   as the checked spec and the same spec hash in its firmware; a robot without a token is refused. Both
   refusals can be turned off explicitly (`allow_firmware_mismatch`, `allow_unauthenticated_robot`, both
@@ -216,6 +225,12 @@ Caduceus is Devran's foam-board robot: an ESP32, a PCA9685 driver and four MG90S
 What Talaria Bench does on your machine and network (the disclosures the Hermes plugin catalog asks for):
 
 - **Robot motion.** Talaria gates robot_play and robot_pose with exact-motion preflight checks. The automatic return to home, before a move and on robot_stop, is speed-limited (at least 3 s) but not simulated on its own.
+- **Approval of real moves.** An agent's `robot_play` / `robot_pose` on the real robot goes through Hermes's
+  approval prompt after its preflight passes, and is refused in cron and other unattended runs (see
+  [Real hardware](#real-hardware)). `robot_stop`, including its slow return home, is never held back.
+- **Preflight approvals expire.** A stored approval is tied to the robot spec, its hardware mapping, the
+  exact move and speed, the model builder's version and the preflight's rules (world count, seeds, tip and
+  load thresholds). An update that changes any of them needs a new `move_check` before a move plays.
 - **Files.** It writes only inside the plugin data folder Hermes gives it,
   `$HERMES_HOME/plugin-data/talaria-bench/` (outside Hermes: `~/.cache/talaria-bench/`): your robots and
   their photos, saved moves, preflight approvals, benchmark jobs (command, log, progress), reports and
@@ -226,10 +241,17 @@ What Talaria Bench does on your machine and network (the disclosures the Hermes 
   folder. It reads no other files of yours.
 - **Background processes.** Benchmarks and design comparisons run as background Python subprocesses of
   the plugin's own `devcli.py`, each with a worker pool of up to N-1 CPU cores (at most 8). At most two
-  jobs run at once, each limited to 10-200 worlds per scene.
+  jobs run at once, each limited to 10-200 worlds per scene. A job's environment is built from an
+  allowlist, not copied from Hermes: `PATH`, `HOME`, `USERPROFILE`, `LANG`, `LC_*`, `TMPDIR`, `TEMP`, `TMP`,
+  `SYSTEMROOT` (Windows only), `TALARIA_MP_START`, `PYTHONUTF8` and `PYTHONIOENCODING` (Hermes runs Python
+  in UTF-8 mode and the job log is read as UTF-8), `MUJOCO_GL` (MuJoCo reads it on import), plus the
+  `PYTHONPATH` and `TALARIA_CACHE` the plugin sets. Provider API keys and other secrets in the Hermes
+  environment never reach a job or its workers.
 - **Local servers.** Playing on the virtual robot starts a small HTTP server on `127.0.0.1` on a random
   port, in the Hermes process, with no token (only local programs can reach it). `hermes talaria sim`
-  listens on `127.0.0.1:8765` unless you pass `--host`.
+  listens on `127.0.0.1:8765` unless you pass `--host`. The virtual robot accepts a POST only with
+  `Content-Type: application/json` (anything else gets 415), so a web page cannot drive it with a blind
+  form or `text/plain` request.
 - **Network.** Plain HTTP requests (bypassing HTTP proxies, since the robot is on your local network) go
   only to the `robot_url` you set, and only for `target: real`. The robot token travels unencrypted on
   your LAN. The firmware joins your Wi-Fi, serves HTTP on port 80 and announces itself over mDNS.

@@ -28,6 +28,24 @@ MIN_WORLDS, MAX_WORLDS = 10, 200      # per scene, as in the tool schemas
 MAX_RUNNING = 2                       # each job already uses every core but one
 _JOB_ID_RE = re.compile(r"^\d{8}-\d{6}-[0-9a-f]{6}$")
 
+# A job's environment is built from this allowlist, never copied from Hermes: the Hermes process holds the
+# provider API keys and other secrets, and a benchmark needs none of them.
+ENV_ALLOW = (
+    "PATH", "HOME", "USERPROFILE", "LANG", "TMPDIR", "TEMP", "TMP", "TALARIA_MP_START",
+    "PYTHONUTF8", "PYTHONIOENCODING",  # Hermes runs Python in UTF-8 mode; the job's log is read back as UTF-8
+    "MUJOCO_GL",                       # MuJoCo reads its display backend when it is imported (headless setups)
+)
+ENV_ALLOW_PREFIXES = ("LC_",)
+ENV_ALLOW_WINDOWS = ("SYSTEMROOT",)    # Python on Windows needs it (sockets, the system's crypto and DLLs)
+
+
+def job_env(environ: Optional[dict[str, str]] = None) -> dict[str, str]:
+    """The allowlisted part of ``environ`` (default: this process's environment)."""
+    source = os.environ if environ is None else environ
+    names = set(ENV_ALLOW) | (set(ENV_ALLOW_WINDOWS) if os.name == "nt" else set())
+    return {k: v for k, v in source.items()
+            if k.upper() in names or k.upper().startswith(ENV_ALLOW_PREFIXES)}
+
 
 class JobManager:
     def __init__(self, runtime: Runtime):
@@ -56,11 +74,10 @@ class JobManager:
         return resolve_scenes(scenes, spec)      # KeyError for anything else, including option-like strings
 
     def _env(self) -> dict[str, str]:
-        env = dict(os.environ)
+        env = job_env()
         # Hermes adds its package folders to sys.path at start-up; hand them to the child explicitly.
         env["PYTHONPATH"] = os.pathsep.join(p for p in sys.path if p and Path(p).exists())
         env["TALARIA_CACHE"] = str(self.rt.folder("cache"))
-        env.pop("PYTHONHOME", None)
         return env
 
     def _start(self, kind: str, robot: str, args: list[str], meta: dict[str, Any]) -> dict[str, Any]:

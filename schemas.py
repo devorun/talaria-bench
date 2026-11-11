@@ -7,7 +7,8 @@ from .motion import MAX_FRAME_MS, MAX_LOOPS, MAX_SPEED_FACTOR, MIN_FRAME_MS, MIN
 ROBOT = {"type": "string", "description": "Robot name, as listed by robot_list (e.g. caduceus, spider8)."}
 TARGET = {"type": "string", "enum": ["virtual", "real"],
           "description": "virtual = a simulated robot on this computer (default); real = the robot at the robot_url "
-                         "setting. Use real only when the user asks for the real robot."}
+                         "setting, after the user approves that move in Hermes's approval prompt. Use real only when "
+                         "the user asks for the real robot."}
 FRAMES = {"type": "array", "description": "Keyframes in order. Each frame: {\"ms\": travel time, \"hold\": optional "
                                           "pause in ms, \"joints\": {joint name: angle in degrees}}. Joints left out "
                                           "keep their angle. Angles are degrees from the home pose and mean the same "

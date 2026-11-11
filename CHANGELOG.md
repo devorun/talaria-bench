@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.0.1 (2026-11-12)
+
+Security fixes from the Hermes plugin catalog review. Physics, scenes and results are unchanged (Caduceus
+preflight: `arms_up_both` tips in 25 of 60 worlds, `wave` in 0 of 60).
+
+- Benchmark and comparison jobs start from an allowlisted environment (`PATH`, `HOME`, `USERPROFILE`,
+  `LANG`, `LC_*`, `TMPDIR`, `TEMP`, `TMP`, `SYSTEMROOT` on Windows, `TALARIA_MP_START`, `PYTHONUTF8`,
+  `PYTHONIOENCODING`, `MUJOCO_GL`, plus `PYTHONPATH` and `TALARIA_CACHE`) instead of a copy of the Hermes
+  environment, so provider API keys and other secrets no longer reach the job subprocess or its workers.
+- A person approves every real move: an agent's `robot_play` / `robot_pose` with `target: real` that passed
+  its preflight goes to Hermes's approval prompt (a `pre_tool_call` `approve` directive). Cron, single-query
+  and other unattended runs refuse it unless the owner set Hermes's `approvals.*_mode` to `approve`.
+- The virtual robot refuses a POST that is not `Content-Type: application/json` (415), so a web page cannot
+  drive it blind. It now reads the request body before any refusal, so the refusal is not lost to a reset.
+- A preflight approval also depends on the model builder's version and the preflight's rules (world counts,
+  seeds, tip and load thresholds), so a new engine or a changed rule retires old approvals. Approvals made
+  with 1.0.0 no longer apply: run `move_check` again before playing.
+
 ## 1.0.0 (2026-11-11)
 
 First public release.

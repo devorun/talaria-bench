@@ -4,6 +4,14 @@ Every other tool passes through untouched.
 
 The same check runs inside the robot_play / robot_pose handlers too, so ``/talaria play`` and
 ``hermes talaria play`` (which do not go through the model's tool loop) are gated the same way.
+
+A preflight is a simulation check, not consent. A call that passes it and would move the real robot
+(``target`` other than ``virtual``) is handed to Hermes's human-approval gate with ``{"action": "approve"}``:
+Hermes asks the person (the CLI prompt, or the approval card on a messaging platform) and fails closed when
+nobody answers, and under cron, single-query and other unattended runs it refuses unless the owner set
+``approvals.<context>_mode: approve``. A "session" or "always" answer covers only that exact checked move on that
+robot. ``/talaria play --real``, ``hermes talaria play --real`` and the UI's "Play on real robot" button are
+typed or clicked by the person, so they are the confirmation themselves.
 """
 
 from __future__ import annotations
@@ -88,12 +96,37 @@ def _blocked_text(spec, name: str, move: dict[str, Any], speed: float, tool_name
     return msg
 
 
+def moves_real_robot(args: dict[str, Any]) -> bool:
+    """Anything but the virtual robot counts as real (an unknown target is refused later by the handler)."""
+    return (args.get("target") or "virtual") != "virtual"
+
+
+def real_move_approval(rt: Runtime, tool_name: str, resolved) -> dict[str, Any]:
+    """The ``approve`` directive for a checked move on the real robot: Hermes asks a person before it runs."""
+    spec, name, move, speed = resolved
+    key = preflight.approval_key(spec, move, speed)
+    record = preflight.ApprovalStore(rt.folder("approvals")).get(key) or {}
+    if tool_name == "robot_pose":
+        what = f"{spec.name} pose " + ", ".join(f"{j}={a}" for j, a in move["frames"][0]["joints"].items())
+    else:
+        what = f"{spec.name} / {name}" + (f" at speed {speed:g}" if speed != 1.0 else "")
+    where = str(rt.setting("robot_url") or "the robot_url address")
+    tips = (record.get("tip") or {}).get("falls", "?")
+    message = (f"Talaria Bench wants to move the REAL robot: {what}, at {where}. It first eases back to its home "
+               f"pose (at least 3 s), then plays. The simulated preflight passed ({tips} of {record.get('worlds', '?')} "
+               "worlds tipped); that is a simulation check, not a guarantee.")
+    return {"action": "approve", "message": message, "rule_key": f"talaria-bench:real:{spec.name}:{key[:16]}"}
+
+
 def make_pre_tool_call(rt: Runtime):
     def on_pre_tool_call(tool_name: str = "", args: Optional[dict[str, Any]] = None, **kwargs: Any):
         if tool_name not in GATED:
             return None
+        args = args or {}
         try:
-            reason = block_reason(rt, tool_name, args or {})
+            reason, resolved = gate(rt, tool_name, args)
+            if reason is None and moves_real_robot(args):
+                return real_move_approval(rt, tool_name, resolved)
         except Exception as exc:   # never let a hook bug turn into an allowed move
             logger.exception("talaria-bench: preflight gate failed")
             reason = f"Blocked: the preflight gate could not check this call ({exc})."

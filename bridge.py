@@ -3,6 +3,8 @@
 
   GET /info   GET /state   POST /play {name, loops, easing, frames}   POST /pose {joints, ms}   POST /stop {home}
 
+POST bodies are JSON objects sent as ``Content-Type: application/json``; the virtual robot refuses anything else (415).
+
 The virtual robot runs the plugin's own motion engine (same easing and speed rules as the simulator
 and the firmware) on a local HTTP server, so the whole bridge path is testable without hardware.
 """
@@ -182,6 +184,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(raw)))
+        if self.close_connection:
+            self.send_header("Connection", "close")
         self.end_headers()
         self.wfile.write(raw)
 
@@ -191,12 +195,24 @@ class _Handler(BaseHTTPRequestHandler):
             return True
         return hmac.compare_digest(self.headers.get(TOKEN_HEADER, "").encode(), token.encode())
 
-    def _json_body(self) -> Optional[dict[str, Any]]:
-        length = int(self.headers.get("Content-Length") or 0)
-        if length > MAX_BODY_BYTES:
+    def _read_body(self) -> Optional[bytes]:
+        """The request body, read before any check so a refusal's reply is not lost to a reset connection.
+        None when it is over MAX_BODY_BYTES or its length is not valid: left unread, connection closed."""
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = -1
+        if not 0 <= length <= MAX_BODY_BYTES:
+            self.close_connection = True
+            return None
+        return self.rfile.read(length)
+
+    @staticmethod
+    def _json_object(raw: Optional[bytes]) -> Optional[dict[str, Any]]:
+        if raw is None:
             return None
         try:
-            data = json.loads(self.rfile.read(length) or b"{}")
+            data = json.loads(raw or b"{}")
         except ValueError:
             return None
         return data if isinstance(data, dict) else None
@@ -212,9 +228,14 @@ class _Handler(BaseHTTPRequestHandler):
         return self._send(404, {"ok": False, "error": "not found"})
 
     def do_POST(self) -> None:  # noqa: N802
+        raw = self._read_body()
+        # A web page can POST text/plain or a form to localhost without a CORS preflight; it cannot send
+        # application/json that way, so requiring it keeps pages from driving the virtual robot blind.
+        if self.headers.get_content_type() != "application/json":
+            return self._send(415, {"ok": False, "error": "Content-Type must be application/json"})
         if not self._authorized():
             return self._send(401, {"ok": False, "error": "unauthorized"})
-        data = self._json_body()
+        data = self._json_object(raw)
         if data is None:
             return self._send(400, {"ok": False, "error": "body must be a JSON object under 64 KB"})
         robot = self.server.robot
