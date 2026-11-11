@@ -325,6 +325,8 @@ var STYLES = `
 .tb-thumb .tb-badge { position: absolute; right: 10px; top: 10px; }
 
 
+.tb-custom-pose { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--tb-line); }
+
 /* Arena */
 .tb-tab-feature { color: var(--tb-accent-ink); font-weight: 650; }
 .tb-tab-feature::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px;
@@ -25301,10 +25303,27 @@ function Interval({ tip, limit }) {
     }
   );
 }
-function Result({ res, robot, move, speed }) {
+var CUSTOM = "__custom__";
+function customFrames(c, joints) {
+  const to = {};
+  const back = {};
+  for (const j of joints) {
+    const v = Number(c.angles[j.name] || 0);
+    if (v) {
+      to[j.name] = v;
+      back[j.name] = j.home;
+    }
+  }
+  return Object.keys(to).length ? [{ ms: c.ms, hold: c.hold, joints: to }, { ms: c.ms, joints: back }] : null;
+}
+function customLabel(c, joints) {
+  const bits = joints.filter((j) => Number(c.angles[j.name] || 0)).map((j) => `${j.name} ${Number(c.angles[j.name])}°`);
+  return `custom pose: ${bits.join(", ")}`;
+}
+function Result({ res, robot, move, speed, payload, label }) {
   const v = VERDICT[res.verdict] || VERDICT.inconclusive;
   const seed = res.tip_seeds && res.tip_seeds.length ? res.tip_seeds[0] : null;
-  const [trace, tl] = useTrace({ robot, move, speed, seed: seed ?? void 0 });
+  const [trace, tl] = useTrace({ robot, ...payload, speed, seed: seed ?? void 0 });
   const tr = trace && trace.ok ? trace.trace : null;
   const player = usePlayer(traceDuration(tr));
   const [play, setPlay] = useState7(null);
@@ -25314,7 +25333,7 @@ function Result({ res, robot, move, speed }) {
   const loaded = joints.filter(([, l]) => l.peak_pct_p90 >= LOAD_LIMIT);
   const doPlay = async (target) => {
     setBusy(target);
-    setPlay(await api("/play", { method: "POST", body: { robot, move, speed, target } }));
+    setPlay(await api("/play", { method: "POST", body: { robot, ...payload, speed, target } }));
     setBusy(null);
   };
   return /* @__PURE__ */ jsxs7(Fragment3, { children: [
@@ -25324,7 +25343,7 @@ function Result({ res, robot, move, speed }) {
         /* @__PURE__ */ jsxs7("div", { className: "tb-verdict-title", children: [
           robot,
           " / ",
-          move,
+          label || move,
           speed !== 1 ? ` at speed ${speed}` : ""
         ] }),
         /* @__PURE__ */ jsx7("div", { children: v.line }),
@@ -25445,7 +25464,7 @@ function Result({ res, robot, move, speed }) {
           ] }),
           play ? play.ok ? /* @__PURE__ */ jsxs7("div", { className: "tb-callout tb-tone-green", children: [
             "Playing ",
-            play.move,
+            label || play.move,
             " on the ",
             play.target,
             " robot (",
@@ -25464,6 +25483,9 @@ function Result({ res, robot, move, speed }) {
 }
 function CheckPage({ robot, initialMove }) {
   const [moves] = useApi(robot ? `/robots/${robot}/moves` : null);
+  const [detail] = useApi(robot ? `/robots/${robot}` : null);
+  const joints = detail && detail.ok ? detail.joints : [];
+  const [custom, setCustom] = useState7({ angles: {}, ms: 800, hold: 1e3 });
   const [move, setMove] = useState7(initialMove || "");
   const [speed, setSpeed] = useState7(1);
   const [quick, setQuick] = useState7(false);
@@ -25472,15 +25494,19 @@ function CheckPage({ robot, initialMove }) {
   useEffect7(() => {
     setRes(null);
     setMove(initialMove || "");
+    setCustom({ angles: {}, ms: 800, hold: 1e3 });
   }, [robot, initialMove]);
   const list = moves && moves.ok ? moves.moves : [];
   useEffect7(() => {
     if (!move && list.length) setMove(list[0].name);
   }, [list.length]);
+  const frames = move === CUSTOM ? customFrames(custom, joints) : null;
+  const payload = move === CUSTOM ? { frames } : { move };
+  const label = move === CUSTOM ? customLabel(custom, joints) : null;
   const run = async () => {
     setBusy(true);
     setRes(null);
-    setRes(await api("/check", { method: "POST", body: { robot, move, speed, quick } }));
+    setRes(await api("/check", { method: "POST", body: { robot, ...payload, speed, quick } }));
     setBusy(false);
   };
   return /* @__PURE__ */ jsxs7("div", { className: "tb-page", children: [
@@ -25492,10 +25518,13 @@ function CheckPage({ robot, initialMove }) {
       /* @__PURE__ */ jsxs7("div", { className: "tb-row tb-gap tb-wrap tb-end", children: [
         /* @__PURE__ */ jsxs7("label", { className: "tb-field", children: [
           "Move",
-          /* @__PURE__ */ jsx7("select", { className: "tb-select", value: move, onChange: (e) => {
+          /* @__PURE__ */ jsxs7("select", { className: "tb-select", value: move, onChange: (e) => {
             setMove(e.target.value);
             setRes(null);
-          }, children: list.map((m) => /* @__PURE__ */ jsx7("option", { value: m.name, children: m.name }, m.name)) })
+          }, children: [
+            list.map((m) => /* @__PURE__ */ jsx7("option", { value: m.name, children: m.name }, m.name)),
+            joints.length ? /* @__PURE__ */ jsx7("option", { value: CUSTOM, children: "custom pose…" }) : null
+          ] })
         ] }),
         /* @__PURE__ */ jsxs7("label", { className: "tb-field", children: [
           "Speed ",
@@ -25520,16 +25549,81 @@ function CheckPage({ robot, initialMove }) {
           /* @__PURE__ */ jsx7("input", { type: "checkbox", checked: quick, onChange: (e) => setQuick(e.target.checked) }),
           " quick (30 worlds; clean moves extend to 60)"
         ] }),
-        /* @__PURE__ */ jsx7(Button, { kind: "primary", busy, disabled: !move, onClick: run, children: "Run preflight" })
+        /* @__PURE__ */ jsx7(Button, { kind: "primary", busy, disabled: !move || move === CUSTOM && !frames, onClick: run, children: "Run preflight" })
       ] }),
+      move === CUSTOM ? /* @__PURE__ */ jsxs7("div", { className: "tb-custom-pose", children: [
+        /* @__PURE__ */ jsx7("p", { className: "tb-small tb-muted", children: "Go to this pose, hold it, and come back to home. Angles in degrees from home; positive swings the part forward." }),
+        /* @__PURE__ */ jsxs7("div", { className: "tb-row tb-gap tb-wrap", children: [
+          joints.map((j) => /* @__PURE__ */ jsxs7("label", { className: "tb-field", children: [
+            j.name,
+            " ",
+            /* @__PURE__ */ jsxs7("span", { className: "tb-muted tb-small", children: [
+              "(",
+              j.min,
+              "…",
+              j.max,
+              ")"
+            ] }),
+            /* @__PURE__ */ jsx7(
+              "input",
+              {
+                className: "tb-input tb-input-xs",
+                type: "number",
+                step: "5",
+                min: j.min,
+                max: j.max,
+                value: custom.angles[j.name] ?? 0,
+                onChange: (e) => {
+                  setCustom({ ...custom, angles: { ...custom.angles, [j.name]: e.target.value } });
+                  setRes(null);
+                }
+              }
+            )
+          ] }, j.name)),
+          /* @__PURE__ */ jsxs7("label", { className: "tb-field", children: [
+            "reach it in (ms)",
+            /* @__PURE__ */ jsx7(
+              "input",
+              {
+                className: "tb-input tb-input-xs",
+                type: "number",
+                step: "100",
+                min: "100",
+                value: custom.ms,
+                onChange: (e) => {
+                  setCustom({ ...custom, ms: Number(e.target.value) });
+                  setRes(null);
+                }
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxs7("label", { className: "tb-field", children: [
+            "hold (ms)",
+            /* @__PURE__ */ jsx7(
+              "input",
+              {
+                className: "tb-input tb-input-xs",
+                type: "number",
+                step: "100",
+                min: "0",
+                value: custom.hold,
+                onChange: (e) => {
+                  setCustom({ ...custom, hold: Number(e.target.value) });
+                  setRes(null);
+                }
+              }
+            )
+          ] })
+        ] })
+      ] }) : null,
       busy ? /* @__PURE__ */ jsxs7("p", { className: "tb-muted", children: [
         /* @__PURE__ */ jsx7("span", { className: "tb-spinner" }),
         " simulating ",
-        move,
+        label || move,
         " in randomized worlds…"
       ] }) : null
     ] }),
-    res && res.ok ? /* @__PURE__ */ jsx7(Result, { res, robot, move, speed }, `${move}-${speed}-${res.worlds}`) : /* @__PURE__ */ jsx7(ErrorBox, { data: res })
+    res && res.ok ? /* @__PURE__ */ jsx7(Result, { res, robot, move, speed, payload, label }, `${label || move}-${speed}-${res.worlds}`) : /* @__PURE__ */ jsx7(ErrorBox, { data: res })
   ] });
 }
 
@@ -25813,10 +25907,8 @@ function ArenaPage({ robot }) {
   const name = variantName(knobs);
   const running = job && (job.status === "running" || job.status === "starting");
   const simulate = () => {
-    const body = { robot, scenes: [scene], quick: true };
     setRun({ robot, scene, hasVariant, name });
-    if (hasVariant) start("/compare", { ...body, variants: [{ name, set }] });
-    else start("/bench", body);
+    start("/compare", { robot, scenes: [scene], quick: true, variants: [hasVariant ? { name, set } : { name: "same", set: { "@scale": 1 } }] });
   };
   const done = job && job.status === "done" && run && run.robot === robot && job.result;
   let view = null;
@@ -25826,15 +25918,11 @@ function ArenaPage({ robot }) {
     const labels = { base: detail.title, [run.name || "x"]: run.name ? `${detail.title} · ${run.name}` : "" };
     const cards = {};
     const outcomes = {};
-    if (run.hasVariant) {
-      for (const n of names) {
-        cards[n] = (res.reports && res.reports[n] && res.reports[n].scenes || []).find((c) => c.id === run.scene);
-      }
-      const row = (res.rows || []).find((r) => r.scene === run.scene);
-      Object.assign(outcomes, row ? row.outcomes : {});
-    } else {
-      cards.base = (res.scenes || []).find((c) => c.id === run.scene);
+    for (const n of names) {
+      cards[n] = (res.reports && res.reports[n] && res.reports[n].scenes || []).find((c) => c.id === run.scene);
     }
+    const row = (res.rows || []).find((r) => r.scene === run.scene);
+    Object.assign(outcomes, row ? row.outcomes : {});
     view = { names, labels, cards, result: { cards, outcomes } };
   }
   return /* @__PURE__ */ jsxs8("div", { className: "tb-page", children: [

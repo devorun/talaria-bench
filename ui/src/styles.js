@@ -318,6 +318,8 @@ export const STYLES = `
 .tb-thumb .tb-badge { position: absolute; right: 10px; top: 10px; }
 
 
+.tb-custom-pose { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--tb-line); }
+
 /* Arena */
 .tb-tab-feature { color: var(--tb-accent-ink); font-weight: 650; }
 .tb-tab-feature::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px;

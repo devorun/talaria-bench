@@ -165,10 +165,10 @@ export function ArenaPage({ robot }) {
   const name = variantName(knobs)
   const running = job && (job.status === 'running' || job.status === 'starting')
   const simulate = () => {
-    const body = { robot, scenes: [scene], quick: true }
+    // One robot alone is a compare with an unchanged copy (shown once): a /bench run would be saved as the robot's
+    // newest report and replace its full report card with this one scene.
     setRun({ robot, scene, hasVariant, name })
-    if (hasVariant) start('/compare', { ...body, variants: [{ name, set }] })
-    else start('/bench', body)
+    start('/compare', { robot, scenes: [scene], quick: true, variants: [hasVariant ? { name, set } : { name: 'same', set: { '@scale': 1 } }] })
   }
   const done = job && job.status === 'done' && run && run.robot === robot && job.result
   let view = null
@@ -178,15 +178,11 @@ export function ArenaPage({ robot }) {
     const labels = { base: detail.title, [run.name || 'x']: run.name ? `${detail.title} · ${run.name}` : '' }
     const cards = {}
     const outcomes = {}
-    if (run.hasVariant) {
-      for (const n of names) {
-        cards[n] = ((res.reports && res.reports[n] && res.reports[n].scenes) || []).find((c) => c.id === run.scene)
-      }
-      const row = (res.rows || []).find((r) => r.scene === run.scene)
-      Object.assign(outcomes, row ? row.outcomes : {})
-    } else {
-      cards.base = (res.scenes || []).find((c) => c.id === run.scene)
+    for (const n of names) {
+      cards[n] = ((res.reports && res.reports[n] && res.reports[n].scenes) || []).find((c) => c.id === run.scene)
     }
+    const row = (res.rows || []).find((r) => r.scene === run.scene)
+    Object.assign(outcomes, row ? row.outcomes : {})
     view = { names, labels, cards, result: { cards, outcomes } }
   }
   return (

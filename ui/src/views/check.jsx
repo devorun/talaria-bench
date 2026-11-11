@@ -27,10 +27,28 @@ function Interval({ tip, limit }) {
   )
 }
 
-function Result({ res, robot, move, speed }) {
+const CUSTOM = '__custom__'
+
+// "Go to this pose, hold it, come back": the quickest way to ask "is a 40 degree arm raise safe?".
+function customFrames(c, joints) {
+  const to = {}
+  const back = {}
+  for (const j of joints) {
+    const v = Number(c.angles[j.name] || 0)
+    if (v) { to[j.name] = v; back[j.name] = j.home }
+  }
+  return Object.keys(to).length ? [{ ms: c.ms, hold: c.hold, joints: to }, { ms: c.ms, joints: back }] : null
+}
+
+function customLabel(c, joints) {
+  const bits = joints.filter((j) => Number(c.angles[j.name] || 0)).map((j) => `${j.name} ${Number(c.angles[j.name])}°`)
+  return `custom pose: ${bits.join(', ')}`
+}
+
+function Result({ res, robot, move, speed, payload, label }) {
   const v = VERDICT[res.verdict] || VERDICT.inconclusive
   const seed = res.tip_seeds && res.tip_seeds.length ? res.tip_seeds[0] : null
-  const [trace, tl] = useTrace({ robot, move, speed, seed: seed ?? undefined })
+  const [trace, tl] = useTrace({ robot, ...payload, speed, seed: seed ?? undefined })
   const tr = trace && trace.ok ? trace.trace : null
   const player = usePlayer(traceDuration(tr))
   const [play, setPlay] = useState(null)
@@ -40,7 +58,7 @@ function Result({ res, robot, move, speed }) {
   const loaded = joints.filter(([, l]) => l.peak_pct_p90 >= LOAD_LIMIT)
   const doPlay = async (target) => {
     setBusy(target)
-    setPlay(await api('/play', { method: 'POST', body: { robot, move, speed, target } }))
+    setPlay(await api('/play', { method: 'POST', body: { robot, ...payload, speed, target } }))
     setBusy(null)
   }
   return (
@@ -48,7 +66,7 @@ function Result({ res, robot, move, speed }) {
       <div className={'tb-verdict tb-verdict-' + v.tone} role="status">
         <div className="tb-verdict-word">{v.word}</div>
         <div className="tb-verdict-body">
-          <div className="tb-verdict-title">{robot} / {move}{speed !== 1 ? ` at speed ${speed}` : ''}</div>
+          <div className="tb-verdict-title">{robot} / {label || move}{speed !== 1 ? ` at speed ${speed}` : ''}</div>
           <div>{v.line}</div>
           {loaded.length ? (
             <div>Servo load over {LOAD_LIMIT}% of stall (estimate): {loaded.map(([j, l]) => `${j} ${l.peak_pct_p90.toFixed(0)}%`).join(', ')}</div>
@@ -111,7 +129,7 @@ function Result({ res, robot, move, speed }) {
               <Button busy={busy === 'real'} onClick={() => doPlay('real')}>Play on real robot</Button>
             </div>
             {play ? (
-              play.ok ? <div className="tb-callout tb-tone-green">Playing {play.move} on the {play.target} robot ({play.duration_s.toFixed(1)} s
+              play.ok ? <div className="tb-callout tb-tone-green">Playing {label || play.move} on the {play.target} robot ({play.duration_s.toFixed(1)} s
                 {play.homing_ms ? `, after ${(play.homing_ms / 1000).toFixed(1)} s back to home` : ', from home'}).</div>
                 : <div className={'tb-callout ' + (play.blocked ? 'tb-tone-red' : 'tb-tone-amber')}>{play.blocked ? <strong>Gate: </strong> : null}{play.error}</div>
             ) : null}
@@ -124,18 +142,24 @@ function Result({ res, robot, move, speed }) {
 
 export function CheckPage({ robot, initialMove }) {
   const [moves] = useApi(robot ? `/robots/${robot}/moves` : null)
+  const [detail] = useApi(robot ? `/robots/${robot}` : null)
+  const joints = detail && detail.ok ? detail.joints : []
+  const [custom, setCustom] = useState({ angles: {}, ms: 800, hold: 1000 })
   const [move, setMove] = useState(initialMove || '')
   const [speed, setSpeed] = useState(1)
   const [quick, setQuick] = useState(false)
   const [busy, setBusy] = useState(false)
   const [res, setRes] = useState(null)
-  useEffect(() => { setRes(null); setMove(initialMove || '') }, [robot, initialMove])
+  useEffect(() => { setRes(null); setMove(initialMove || ''); setCustom({ angles: {}, ms: 800, hold: 1000 }) }, [robot, initialMove])
   const list = moves && moves.ok ? moves.moves : []
   useEffect(() => { if (!move && list.length) setMove(list[0].name) }, [list.length])
+  const frames = move === CUSTOM ? customFrames(custom, joints) : null
+  const payload = move === CUSTOM ? { frames } : { move }
+  const label = move === CUSTOM ? customLabel(custom, joints) : null
   const run = async () => {
     setBusy(true)
     setRes(null)
-    setRes(await api('/check', { method: 'POST', body: { robot, move, speed, quick } }))
+    setRes(await api('/check', { method: 'POST', body: { robot, ...payload, speed, quick } }))
     setBusy(false)
   }
   return (
@@ -152,6 +176,7 @@ export function CheckPage({ robot, initialMove }) {
           <label className="tb-field">Move
             <select className="tb-select" value={move} onChange={(e) => { setMove(e.target.value); setRes(null) }}>
               {list.map((m) => <option key={m.name} value={m.name}>{m.name}</option>)}
+              {joints.length ? <option value={CUSTOM}>custom pose…</option> : null}
             </select>
           </label>
           <label className="tb-field">Speed {speed.toFixed(2)}×
@@ -159,11 +184,33 @@ export function CheckPage({ robot, initialMove }) {
               onChange={(e) => { setSpeed(parseFloat(e.target.value)); setRes(null) }} />
           </label>
           <label className="tb-toggle"><input type="checkbox" checked={quick} onChange={(e) => setQuick(e.target.checked)} /> quick (30 worlds; clean moves extend to 60)</label>
-          <Button kind="primary" busy={busy} disabled={!move} onClick={run}>Run preflight</Button>
+          <Button kind="primary" busy={busy} disabled={!move || (move === CUSTOM && !frames)} onClick={run}>Run preflight</Button>
         </div>
-        {busy ? <p className="tb-muted"><span className="tb-spinner" /> simulating {move} in randomized worlds…</p> : null}
+        {move === CUSTOM ? (
+          <div className="tb-custom-pose">
+            <p className="tb-small tb-muted">Go to this pose, hold it, and come back to home. Angles in degrees from home; positive swings
+              the part forward.</p>
+            <div className="tb-row tb-gap tb-wrap">
+              {joints.map((j) => (
+                <label key={j.name} className="tb-field">{j.name} <span className="tb-muted tb-small">({j.min}…{j.max})</span>
+                  <input className="tb-input tb-input-xs" type="number" step="5" min={j.min} max={j.max} value={custom.angles[j.name] ?? 0}
+                    onChange={(e) => { setCustom({ ...custom, angles: { ...custom.angles, [j.name]: e.target.value } }); setRes(null) }} />
+                </label>
+              ))}
+              <label className="tb-field">reach it in (ms)
+                <input className="tb-input tb-input-xs" type="number" step="100" min="100" value={custom.ms}
+                  onChange={(e) => { setCustom({ ...custom, ms: Number(e.target.value) }); setRes(null) }} />
+              </label>
+              <label className="tb-field">hold (ms)
+                <input className="tb-input tb-input-xs" type="number" step="100" min="0" value={custom.hold}
+                  onChange={(e) => { setCustom({ ...custom, hold: Number(e.target.value) }); setRes(null) }} />
+              </label>
+            </div>
+          </div>
+        ) : null}
+        {busy ? <p className="tb-muted"><span className="tb-spinner" /> simulating {label || move} in randomized worlds…</p> : null}
       </div>
-      {res && res.ok ? <Result key={`${move}-${speed}-${res.worlds}`} res={res} robot={robot} move={move} speed={speed} /> : <ErrorBox data={res} />}
+      {res && res.ok ? <Result key={`${label || move}-${speed}-${res.worlds}`} res={res} robot={robot} move={move} speed={speed} payload={payload} label={label} /> : <ErrorBox data={res} />}
     </div>
   )
 }

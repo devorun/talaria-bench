@@ -55,16 +55,19 @@ def test_a_scale_of_one_changes_nothing(spider):
     assert same.hash() == spider.hash()
 
 
-def test_arena_runs_one_robot_on_a_scene(client):
-    code, job = post(client, "/bench", {"robot": "spider8", "scenes": ["ramp_10"], "quick": True})
+def test_arena_runs_one_robot_alone_without_replacing_its_report_card(client):
+    before = get(client, "/robots/spider8/report")[1]["report"]["origin"]
+    code, job = post(client, "/compare", {"robot": "spider8", "scenes": ["ramp_10"], "quick": True,
+                                          "variants": [{"name": "same", "set": {"@scale": 1}}]})
     assert code == 200
     done = wait_job(client, job["job_id"])
     assert done["status"] == "done", done.get("log_tail")
-    cards = done["result"]["scenes"]
-    assert [c["id"] for c in cards] == ["ramp_10"] and cards[0]["runs"] == 10
-    seed = cards[0]["metric"]["median_seed"]
+    card = done["result"]["reports"]["base"]["scenes"][0]
+    assert card["id"] == "ramp_10" and card["runs"] == 10
+    seed = card["metric"]["median_seed"]
     trace = client.post(PREFIX + "/trace", json={"robot": "spider8", "scene": "ramp_10", "seed": seed}).json()
     assert trace["trace"]["frames"] and trace["meta"]["tilt_deg"] == 10
+    assert get(client, "/robots/spider8/report")[1]["report"]["origin"] == before      # a compare saves no report
 
 
 def test_arena_compares_a_scaled_variant_in_the_same_world(client):
