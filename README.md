@@ -20,7 +20,8 @@ makes him move.
   watch both side by side in the same world.
 - Moves Hermes plays on your robot (`robot_play`, `robot_pose`) are screened in simulation first.
 
-Demo video: `<VIDEO LINK>`
+Demo video: https://x.com/Devran1An/status/2120553652175736847 ·
+Article: https://x.com/Devran1An/status/2120555033800348074
 
 ![Gallery, a robot next to its photo, report card, replay, design comparison, Arena, a blocked move and a passing move](docs/img/tour.gif)
 
@@ -207,6 +208,7 @@ Caduceus is Devran's foam-board robot: an ESP32, a PCA9685 driver and four MG90S
 - Results are probabilities across randomized worlds. A PASS lowers the risk; it is not a guarantee.
 - Tested on real hardware: on Caduceus, fast two-arm moves where an arm drags on the table can still tip the robot even when the simulation passes them, because arm-to-surface friction on soft foam is not modelled yet. Use slow moves and keep a hand nearby on first runs.
 - Walking gaits are outside the model's scope today.
+- arms_up_alternating passed simulation but tipped the real Caduceus during testing, because arm-to-table friction on the foam body is not modelled yet.
 - Talaria gates robot_play and robot_pose with exact-motion preflight checks. The automatic return to home, before a move and on robot_stop, is speed-limited (at least 3 s) but not simulated on its own.
 
 ## Security and privacy

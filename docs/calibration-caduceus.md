@@ -44,16 +44,19 @@ arm dragging on the table can tip it and arm-to-surface friction on soft foam is
 * **Added from 3b, because they keep the wave intact:**
   * head centre of mass +3 cm (electronics on top; measured range 2-4);
   * leg joint free play 6.5 deg (measured range 3-10; the play hinge's limit is the stop at the head).
-* **Wave check in 100 fresh worlds** (seeds 1000-1099): 99% pass all wave targets, with 0 falls,
-  roll p90 0.2 deg and pitch p90 8.8 deg. Target was >= 95% no-tip with the body level: **met.**
-* **Sensitivity:** the wave holds at the low and middle measured values (com 2-3 cm, play 3-6.5 deg:
-  99-100%). It breaks at the top of both ranges (com +4 cm and play 10 deg: 34% pass, 10 falls).
+* **Wave check in 100 fresh worlds** (seeds 1000-1099; measured before the numerical fix below): 99%
+  pass all wave targets, with 0 falls, roll p90 0.2 deg and pitch p90 8.8 deg. Target was >= 95%
+  no-tip with the body level: **met.** The published model, after that fix: **100% pass, 0 falls.**
+* **Sensitivity** (before the numerical fix): the wave holds at the low and middle measured values
+  (com 2-3 cm, play 3-6.5 deg: 99-100%). It breaks at the top of both ranges (com +4 cm and play
+  10 deg: 34% pass, 10 falls).
 * **Walking is a declared limitation:** `limitations: [{scope: locomotion, note: ...}]`. The note
   reads "This rigid-body model does not simulate soft foam feet; the bench does not guess here."
   On the firmware walk the model tips backwards in 100% of worlds, while the real robot moves
   ~6 cm forward. The report card shows every scene that needs walking as a grey "OUT OF MODEL
   SCOPE" (not scored) with that note.
-* **Demo moves** (arm gestures; 100 worlds, Caduceus's own world ranges):
+* **Demo moves** (arm gestures; 100 worlds, Caduceus's own world ranges; measured before the
+  numerical fix below, after which `arms_up_both` falls in 40/100 and the other two still in 0):
 
 | move | what it does | falls / 100 |
 |---|---|---|
@@ -72,8 +75,8 @@ arm dragging on the table can tip it and arm-to-surface friction on soft foam is
   * arms_up_alternating: 0/100.
 * **`caduceus_v2`** (design variant, not a robot): tight joints (1.5 deg everywhere) and the
   electronics low inside the head (centre of mass -2 cm); everything else is the same. Wave 100%
-  pass; `arms_up_both` 0/100 falls (vs 41/100 for the real design). The walk is still outside the
-  model's scope (same foam feet).
+  pass; `arms_up_both` 0/100 falls (vs 40/100 for the real design after the numerical fix; 41/100
+  before it). The walk is still outside the model's scope (same foam feet).
 
 ## Earlier calibration experiments (superseded, not the published model)
 
@@ -149,10 +152,10 @@ targets:
 * the original firmware walk falls in 100% (backwards, phase 2): this gait needs the arms to carry
   the robot, and level legs make it tip.
 
-### 3a: video only (superseded by 3b's measurements, values still shipped)
+### 3a: video only (superseded; selected parameters retained)
 
-(At the time of 3b. Today the published model keeps the 3a masses, depths, foam contact, cable and
-firmware timing, but not the 3a leg gap: it uses the "legs carry weight" geometry.)
+(Superseded by 3b's measurements. The published model keeps the 3a masses, depths, foam contact,
+cable and firmware timing, but not the 3a leg gap: it uses the "legs carry weight" geometry.)
 
 #### Summary
 
