@@ -87,7 +87,7 @@ li::before { content: ""; width: 8px; height: 8px; border-radius: 50%; backgroun
     <li>Robot from a template and a few measurements</li>
     <li>Arena benchmark with a report card</li>
     <li>Compare designs before you build</li>
-    <li>Every real move screened in simulation</li>
+    <li>Played moves gated by a simulation check</li>
   </ul>
 </div>
 <div class="foot">MuJoCo &nbsp;·&nbsp; CPU only &nbsp;·&nbsp; hobby servo robots</div>

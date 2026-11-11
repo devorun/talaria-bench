@@ -99,8 +99,8 @@ def pipeline(theme) -> Svg:
 
 
 def gate(theme) -> Svg:
-    s = Svg(1040, 372, theme, "The motion gate: a move is checked in 60 fixed simulated worlds; only an approved move "
-                              "passes the pre_tool_call hook to the virtual or real robot")
+    s = Svg(1040, 372, theme, "The motion gate: a move is checked in 60 fixed simulated worlds; robot_play and "
+                              "robot_pose pass the pre_tool_call hook only with an approved move")
     w, h, gap, y = 176, 132, 40, 14
     cy = y + h / 2
     xs = [i * (w + gap) for i in range(5)]
@@ -125,7 +125,8 @@ def gate(theme) -> Svg:
     s.box(xs[3], by, 2 * w + gap, bh, "A changed move, speed or spec",
           ["has no approval: the hook refuses it", "until a new check passes"])
     s.arrow([(xs[3] + w / 2, by - 5), (xs[3] + w / 2, y + h + 5)], dashed=True)
-    s.note(520, 356, "Simulation-based risk screening, not a safety guarantee.")
+    s.note(520, 356, "Simulation-based risk screening, not a safety guarantee. The return to home is "
+                     "speed-limited, not simulated.")
     return s
 
 

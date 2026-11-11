@@ -18,7 +18,7 @@ makes him move.
 - Compare design variants (longer legs, stronger servos) before you build or print anything.
 - Arena: put a robot and a resized, reweighted or re-servoed version of it on the same ramp, bar or push test and
   watch both side by side in the same world.
-- Every move Hermes sends to your real robot is screened in simulation first.
+- Moves Hermes plays on your robot (`robot_play`, `robot_pose`) are screened in simulation first.
 
 Demo video: `<VIDEO LINK>`
 
@@ -99,9 +99,9 @@ touches the robot's report card.
 
 <p align="center"><picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/diagram-gate-dark.svg">
-  <img src="docs/img/diagram-gate-light.svg" alt="The motion gate: a move is checked in 60 fixed simulated worlds; only an approved move passes the pre_tool_call hook to the virtual or real robot" width="100%">
+  <img src="docs/img/diagram-gate-light.svg" alt="The motion gate: a move is checked in 60 fixed simulated worlds; robot_play and robot_pose pass the pre_tool_call hook only with an approved move" width="100%">
 </picture></p>
-<p align="center"><sub>The motion gate: only a move that passed its check reaches a robot.</sub></p>
+<p align="center"><sub>The motion gate: <code>robot_play</code> and <code>robot_pose</code> send only a move that passed its check.</sub></p>
 
 - **Robot spec.** Parts (box, cylinder, sphere), sizes in cm, masses in g, joints with ranges
   and hobby servo models from a small servo catalog. See [docs/robot-spec.md](docs/robot-spec.md).
@@ -167,9 +167,10 @@ Caduceus was calibrated in [docs/calibration-caduceus.md](docs/calibration-caduc
 </picture></p>
 <p align="center"><sub>The hardware path. Moves travel as data; the firmware never needs reflashing for a new move.</sub></p>
 
-Several layers stand between a move and the servos: the preflight gate, the robot token, the spec-hash
-check, the firmware's own angle and speed limits, and a slow return to home before every move. Together
-they lower the risk; none of them is a guarantee (see [Scope and assumptions](#scope-and-assumptions)).
+Several layers stand between a move and the servos: the preflight gate (for `robot_play` and `robot_pose`),
+the robot token, the spec-hash check, the firmware's own angle and speed limits, and a slow return to home
+before every move. Together they lower the risk; none of them is a guarantee (see
+[Scope and assumptions](#scope-and-assumptions)).
 
 - **Firmware.** `firmware/talaria_robot/` is an ESP32 + PCA9685 sketch. `hermes talaria firmware <robot>
   <folder>` writes the sketch plus a `robot_config.h` generated from the robot spec (I2C pins, servo
@@ -206,11 +207,13 @@ Caduceus is Devran's foam-board robot: an ESP32, a PCA9685 driver and four MG90S
 - Results are probabilities across randomized worlds. A PASS lowers the risk; it is not a guarantee.
 - Tested on real hardware: on Caduceus, fast two-arm moves where an arm drags on the table can still tip the robot even when the simulation passes them, because arm-to-surface friction on soft foam is not modelled yet. Use slow moves and keep a hand nearby on first runs.
 - Walking gaits are outside the model's scope today.
+- Talaria gates robot_play and robot_pose with exact-motion preflight checks. The automatic return to home, before a move and on robot_stop, is speed-limited (at least 3 s) but not simulated on its own.
 
 ## Security and privacy
 
 What Talaria Bench does on your machine and network (the disclosures the Hermes plugin catalog asks for):
 
+- **Robot motion.** Talaria gates robot_play and robot_pose with exact-motion preflight checks. The automatic return to home, before a move and on robot_stop, is speed-limited (at least 3 s) but not simulated on its own.
 - **Files.** It writes only inside the plugin data folder Hermes gives it,
   `$HERMES_HOME/plugin-data/talaria-bench/` (outside Hermes: `~/.cache/talaria-bench/`): your robots and
   their photos, saved moves, preflight approvals, benchmark jobs (command, log, progress), reports and

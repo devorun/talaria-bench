@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 372" width="1040" height="372" role="img" aria-label="The motion gate: a move is checked in 60 fixed simulated worlds; only an approved move passes the pre_tool_call hook to the virtual or real robot" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif">
-<title>The motion gate: a move is checked in 60 fixed simulated worlds; only an approved move passes the pre_tool_call hook to the virtual or real robot</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 372" width="1040" height="372" role="img" aria-label="The motion gate: a move is checked in 60 fixed simulated worlds; robot_play and robot_pose pass the pre_tool_call hook only with an approved move" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif">
+<title>The motion gate: a move is checked in 60 fixed simulated worlds; robot_play and robot_pose pass the pre_tool_call hook only with an approved move</title>
 <defs><marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8b949e"/></marker><marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#3fb950"/></marker><marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#f85149"/></marker></defs>
 <rect x="0" y="14" width="176" height="132" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
 <text x="88.0" y="46" text-anchor="middle" font-size="15.5" font-weight="700" fill="#e6edf3">Hermes writes a move</text>
@@ -40,5 +40,5 @@
 <text x="844.0" y="278" text-anchor="middle" font-size="12.5" fill="#8b949e">has no approval: the hook refuses it</text>
 <text x="844.0" y="295" text-anchor="middle" font-size="12.5" fill="#8b949e">until a new check passes</text>
 <path d="M736.0 217 L736.0 151" fill="none" stroke="#8b949e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-muted)" stroke-dasharray="5 4"/>
-<text x="520" y="356" text-anchor="middle" font-size="13" font-weight="400" fill="#8b949e">Simulation-based risk screening, not a safety guarantee.</text>
+<text x="520" y="356" text-anchor="middle" font-size="13" font-weight="400" fill="#8b949e">Simulation-based risk screening, not a safety guarantee. The return to home is speed-limited, not simulated.</text>
 </svg>

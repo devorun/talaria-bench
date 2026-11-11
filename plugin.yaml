@@ -3,8 +3,9 @@ version: 1.0.0
 manifest_version: 2
 description: >-
   A physics test bench for DIY servo robots. Describe your robot (parts, sizes, masses, hobby servos)
-  and test it in MuJoCo across many randomized worlds; every move gets a simulated preflight (tip chance
-  with a 95% interval, servo load estimates) before it may play on the real robot. No GPU, no CAD.
+  and test it in MuJoCo across many randomized worlds; robot_play and robot_pose need a simulated preflight
+  of the exact move (tip chance with a 95% interval, servo load estimates) before it may play on the robot.
+  No GPU, no CAD.
 author: Devran (devorun)
 homepage: https://github.com/devorun/talaria-bench
 license: MIT

@@ -1,10 +1,42 @@
 # Calibrating Caduceus against video (8 Nov 2026)
 
-Every number on this page comes from simulation. The real robot was only observed on video and
-measured by hand. The final decision comes first, then calibration 3b (with real measurements),
-then 3a (video only).
+Every number on this page comes from simulation, except the lines marked "real robot". During
+calibration the real robot was only observed on video and measured by hand. The published model and
+its results come first, then the final decision that chose it. The earlier calibration experiments
+(3b with real measurements, then 3a from video only) follow under their own heading. Their numbers
+describe earlier versions of the model, not the published one.
 
-## Decision (8 Nov 2026): what `caduceus.yaml` is now
+## The published model
+
+* **File:** `examples/robots/caduceus.yaml` (437 g, four MG90S servos, five parts).
+* **Physics hash** (the spec hash that approvals and the firmware check):
+  `88cab10ab91487a1aa7c49c4705618ee271a460a796f713c2a3031b363793eed` (shown as `88cab10ab914` in
+  the report card).
+* **Date:** the model was chosen on 8 Nov 2026 (see the next section). The file was last edited on
+  9 Nov 2026, for the OLED wiring and appearance fields. These results were re-checked on 11 Nov 2026.
+* **Basis:** the "legs carry weight" geometry, head centre of mass +3 cm, leg free play 6.5 deg,
+  plus the 3a values for masses, depths, foam contact, cable and firmware timing.
+
+Results of the published model (simulation):
+
+| check | worlds | result |
+|---|---|---|
+| preflight `wave` (original firmware wave) | 60 fixed preflight worlds | **PASS**, tips in 0 of 60 (95% interval 0-6%) |
+| preflight `arms_up_alternating` | 60 fixed preflight worlds | **PASS**, tips in 0 of 60 |
+| preflight `arms_up_both` | 60 fixed preflight worlds | **BLOCKED**, tips in 25 of 60 (42%, 95% interval 30-54%) |
+| `wave`, all video targets (no fall, level body, arm rises) | 100 fresh worlds, seeds 1000-1099 | 100% pass, 0 falls |
+| `arms_up_both` | 100 worlds | 40 falls |
+| `arms_up_alternating` | 100 worlds | 0 falls |
+| push test (report card) | 30 worlds | survives a nudge from every side in 100%; 0.2 x body weight from the front tips it (median) |
+| walking scenes (flat, ramps, bars, slippery floor) | - | OUT OF MODEL SCOPE, not scored |
+
+Full report card: [examples/reports/caduceus.report.md](../examples/reports/caduceus.report.md).
+
+On the real robot (10 Nov 2026): the gate held back `arms_up_both`, and a left-arm lift and the wave
+played as checked. `arms_up_alternating` passes in simulation but tipped the real robot, because an
+arm dragging on the table can tip it and arm-to-surface friction on soft foam is not modelled yet.
+
+## How the published model was chosen (Decision, 8 Nov 2026: what `caduceus.yaml` is now)
 
 * **Basis: the "legs carry weight" geometry from 3a.** The legs are 2 mm longer than the arms and
   the foam crushes, so all four feet touch, as measured. This is the geometry that reproduced the
@@ -43,7 +75,15 @@ then 3a (video only).
   pass; `arms_up_both` 0/100 falls (vs 41/100 for the real design). The walk is still outside the
   model's scope (same foam feet).
 
-## 3b: with real measurements (result: targets NOT met, caduceus.yaml values kept from 3a)
+## Earlier calibration experiments (superseded, not the published model)
+
+Everything below is kept as a record of how the model was reached. These runs came before the
+decision above, so their numbers belong to earlier versions of the model, not to the published
+`caduceus.yaml`. For example, the 39% wave pass rate is the 3a fit; the published model passes the
+wave in 100% of worlds (0 of 60 preflight worlds tip). Where the text below says "current" or
+"shipped", it means the model at that time.
+
+### 3b: with real measurements (result: targets NOT met, caduceus.yaml values kept from 3a)
 
 New facts (Devran, 8 Nov):
 * All four feet touch the floor at rest: a card fits under none of them. The leg gap is 0 to -2 mm
@@ -80,8 +120,9 @@ In phase 2 the loaded legs swing back with their feet stuck by friction, so the 
 backwards. The arms then leave the floor, and the robot balances on the 4-6 cm deep leg soles with
 its centre of mass about 23 cm high. Past about 6 deg it falls.
 
-The current `caduceus.yaml` (3a) against the 3b targets, in 100 worlds: wave 39% (60 falls); walk
-0%, with forward median +0.25 cm where 3-9 cm is needed.
+The then-current `caduceus.yaml` (3a) against the 3b targets, in 100 worlds: wave 39% (60 falls); walk
+0%, with forward median +0.25 cm where 3-9 cm is needed. (Earlier model; the published model passes
+the wave in 100% of worlds.)
 
 **What is probably missing.** The real robot does what the rigid model cannot: with all four feet
 down, its arms lift and swing forward, and the loaded legs swing back without tipping it.
@@ -97,7 +138,8 @@ Candidates:
    less (41/400 without a fall) but still comes short of 3 cm. A one-servo nudge test settles this.
 
 A side-view clip of `/ileri?n=2` would decide between these. Until then the 3a fit stays the
-shipped model, and its walk forward distance (~0 cm vs ~6 cm real) is a known error.
+shipped model, and its walk forward distance (~0 cm vs ~6 cm real) is a known error. (Written before
+the decision of 8 Nov above, which replaced the 3a fit and declared walking out of the model's scope.)
 
 **caduceus_v2** (`examples/robots/caduceus_v2.yaml`) is a design variant for step 4's design
 comparison, not a real robot. Changes: legs level with the arms, 1.5 deg play on every joint,
@@ -107,9 +149,12 @@ targets:
 * the original firmware walk falls in 100% (backwards, phase 2): this gait needs the arms to carry
   the robot, and level legs make it tip.
 
-## 3a: video only (superseded by 3b's measurements, values still shipped)
+### 3a: video only (superseded by 3b's measurements, values still shipped)
 
-## Summary
+(At the time of 3b. Today the published model keeps the 3a masses, depths, foam contact, cable and
+firmware timing, but not the 3a leg gap: it uses the "legs carry weight" geometry.)
+
+#### Summary
 
 * **Walk: reproduced.** The calibrated model plays the original firmware walk without falling in
   100 of 100 fresh random worlds. Forward progress stays near zero (median +0.2 cm) and both legs
@@ -131,7 +176,7 @@ targets:
   the walk runs at about 26 deg/s (not 60) and the wave arm takes about 2 s (not 0.4 s) to rise.
   This was the single most helpful finding, and it should be checked on video.
 
-## Inputs and how they were measured
+#### Inputs and how they were measured
 
 The original videos were not in the work folder, so no frame-level measurement was possible. I
 used the frame sheets in `reference/video-frames/` and the photo:
@@ -149,14 +194,14 @@ wave target was split into roll < 5 deg, pitch < 10 deg and |yaw| < 5 deg, inste
 "tilt < 5 deg". The two clips have different backgrounds, so they were recorded on different
 occasions.
 
-## Targets (`examples/robots/caduceus.calibration-3a.yaml`)
+#### Targets (`examples/robots/caduceus.calibration-3a.yaml`)
 
 | move | requirement |
 |---|---|
 | wave | no fall; roll change < 5 deg; pitch change < 10 deg; abs(yaw) < 5 deg; right arm rises >= 2 cm |
 | walk (2 cycles) | no fall; abs(forward) < 3 cm; each leg lifts >= 0.5 cm; *(yaw 15-40 deg: reported, not required, see below)* |
 
-## Model changes made for this step
+#### Model changes made for this step
 
 * Moves get `easing: linear`, which plays like the firmware's `smoothMove`: every joint moves at
   one constant speed and stops when it arrives. Caduceus's wave and walk use it.
@@ -168,7 +213,7 @@ occasions.
 * `calibration.py` (generic: spec + parameter ranges + behaviour targets) and
   `devcli.py calibrate | validate`.
 
-## Method
+#### Method
 
 Latin hypercube sampling with 400 parameter sets per run. Each set runs both moves. A set is
 accepted if both moves meet all their requirements. Runs use 8 worker processes and take about
@@ -201,7 +246,7 @@ python talaria-bench/devcli.py calibrate examples/robots/caduceus.calibration-3a
 python talaria-bench/devcli.py validate examples/robots/caduceus.calibration-3a.yaml --worlds 100 --param step_overhead_ms=3.95
 ```
 
-## Results
+#### Results
 
 **Stage 1:** 16 of 400 accepted (4.0%). The wave alone passed 32%, the walk alone 48%. The two
 parameters that decide acceptance:
@@ -221,8 +266,9 @@ parameters are:
 * the direction of the floor tilt;
 * the left arm's servo offset.
 
-**Chosen nominal values** (`caduceus.yaml`): the medians of the stage-2 accepted sets, with the
-p10-p90 range in brackets.
+**Chosen nominal values** (`caduceus.yaml` at the time of 3a): the medians of the stage-2 accepted
+sets, with the p10-p90 range in brackets. (The published model keeps these except the leg gap and the
+backlash of the legs, see the top of this page.)
 
 | | value |
 |---|---|
@@ -258,13 +304,13 @@ set to the accepted p10-p90 of each parameter, for example friction 0.33-0.63 an
 
 | nominal | leg gap | wave passes | walk passes |
 |---|---|---|---|
-| median of accepted (shipped) | +2.0 mm | 39% | 100% |
+| median of accepted (shipped at the time of 3a) | +2.0 mm | 39% | 100% |
 | most central accepted set | +1.25 mm | 49% | 99% |
-| legs carry weight | -2.0 mm | **100%** (pitch 1.4 deg, yaw < 1 deg) | **0%** (falls backwards) |
+| legs carry weight (the basis of the published model) | -2.0 mm | **100%** (pitch 1.4 deg, yaw < 1 deg) | **0%** (falls backwards) |
 
 Images (simulation, nominal world, side view): `img/caduceus-wave-side.png`, `img/caduceus-walk-side.png`.
 
-## Hypotheses tested and rejected (400 sets each, stage-1 style)
+#### Hypotheses tested and rejected (400 sets each, stage-1 style)
 
 These runs came before the I2C finding, so they used the fast nominal firmware timing. Some also
 used the earlier single "tilt < 5 deg" wave target.
@@ -280,7 +326,7 @@ used the earlier single "tilt < 5 deg" wave target.
 | cable plug point | a pull at the plug point turns the robot | small effect; kept (it is real) |
 | slower firmware (I2C overhead) | computed from the library | **decisive: 0.5% -> 4% -> 16%** |
 
-## What is probably missing, and what would settle it
+#### What is probably missing, and what would settle it
 
 1. **The legs.** The two clips want different leg gaps. Were both clips recorded with the same
    legs (no spacer, pad or re-glue in between)? The spike already had a "spacer" variant. A quick
@@ -294,6 +340,7 @@ used the earlier single "tilt < 5 deg" wave target.
    boxes with soft contact only. Real compliance may let the load move from legs to arms as needed,
    which would be the "both behaviours" mechanism the rigid model lacks.
 
-Consequence for the product: the calibrated Caduceus is conservative about arm gestures. Preflight
-will flag the original wave as a tip risk in about 60% of worlds, while the real robot does it.
-Present this as simulation-based risk screening, never as a guarantee.
+Consequence for the product (3a model, at the time): the calibrated Caduceus is conservative about arm
+gestures. Preflight will flag the original wave as a tip risk in about 60% of worlds, while the real
+robot does it. Present this as simulation-based risk screening, never as a guarantee. (The published
+model no longer has this problem: the wave tips in 0 of 60 preflight worlds.)
