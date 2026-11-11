@@ -125,12 +125,16 @@ def cmd_calibrate(args) -> int:
     print(f"accepted {report['accepted']}/{report['samples']} ({report['acceptance_rate'] * 100:.1f}%); "
           f"per target: " + ", ".join(f"{t} {v * 100:.0f}%" for t, v in report["per_target_pass"].items()))
     targets = list(config.targets)
+
+    def pct(v, unit=""):   # no quotes nested inside an f-string: Python < 3.12 cannot parse them
+        return "-" if v is None else f"{v * 100:.0f}{unit}"
+
     print("\nparameters by how much they decide acceptance (accept rate per quarter of the range):")
     for name in report["deciding_parameters"]:
         tab = report["parameter_tables"][name]
         cells = " | ".join(
-            f"{b['range'][0]:g}..{b['range'][1]:g}: {'-' if b['accept'] is None else f'{b['accept'] * 100:.0f}%'}"
-            f" ({'/'.join('-' if b[t] is None else f'{b[t] * 100:.0f}' for t in targets)})" for b in tab["bins"])
+            f"{b['range'][0]:g}..{b['range'][1]:g}: {pct(b['accept'], '%')}"
+            f" ({'/'.join(pct(b[t]) for t in targets)})" for b in tab["bins"])
         print(f"  {name:20s} spread {tab['spread'] * 100:4.0f}%  {cells}")
     print(f"  (in brackets: pass % of {' / '.join(targets)})")
     if report["accepted_stats"]:

@@ -51,6 +51,14 @@ def _reset_data_dir():
     bench.set_data_dir(None)
 
 
+def set_home(monkeypatch, path: Path) -> Path:
+    """Point the home folder at ``path`` on every OS (Windows reads USERPROFILE, not HOME)."""
+    path.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("HOME", str(path))
+    monkeypatch.setenv("USERPROFILE", str(path))
+    return path
+
+
 @pytest.fixture
 def rt(tmp_path):
     return Runtime(overrides={"data_dir": tmp_path / "data"})
@@ -81,7 +89,7 @@ def approve(rt, robot, move, speed=1.0, verdict="pass", reasons=(), suggestions=
 
 
 def test_register_matches_manifest(tmp_path, monkeypatch):
-    monkeypatch.setenv("HOME", str(tmp_path))
+    set_home(monkeypatch, tmp_path)
     ctx = FakeCtx()
     talaria_bench.register(ctx)
     manifest = yaml.safe_load((PLUGIN_ROOT / "plugin.yaml").read_text(encoding="utf-8"))
@@ -125,7 +133,7 @@ def test_settings_secret_and_data_dir_come_from_hermes(tmp_path, monkeypatch):
 
 
 def test_data_dir_falls_back_outside_hermes(tmp_path, monkeypatch):
-    monkeypatch.setenv("HOME", str(tmp_path))
+    set_home(monkeypatch, tmp_path)
     monkeypatch.setitem(sys.modules, "plugins.plugin_storage", None)     # import fails
     monkeypatch.setitem(sys.modules, "agent.secret_scope", None)
     rt = Runtime()
@@ -429,8 +437,12 @@ def test_full_check_is_the_official_number_the_report_shows(rt, tools):
     assert sum(1 for j in jobs if j["fell"]) == check["tip"]["falls"]
 
 
-def test_robot_define_from_template_with_photo(rt, tools):
-    photo = EXAMPLES / "caduceus_front.jpg"
+def test_robot_define_from_template_with_photo(rt, tools, tmp_path, monkeypatch):
+    # Photos are read only from the home folder (or the Hermes / data folder), so put one there: the
+    # checkout itself is not under the home folder on every machine (D:\a\... on Windows CI).
+    home = set_home(monkeypatch, tmp_path / "home")
+    photo = home / "caduceus_front.jpg"
+    photo.write_bytes((EXAMPLES / "caduceus_front.jpg").read_bytes())
     data = call(tools, "robot_define", {"template": "block_robot", "photo_path": str(photo),
                                         "params": {"name": "my_bot", "arm_length": 23.5, "leg_length": 16,
                                                    "body_width": 16.5, "mass_g": 400, "servo": "MG90S"}})
@@ -442,9 +454,14 @@ def test_robot_define_from_template_with_photo(rt, tools):
     assert est["ok"] and any("estimate" in n for n in est["estimates_and_notes"])
 
 
-def test_robot_define_refuses_bad_photos(rt, tools, tmp_path):
+def test_robot_define_refuses_bad_photos(rt, tools, tmp_path, monkeypatch):
     params = {"name": "p_bot"}
-    outside = call(tools, "robot_define", {"template": "biped4", "params": params, "photo_path": "/etc/hostname"})
+    set_home(monkeypatch, tmp_path / "home")
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes"))
+    elsewhere = tmp_path / "elsewhere" / "photo.jpg"          # a real image, but outside every allowed folder
+    elsewhere.parent.mkdir()
+    elsewhere.write_bytes((EXAMPLES / "caduceus_front.jpg").read_bytes())
+    outside = call(tools, "robot_define", {"template": "biped4", "params": params, "photo_path": str(elsewhere)})
     assert not outside["ok"] and "home folder" in " ".join(outside["problems"])
     fake = rt.data_dir() / "fake.jpg"
     fake.write_text("not an image")

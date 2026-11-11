@@ -24,6 +24,7 @@ PREFIX = "/api/plugins/talaria-bench"
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))                        # Windows reads this one
     monkeypatch.setitem(sys.modules, "plugins.plugin_storage", None)        # outside Hermes: ~/.cache
     monkeypatch.setattr(talaria_bench, "_RUNTIME", None, raising=False)
     spec = importlib.util.spec_from_file_location("talaria_plugin_api_test", PLUGIN_ROOT / "dashboard" / "plugin_api.py")

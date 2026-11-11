@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 import sys
@@ -25,8 +26,12 @@ def test_register_needs_no_heavy_imports(tmp_path):
     code = ("import sys; sys.path.insert(0, sys.argv[1]); from devcli import load_package\n"
             "class Ctx:\n    def __getattr__(self, name):\n        return lambda *a, **k: None\n"
             "load_package().register(Ctx()); print('mujoco' in sys.modules)")
+    # A bare environment with a temporary home (USERPROFILE on Windows, which also needs SYSTEMROOT).
+    env = {"HOME": str(tmp_path), "USERPROFILE": str(tmp_path), "PATH": os.environ.get("PATH", "/usr/bin:/bin")}
+    if "SYSTEMROOT" in os.environ:
+        env["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
     out = subprocess.run([sys.executable, "-c", code, str(ROOT)], capture_output=True, text=True, timeout=60,
-                         cwd=tmp_path, env={"HOME": str(tmp_path), "PATH": "/usr/bin:/bin"})
+                         cwd=tmp_path, env=env)
     assert out.returncode == 0, out.stderr
     assert out.stdout.strip() == "False"
 
